@@ -116,3 +116,87 @@ for SUB-14 to fill.**
 SUB-1 authors **only** these two. The residual human-`sub` shape is **SUB-2's** entry to write, and
 `OI-S5-1`'s reading is **SUB-3's**; neither is SUB-1's to author, and their absence here is correct
 rather than a gap.
+
+---
+
+### SUB-2
+
+## `A-35` — The production learner flow yields a human `sub`
+
+**Status:** `[unconfirmed]`
+**Stands in for:** **C010's `OI-S1-2`**
+(`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:74`–`:83`),
+whose evidence half this package could not close; and, in this package,
+`93_open-items-and-provisional-register.md` § `OI-S1-1`, § `OI-S1-2`, § `OI-S1-3` and § `OI-S2-2`,
+with `96_spike-register.md` § `SPK-S1-1`, § `SPK-S1-2`, § `SPK-S1-3` and § `SPK-S2-2` — the spikes
+designed to close them, **none executed**.
+
+**Assumption:** *"The production learner flow yields a human `sub`. Unverified: the middleware
+resolves `payload.sub || azp`, and the only production authentication visible in the repository is a
+client_credentials grant where Rauthy sets `sub = null`. This is `H5` / `OI-S1-2`, and OUT-5 exists
+to close it on observed evidence rather than carry it forward again."* (Charter assumption 35,
+verbatim.)
+
+> **One clause of the charter's own text is superseded by evidence, and is recorded rather than
+> silently corrected.** The assumption says *"the only production authentication visible in the
+> repository is a client_credentials grant"*. That is no longer accurate: ADR-0001's NEU-909
+> amendment (`docs/adr/0001-oidc-issuer-and-dedicated-as-audience-binding.md:65`, `:67`) makes a
+> **second** production authentication visible in the repository — the manually provisioned static
+> client `claude-web`, which is the claude.ai connector's path and therefore the actual learner
+> path. Registered as `F-S2-1` in `91_findings-register.md`. The assumption's *substance* is
+> unchanged and still unverified; what changed is that the repository now names the shape on which
+> it would be verified, which is why the re-validation trigger below is `OI-S2-2` rather than a
+> generic "any token".
+
+**Owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the
+only party holding a credential for any principal shape and the only party with an authenticated
+claude.ai connector session. No party inside this package can close it; SUB-1 established that
+directly by probing for every credential and finding none (`91_findings-register.md` § `F-S1-2`).
+
+**Tolerance envelope:** The design tolerates **every possible answer**, and this is a deliberate
+property rather than good luck. Because principal kind is determined by the *presence* of `sub`
+rather than by the audience shape (`decision-records/DR-C11-S2-2_principal-kind-and-the-service-principal-disposition.md`),
+the identity rule is total: it tolerates a human `sub` on all three shapes, on some, or on none; it
+tolerates the answer differing per shape; and it tolerates the answer changing after a Rauthy
+upgrade, at the cost of re-running the re-check below. It tolerates the question remaining open
+indefinitely **provided every design resting on it states its conclusion as conditional** — which
+`02_identity-the-learner-key-and-principal-kind.md` §3 and §10 do, per shape.
+
+What the envelope does **not** tolerate is the population remaining unknown **at the moment SUB-6
+executes a backfill**: choosing a target subject for existing production rows requires knowing which
+value the operator actually authenticates as, and OUT-2 already requires that target to be
+*"explicitly verified against a real token before it is written"*.
+
+**Invalidating outcome:** Either of two findings breaks the decisions resting on this entry.
+
+1. **No principal shape yields a human `sub`.** Then no production principal is ever kind `user`, no
+   learner key is ever issued, per-principal confinement is definitively not per-learner
+   confinement, and OUT-2's backfill has no target to verify. The ownership design would need a
+   learner identity sourced from somewhere other than the token, which is outside `A-28`'s envelope
+   and routes a recorded amendment to `NEU-895` rather than proceeding.
+2. **The same human presents different `sub` values on different shapes** — for example arriving
+   once through `claude-web` and once through a DCR client, with distinct subjects. Then one person
+   holds two learner keys, the key is not per-learner, and `DR-C11-S2-1`'s choice fails on its own
+   terms. This is the sharper of the two, because it is invisible at `n = 1` and would surface only
+   after a second access path is used.
+
+**Re-validation trigger:** **`OI-S2-2` closes** — a decoded, redacted claim set is captured from a
+real authenticated `claude-web` connector session and appended to `96_spike-register.md`, with `sub`
+recorded as present-and-human-identifying, present-and-opaque, or absent, and the grant type stated.
+`OI-S1-1` or `OI-S1-3` closing fires a partial re-check for its own shape. On any of these events,
+re-check: this entry's status; `02_identity-the-learner-key-and-principal-kind.md` §3's second table
+and §10's per-shape answer; OUT-5's outcome-register row, whose measured result is currently
+**not met**; C010's `OI-S1-2`, which may then close; and `R-S2-2`, whose severity depends on what the
+`client_credentials` grant actually returns.
+
+---
+
+**SUB-2 register totals at revision 1:** one stand-in entry, `A-35`, continuing the charter's own
+assumption numbering. It carries a named owner and an observable re-validation trigger, and
+**neither is left blank for SUB-14 to fill**.
+
+**The residual is not confined to one shape, and is not narrowed to look tidier.** The charter
+anticipated a stand-in *"confined to the shape that could not be obtained"*. **Zero** of the three
+shapes were obtained, so this entry spans all three. Narrowing it to fewer than the evidence supports
+would be a fabrication in the opposite direction from the one the discipline usually guards against,
+and it is declined for the same reason.

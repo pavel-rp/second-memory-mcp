@@ -379,9 +379,11 @@ rule in §3 is a design position; nothing implements it here.
 - **Caps:** `CAP-S2-1` (`94_caps-and-incomplete-scope.md`).
 - **Stand-ins:** `A-35` (`95_stand-in-assumption-register.md`), continuing the charter's assumption
   numbering.
-- **Spikes:** `SPK-S2-1`, `SPK-S2-2` (`96_spike-register.md`).
-- **Completeness-gate rows:** `G-S2-1` … `G-S2-10` (`97_package-completeness-gate.md`), this
-  sub-task's own only. The `G-S2-<k>` family is fixed in `DR-C11-S2-3`.
+- **Spikes:** `SPK-S2-1` … `SPK-S2-3` (`96_spike-register.md`), one per new open item, all designed
+  and **none executed**.
+- **Completeness-gate rows:** `G-S2-1` … `G-S2-15` (`97_package-completeness-gate.md`), this
+  sub-task's own only — **14 met, 1 not met** (`G-S2-6`). The `G-S2-<k>` family is fixed in
+  `DR-C11-S2-3`.
 - **Glossary:** `learner key`, `principal kind` (`docs/GLOSSARY.md`, appended).
 
 ## 15. What this chapter does not establish

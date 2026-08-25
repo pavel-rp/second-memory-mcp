@@ -49,3 +49,41 @@ all eight registers, the nineteen-or-twenty-row outcome-register count, the fift
 count, or the findings register's both-directions enumeration over eleven outcomes. Those are
 **SUB-14's** at position 15 and **SUB-17's** at position 16, and every one of them ranges over
 artifacts that do not exist yet.
+
+---
+
+### SUB-2
+
+**Id family.** SUB-1 took `G-1` … `G-15` as a flat run. A flat next-free-number scheme cannot be
+computed by an author who cannot see the other sub-tasks' entries — the failure
+`DR-C11-S1-3` rejected alternative 4 for — and sibling sub-tasks are authoring against this file
+concurrently. SUB-2's rows are therefore **`G-S2-<k>`**, scoped to the authoring sub-task exactly as
+the other per-sub-task id families are. Fixed in
+`decision-records/DR-C11-S2-3_provenance-persistence-and-parallel-safe-id-families.md`; SUB-14
+(NEU-1007) may renumber.
+
+| # | Item | Disposition | Evidence / cap |
+| --- | --- | --- | --- |
+| `G-S2-1` | A mapping from token shape to learner key covers all three principal shapes, and every token yields exactly one defined learner key or one defined rejection, with **no case falling through to the raw `sub \|\| azp` expression**. | **met** | `02_identity-the-learner-key-and-principal-kind.md` §3 — three mutually exclusive, jointly exhaustive conditions over the `(sub, azp)` product; **0** fall-throughs. All three shapes placed in the second table with an explicit evidence status. |
+| `G-S2-2` | The **absent**, **changed** and **re-used** claim cases each produce a stated, distinct outcome. | **met** | `02_…md` §4 — three cases, three distinct outcomes: no key; no automatic merge; undetectable and carried as `R-S2-1`. |
+| `G-S2-3` | Check `I5` is applied to the proposed mechanism and shown to be **evaluable**, with every consumer of the identity value able to distinguish principal kinds or documented as unable to with a named residual owner. | **met** | `02_…md` §7 — both limbs have an input; **0** consumers documented as unable, so **0** residual owners named on that clause. Stated as *evaluable, not passing* — `I4` still fails first and masks it. |
+| `G-S2-4` | `OI-S5-2` carries an explicit disposition, discharged against its own resolving event. | **met** | `02_…md` §8 and `93_open-items-and-provisional-register.md` — **closed**, all four clauses of `../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:221` discharged individually. |
+| `G-S2-5` | C010's `OI-S1-2` carries an explicit disposition citing the gate reassignment at `90_…md:615`; the unedited `Owner:` line at `90_…md:81` is noted **once** as a convention artefact; **no ownership finding is routed against it**. | **met** | `02_…md` §9 and `93_open-items-and-provisional-register.md`. Reassignment cited; `:81` noted as a convention artefact; **zero** ownership findings routed — `91_findings-register.md` contains none. |
+| `G-S2-6` | C010's `OI-S1-2` is recorded as **closed with the observed value**. | **not met** | **No token was observed, for any shape**, so there is no observed value to close it with. Registered as `F-S2-3` in `91_findings-register.md`, with consequence, owner and escalation route. Owner: **the creator, as sole maintainer and sole operator**, escalating to **`NEU-896`** at convergence. Closable by `OI-S2-2`, `OI-S1-1` or `OI-S1-3`. |
+| `G-S2-7` | The residual human-`sub` question is confined to the named shapes SUB-1 could not obtain, cites its open items, and carries a stand-in entry with a **named owner** and a **re-validation trigger**. | **met** | `95_stand-in-assumption-register.md` § `A-35` — owner and observable trigger both present, neither blank. **Zero** shapes were obtained, so the residual correctly spans **all three**; that it is not narrower is stated in `02_…md` §10 rather than presented as a tidier result. |
+| `G-S2-8` | Outcome-register rows for **OUT-1, OUT-5 and OUT-6** are authored here, each carrying the outcome, its resolving evidence and its **success measure**. | **met** | `90_outcome-register.md` § SUB-2 — three rows, three success measures, three measured results. **OUT-5's measured result is reported as NOT MET**; the row and its measure exist, which is what this item asks. |
+| `G-S2-9` | Every residual exposure SUB-2 states carries a risk-register entry with a severity, a mitigation, a named owner and an escalation route. | **met** | `92_risk-register.md` § SUB-2 — `R-S2-1` (High), `R-S2-2` (Medium), `R-S2-3` (Medium), all four fields present on each. **Zero charter `R<n>` rows**, correctly: no § Risks row names OUT-1, OUT-5 or OUT-6 (charter assumption 48). |
+| `G-S2-10` | A review against ADR-0001's stated expiry conditions is recorded. | **met** | `02_…md` §11 — all four of ADR-0001's named conditions reviewed; none invalidates the kind rule, two would widen the key, and the widening is pre-argued at `decision-records/DR-C11-S2-1_the-persisted-learner-key.md` rejected alternative 5. |
+| `G-S2-11` | No file under `src/`, `drizzle/` or any deployment configuration is modified. | **met** | `02_…md` §13 — `git diff --name-only origin/develop` lists files only under this package directory and `docs/GLOSSARY.md`. |
+| `G-S2-12` | Every relative citation SUB-2 writes resolves. | **met** | `node_modules/.bin/tsx scripts/check-citation-paths.ts` run locally at cutoff `86fb38a`: C011 reports **0 non-resolving**, unchanged from SUB-1's baseline. Enforcement remains voluntary — C011 is not in the checker's gated list, capped as `CAP-S1-2` and owned by SUB-14. |
+| `G-S2-13` | The settled tool-surface figure **46 registered / 43 gated / 3 exempt** is used, and the superseded miscount appears nowhere as a codebase fact. | **met** | `02_…md` §3 refers to *"the three gate-exempt tools"* only, consistent with the settled figure. The superseded numeral appears in no SUB-2 file. |
+| `G-S2-14` | C010 decisions are consumed with the source cited, and any contradiction is routed to `NEU-895` rather than silently resolved. | **met** | `02_…md` §12 — four checks run (`DR-C10-S8-2`, `I5`, `NEU-850`'s `OUT-2`, `A-28`'s envelope), all returned empty. **No amendment routed.** Recorded so SUB-17 can see the check ran rather than infer it from an absence. |
+| `G-S2-15` | Any new domain term gets a `docs/GLOSSARY.md` row in the same change. | **met** | `docs/GLOSSARY.md` — `learner key` and `principal kind` appended. `subject` is never used bare in any SUB-2 file. |
+
+**SUB-2 rows: 15. Met 14; not met 1** — `G-S2-6`, which names what is missing, why, and its owner.
+
+**What SUB-2 does not assert here.** Nothing about band placement, cross-register consistency across
+all eight registers, the outcome register's total row count, the risk register's total count, or the
+findings register's both-directions enumeration. Those are **SUB-14's** at position 15 and
+**SUB-17's** at position 16. In particular SUB-2 asserts only that **its own** rows are present and
+correctly disposed — not that the gate as a whole is satisfiable.
