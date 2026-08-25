@@ -371,3 +371,77 @@ OUT-15. Three open, one partially mitigated; every non-mitigated status names it
 residual's owner, and every entry carries a severity, a mitigation, a named owner and an escalation
 route. **Zero second records** — `R13` and the charter's `R2` are cited, not restated, and
 `OI-S1-9`, `OI-S15-3` and `OI-S3-1` are consumed by citation from their single owning records.
+
+---
+
+### SUB-8
+
+**Zero charter `R<n>` rows are authored here, correctly.** **No row of the charter's fifteen-row
+§ Risks table names OUT-10 or OUT-11 as its owning outcome** (charter assumption 48), so this
+sub-task has no charter row to author and its absence from the fifteen-row mapping above is correct,
+not a routed gap. The four entries below are residual exposures SUB-8 raises **itself**, in the
+sub-task-scoped form `R-S8-<k>` fixed by
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md` and already used by SUB-15, SUB-2
+and SUB-16. Nothing above this line is touched.
+
+**Two risks deliberately not raised**, because each is already recorded exactly once and the package
+carries one id per fact. That the whole design rests on `n = 0` evidence is **`R13`** (OUT-18,
+SUB-1), cited in the mitigations below. That erasure completes on paper while a copy survives is the
+charter's § Risks row **`R2`**, owned by OUT-12 and **authored by SUB-9** at position 11; `R-S8-4`
+below is about the *absence of a mechanism to erase with at all*, which is a different exposure, and
+the pre-cutover instance of `R2` is already `R-S16-1`, cited and not restated.
+
+## `R-S8-1` — A learner withdraws consent, almost nothing they care about changes, and the product looks compliant while doing so
+
+- **Risk:** Consent covers three severable purposes and nothing else (`08_consent-and-what-a-learner-can-export-and-erase.md` §3). A learner who withdraws consent — reasonably expecting their material, answers and history to stop being processed — will find that **thirty of thirty-three categories are unchanged**, because they never rested on consent. The design is right and the *word* is misleading: "withdraw consent" is understood by the person using it as "stop using my data", and here it means "stop three secondary uses". A product that presents a consent toggle and honours it exactly as specified can therefore leave a learner materially misinformed about what just happened, **while every artifact in this package reports success**.
+- **Severity:** **High** — it is not a defect a later audit catches, because nothing is broken. It is a mismatch between a correct mechanism and a reasonable expectation, and the failure surfaces only when a learner acts on the wrong belief — most damagingly by withdrawing consent *instead of* requesting erasure and believing their data is gone.
+- **Owning outcome:** **OUT-10** — the consent boundary, which is where the scope of withdrawal is set and therefore where the gap between the word and the effect is created.
+- **Named owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who controls what a learner is actually shown at the moment of withdrawal, which is where this risk is either mitigated or realised.
+- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether a product may present a consent surface whose scope is this much narrower than the term implies; **additionally the named owner of `OI-S3-1`**, cited and not duplicated, because whether the boundary is drawn in the right place at all rests on the lawful-basis determination this package does not make.
+- **Mitigation:** **By disclosure and by structure, not by mechanism.** The boundary is stated in **both** directions with every purpose carrying an explicit yes/no and every `no` naming its alternative basis (§4); the withdrawal walk enumerates all thirty-three categories so the small effect is visible as a count rather than inferable (§6); erasure is defined as a **separate act with a separate scope and its own deadline** (§7–§9), so the two are not conflated in the design even if they are in a learner's head; and the chapter states in terms that *withdrawing consent does not delete your account or your study material*. What is **not** mitigated is the presentation: nothing in this package controls what a learner reads next to the toggle, and no such surface exists to control.
+- **Mitigation status:** **Partially mitigated.** The design half is complete and the boundary is unambiguous on the page. **Residual, named:** the learner-facing presentation of withdrawal — the wording, and whether the erasure route is offered alongside it — owned by the creator as sole operator. It cannot be closed inside this package, because there is no consent surface in the product to word (`F-S8-4`), and `R13`'s `n = 0` label applies in full: no learner has ever been asked, so no misunderstanding has ever been observed either.
+
+---
+
+## `R-S8-2` — Export completeness is measured against the inventory, so a store the inventory missed is exported by nobody
+
+- **Risk:** `DR-C11-S8-2` scopes export by SUB-3's inventory rather than by the database, deliberately — a schema walk would miss the three derived-never-persisted categories, the ten process-local structures and both copy classes. The cost is that **the export is exactly as complete as the inventory is**. A store that exists and appears in none of `LD-S3-1` … `LD-S3-32` is not merely un-exported; it is invisible to the completeness check that certifies the export complete, so the check returns **25 of 25** and is wrong.
+- **Severity:** **Medium** — the inventory was built by three independent enumerations that had to agree, cross-checked bidirectionally against C010's 45 categories, and published with a falsifier (`03_learner-data-inventory-and-classification.md` §11), so the base rate of a miss is low. It is not Low, because the falsifier **fired once during SUB-3's own work** — six process-local structures beyond the four its scope named (`91_findings-register.md` § `F-S3-2`) — which is direct evidence that the enumeration is missable, and because one of the six admitted then (`LD-S3-25`) is precisely a copy no `DELETE` reaches.
+- **Owning outcome:** **OUT-11** — the export design, which is where completeness is defined and therefore where an inherited gap in the definition would first have effect.
+- **Named owner:** **SUB-14** (NEU-1007), which owns the package's completeness assembly and is the party positioned to check the inventory against later chapters; **co-named the creator, as sole maintainer and sole operator**, who is the only party who could confirm from the running deployment that no undeclared store exists — which is `OI-S1-4`, cited and not re-raised.
+- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether an export duty may be certified complete against a document rather than against a system; **additionally SUB-17** (NEU-1008), whose completeness audit runs the last check before publication.
+- **Mitigation:** **Inherited, and stated as inherited.** SUB-3's falsifier remains standing and unretired — *"this inventory is falsified if any reader can name a store … that appears in none of `LD-S3-1` … `LD-S3-32`"* — and this chapter's export scope inherits it verbatim: naming such a store falsifies the export's completeness in the same act. The arithmetic is published with its subtrahend named by id (32 − 8 = 24, +1 = 25), so a reader who disagrees can name the entry they would move rather than having to reconstruct the count. What is **not** mitigated is the underlying dependency: nothing in this chapter re-derives the inventory, and re-deriving it would have been the back-edge revision charter assumption 50 forbids.
+- **Mitigation status:** **Partially mitigated.** The dependency is disclosed and the falsifier is carried forward rather than dropped. **Residual, named:** whether the declared surface is the real one, which is **`OI-S1-4`** (SUB-1), owned by the creator as sole operator; and the standing possibility that the process-local enumeration — which rests on a manual read plus C010's independent agreement, with **no** mechanical enumerator (`CAP-S3-1`) — is still short. **No claim is made that the inventory is complete**; the claim is that the export is complete against it.
+
+---
+
+## `R-S8-3` — `deadline_at` now has a value, nothing emits a proof to measure against it, and the signal reads as working
+
+- **Risk:** `DR-C11-S16-3` left `deadline_at`'s value to this sub-task, and §9.1 supplies it. `SIG-S16-3` therefore moves from *fully specified and not yet evaluable* to **evaluable in principle**. It does **not** move to *working*: `16_attribution-and-detection.md` §4 records `ME-S16-6` — **no completion-proof store, no `propagation_id`, and no propagation emits anything**. The risk is that the change of state is read as the removal of the blocker. A later reader meeting a detection matrix whose last `[unconfirmed]` threshold now carries a number can reasonably conclude the stalled-propagation signal is live, when what exists is a threshold with no input — and a signal with no input **fails silently**, reporting nothing rather than reporting that it has nothing.
+- **Severity:** **Medium** — the misreading requires a reader to stop at the threshold column and not reach `ME-S16-6`, which the two documents make reasonably hard. It is not Low because the failure mode is a **false assurance about an erasure guarantee**, and because supplying the value is precisely the act that makes the row look finished.
+- **Owning outcome:** **OUT-11** — this outcome sets the deadline, so the state change and the exposure it creates are raised here rather than left for a reader to infer from a threshold that quietly filled in.
+- **Named owner:** **SUB-9** (NEU-1003) for the emission, under OUT-12 — `ME-S16-6` names it; **the creator, as sole maintainer and sole operator**, for the store the proof would live in, which does not exist on the deployment.
+- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether a package may report a detection capability as complete when its input is unbuilt; **additionally SUB-12** (NEU-1004), whose gate register must not record this signal as a measurable gate on the strength of the threshold alone.
+- **Mitigation:** **By explicit statement, at every point the value is used.** §9.1 states *"evaluable in principle and still unemitted"* in terms and cites `ME-S16-6` for the gap; OUT-11's outcome-register row repeats it rather than leaving it to the chapter; and `DR-C11-S8-2` consequence 1 records the same distinction a third time, deliberately, because this is the claim most likely to be over-read. The deadline is additionally carried as the stand-in `95_stand-in-assumption-register.md` § `A-S8-1`, so a reader meeting the number meets its provenance with it. What is **not** mitigated is the emission: nothing in this package emits a proof, and nothing in it may — that is a `src/` change.
+- **Mitigation status:** **Open.** No proof is emitted and no store exists; the sub-task that owns the emission runs at position 11. **Residual, named:** `ME-S16-6`, owned by **SUB-9** (NEU-1003); and the deadline's own provenance, carried as `A-S8-1`, whose re-validation trigger is `OI-S3-1` closing. **Nothing here claims the signal has ever run** — `R13`'s `n = 0` position and `CAP-S16-1`'s uncalibrated-threshold cap both apply unchanged, and neither is restated.
+
+---
+
+## `R-S8-4` — The erasure duty this outcome states exceeds the erasure surface the product has, by an order of magnitude
+
+- **Risk:** §8 dispositions thirty-three categories, thirteen of them `delete` or `cascade`. The product exposes **two** delete paths to a user-facing tool — `delete_chunk` and `delete_note` — and **no export surface of any kind**. There is no `delete_topic`, no `delete_session`, and no way to delete an attempt or an answer; four further deletion methods are defined on a port, implemented in the adapter, and called from nowhere (`91_findings-register.md` § `F-S8-3`). A published duty with no mechanism behind it is a specific hazard rather than a general one: it is the document a later charter will cite as evidence that erasure is *designed*, and design is what it is — the reachable surface covers **three** of the thirteen.
+- **Severity:** **High** — because the gap is not a rough edge but the majority of the duty, because `deleteExpired()`'s unwired status means one store grows without bound today with no scheduler that could ever call it (§10.3), and because the same document that states the duty is the one a reader will take as evidence it can be discharged.
+- **Owning outcome:** **OUT-11** — the erasure design, which is where a duty is stated and therefore where the distance between duty and capability is created.
+- **Named owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who can authorise the `src/` work; **co-named SUB-13** (NEU-1006), which authors the DDL and migration plan and is the nearest sub-task to the mechanism.
+- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether the erasure mechanism is built and by which charter — this package may not change `src/` by constraint, so the decision is not one it can take; **additionally SUB-12** (NEU-1004), for which *"a stated duty with no control behind it"* is a gate that cannot be made measurable and is therefore its own blocking trigger.
+- **Mitigation:** **By audit-before-design, and by refusing the more flattering framing.** The purge audit (§10) was run **before** the disposition table was written rather than after, so the design is stated against a known surface; the chapter says in terms that *"the erasure design in §8 is a specification, not a description of a capability"*; the reachable-versus-dispositioned counts are published as **three of thirteen** rather than left implicit; and OUT-11's outcome-register row carries the same caveat so the gap is visible to a reader who never opens the chapter. What is **not** mitigated is the absence itself: building an erasure path is a `src/` change and is outside this package's scope by constraint.
+- **Mitigation status:** **Open.** No mitigation is in place, and none is available to this sub-task. **Residual, named:** the entire mechanism gap, owned by the creator as sole operator with SUB-13 co-named; and `deleteExpired()`'s unbounded accumulation of expired `context_tokens` rows, whose production population is **unobserved** — that is `OI-S1-7` (SUB-1), cited and not re-raised. **No row count is asserted.**
+
+---
+
+**SUB-8 register totals at revision 1:** four entries — `R-S8-1` (High), `R-S8-2` (Medium),
+`R-S8-3` (Medium), `R-S8-4` (High). **Zero charter `R<n>` rows**, correctly: no § Risks row names
+OUT-10 or OUT-11. Two open, two partially mitigated; every non-mitigated status names its residual
+and that residual's owner, and every entry carries a severity, a mitigation, a named owner and an
+escalation route. **Zero second records** — `R13`, the charter's `R2`, `R-S16-1`, `CAP-S16-1`,
+`OI-S1-4`, `OI-S1-7` and `OI-S3-1` are each consumed by citation from their single owning records.

@@ -165,3 +165,44 @@ limb one of its resolving event and routes it; recording the closure is
 `SUB-10 of C010 (NEU-984)`'s. And **no QA pass is claimed**: no capability owns the `qa-execution`
 surface, so the autonomous QA phase is a genuine Core Article 8 no-op rather than a skipped gate,
 exactly as `README.md` § "Verification note" records for the package.
+
+---
+
+### SUB-8
+
+**Id family.** SUB-8's rows are **`G-S8-<k>`**, scoped to the authoring sub-task on the scheme SUB-2
+fixed in `decision-records/DR-C11-S2-3_provenance-persistence-and-parallel-safe-id-families.md`. The
+flat `G-<n>` run SUB-1 and SUB-3 used cannot be computed by an author who cannot see a concurrently
+authoring sibling's entries, and a sibling **was** authoring against this file concurrently with this
+sub-task — SUB-4 (NEU-996), whose section immediately above landed on `develop` while this one was
+being written and which **independently chose the same scoped form**, `G-S4-<k>`. Three sub-tasks now use the
+scoped scheme (SUB-2, SUB-4, SUB-8), two used the flat run (SUB-1, SUB-3), and two wrote no gate rows
+at all (SUB-15, SUB-16). **SUB-14 adjudicates**; the disagreement is already recorded in SUB-2's
+section above and nothing above this line is touched.
+
+| # | Item | Disposition | Evidence / cap |
+| --- | --- | --- | --- |
+| `G-S8-1` | Consent state is placed against C010's authority matrix with **exactly one** authority, consistent with the `08_…md`-as-revised-by-`10_…md` revision. | **met** | `08_consent-and-what-a-learner-can-export-and-erase.md` §2. **1 of 1** authority — `CMP-S4-7`, under **clause 2** of the ordered first-match-wins rule; **0** split. The revision is cited in the form `10_…md` itself fixes. `DR-C11-S8-1` records clause 5 as rejected alternative 3 and a split authority as rejected alternative 4. Neither C010 matrix is edited. |
+| `G-S8-2` | The withdrawal walk enumerates **every** affected category of SUB-3's inventory with its resulting behaviour. | **met** | §6 — **33 of 33** rows (SUB-3's 32 plus `LD-S8-1`); **0** omitted. **3** affected, and the smallness of that number is reported as the result rather than smoothed. |
+| `G-S8-3` | For every processing purpose the package states whether consent governs it, so the negative boundary is as explicit as the positive one. | **met** | §3 and §4 — **14 of 14** purposes carry an explicit yes/no; **3** yes, **11** no; every `no` names the basis that carries it instead. **0** unstated. |
+| `G-S8-4` | The two log tables carry the classification SUB-16 determined, with their own obligation, deadline and any named retention exception — never the unattributed reading silently retained. | **met** | §7.3 (export: in scope for `user` rows, labelled partial), §8 and §8.2 (erasure: `delete` post-cutover, **`unreachable`** pre-cutover), §9 (retention: exception #4 for `LD-S3-16`; a stated 30-day position for `LD-S3-17`, discharging what `R-S16-4` named SUB-8 for). `DR-C11-S16-2` is consumed, not re-decided. |
+| `G-S8-5` | A purpose resting on consent that could not actually be withdrawn is **reported as an OUT-10 finding with a named owner**, not reconciled in prose. | **met** | §4.1 and `91_findings-register.md` § `F-S8-1` — operational logging, failing withdrawability in **three** independent ways, with a named owner and `NEU-986` co-named. **0** absorbed into prose. |
+| `G-S8-6` | The consent category's classification entry carries **every field of SUB-3's published shape, checked field for field**, plus its retention/erasure position after withdrawal, and is consumable by this sub-task's export-completeness check and SUB-9's unowned-copy audit — with **zero** back-edge edits to SUB-3's inventory. | **met** | §5 — `LD-S8-1`, **7 of 7** fields in SUB-3's own order (`03_learner-data-inventory-and-classification.md` §1) plus field 7. Consumed by §7.2's union as the *"plus the consent category"* term. **0** back-edge edits: `03_…md` is unmodified by this sub-task, and `git diff --numstat` shows it untouched. The id is `LD-S8-1`, deliberately not `LD-S3-33`. |
+| `G-S8-7` | A table-top export produces a **learner-readable** artifact, complete against every category SUB-3 marks as the learner's plus the consent category — **zero** unaccounted for. | **met with cap** | §7.1 (seven stated properties, five of them readability), §7.2 (**32 − 8 = 24; 24 + 1 = 25**, subtrahend named by id), §7.3 (the table-top, sub-counts 9 + 5 + 3 + 2 + 5 + 1 = 25 ✓). **0** categories unaccounted for. **Capped by `CAP-S8-1`:** the table-top is a **paper exercise over the declared schema** — no database was read and no artifact was rendered — and it is reported as one rather than as a produced export. |
+| `G-S8-8` | Every retention exception carries a justification, a time bound, an owner and a stated basis; **zero** are indefinite; the consent record's own position is audited **as one of them**; and one that cannot be given all four is an **OUT-11 blocking finding**. | **met** | §9 — **6** audited, **5 pass**, **1 fails**. **0** indefinite exceptions accepted. The consent record is **exception #1**, audited and **not exempted for being the package's own**. The failure is `91_findings-register.md` § `F-S8-2`, recorded **blocking** with an owner and a resolving event. |
+| `G-S8-9` | The controller/processor and lawful-basis question carries **no** open item, finding or register entry restating it here — only the citation to SUB-3's single record by its stable id — while this sub-task's **own** cross-border-transfer determination appears as a separate named open item with its own id and owner. | **met** | `93_open-items-and-provisional-register.md` § SUB-8 — **zero** second records; `OI-S3-1` cited in `08_…md` §0, §5, §9 and §15 and in both decision records. **`OI-S8-1`** is raised with its own id, its own owner and its own resolving event, and carries an explicit three-way why-this-is-not-a-second-record-of `OI-S1-9` / `OI-S3-1` / `OI-S16-1`. Its **shape collision with C010's `OI-S8-1` is disclosed**, not renumbered. |
+| `G-S8-10` | The codebase purge audit states which mechanisms exist, which are wired and what each requires, with `deleteExpired()`'s unwired status recorded **explicitly**. | **met** | §10.1 (nine-row table), §10.2, §10.3. `deleteExpired()` — **zero call sites in `src/`** — recorded explicitly, and **three further** unwired deletion methods surfaced, reported as `F-S8-3` rather than absorbed. Charter assumption 16's *"only purge path"* is confirmed for a **bulk/sweep** purge and shown narrower than the deletion surface. §10.3 confirms **two** log-flush timers and **no** purge timer. |
+| `G-S8-11` | OUT-10's and OUT-11's outcome-register rows are authored here, each carrying the outcome, its resolving evidence and its **success measure**; and every residual exposure this sub-task states carries a risk-register entry with a severity, a mitigation, a named owner and an escalation route. | **met** | `90_outcome-register.md` § SUB-8 — two rows, two success measures, two measured results. `92_risk-register.md` § SUB-8 — `R-S8-1` (High), `R-S8-2` (Medium), `R-S8-3` (Medium), `R-S8-4` (High), all four fields present on each. **Zero charter `R<n>` rows**, correctly: **no § Risks row names OUT-10 or OUT-11** (charter assumption 48). |
+| `G-S8-12` | No file under `src/`, `drizzle/` or any deployment configuration is modified, and every relative citation this sub-task writes resolves. | **met** | `08_…md` §13 — `git diff --name-only origin/develop` lists files only under this package directory and `docs/GLOSSARY.md`; **zero** under `src/`, **zero** under `drizzle/`. `node_modules/.bin/tsx scripts/check-citation-paths.ts` run locally at cutoff `d2e2b55`: C011 reports **0 non-resolving**, unchanged from the baseline. Enforcement remains voluntary — C011 is not in the checker's gated list, capped as `CAP-S1-2`, owner SUB-14. |
+
+**SUB-8 rows: 12. Met 11; met with cap 1; not met 0.** The single capped row names what is limited,
+why, and its owner.
+
+**What SUB-8 does not assert here.** Nothing about band placement, cross-register consistency across
+all eight registers, the outcome register's final row count, the fifteen-row risk-register count, or
+the findings register's both-directions enumeration — those are **SUB-14's** at position 15 and
+**SUB-17's** at position 16. In particular SUB-8 asserts only that **its own** rows are present and
+correctly disposed, not that the gate as a whole is satisfiable. Nothing is asserted about whether
+SUB-9 in fact consumes `LD-S8-1` or disposes of the pre-cutover population `F-S8-2` hands it — both
+are SUB-9's own acceptance at position 11. `G-15` remains SUB-1's row and SUB-8 does not re-assert
+it; the citation gate still does not cover C011, which is `CAP-S1-2`, owner SUB-14.

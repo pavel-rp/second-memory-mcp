@@ -564,3 +564,130 @@ absorbed into the measure. This is the same disposition SUB-2 took with `F-S2-3`
 half, decline the evidence half, and register the gap visibly.
 
 **Authored by.** SUB-16 (NEU-999).
+
+---
+
+### SUB-8
+
+## OUT-10 — What consent covers, what withdrawal does, and what does not rest on consent at all
+
+**Outcome.** The package states what consent is captured, when, in what shape, where the record lives
+and how it is versioned; what withdrawal does and how quickly; and — as explicitly as the positive
+case — which processing does **not** rest on consent and therefore survives withdrawal, with the
+alternative lawful basis named per purpose. Consent state is placed as a state category with
+**exactly one authority** under C010's model. The versioned consent record is a new learner-data store
+this outcome creates, so this outcome — not OUT-9 — classifies it, in OUT-9's published entry shape
+plus a seventh field for its retention position after withdrawal. Withdrawal's downstream effects are
+enumerated category by category rather than described in general terms.
+
+**Success measure.** OUT-10 is judged done when **all five** hold, each reported as a number or an
+explicit disposition rather than an assertion:
+
+1. **One authority, by the published rule rather than by assertion.** Consent state resolves to
+   **exactly one** authority under C010's ordered assignment rule, the matching clause is named, the
+   clause that would have matched had the rule not been ordered is recorded as a **rejected
+   alternative**, and **zero** authorities are split.
+2. **The boundary is stated in both directions, and the negative side is enumerated.** Every
+   processing purpose the package names carries an explicit *governed by consent: yes/no*, and every
+   `no` names the basis that carries it instead. **Zero purposes are left unstated.**
+3. **The withdrawal walk is exhaustive.** Every category of OUT-9's inventory appears with its
+   resulting behaviour on withdrawal, plus the consent category this outcome creates. **Zero
+   categories omitted**, and the count is reported.
+4. **The consent category's entry carries all seven fields, checked field for field** against OUT-9's
+   published shape, and is consumable as-is by the OUT-11 export-completeness check and by OUT-12's
+   unowned-copy audit — with **zero** back-edge edits to OUT-9's inventory produced, requested or
+   owed.
+5. **A purpose resting on consent that could not actually be withdrawn is reported as a finding with
+   a named owner**, not reconciled in prose.
+
+**Verified by.** `08_consent-and-what-a-learner-can-export-and-erase.md` §2 (the authority
+placement), §3 (the severability test and the three consent purposes), §4 (the negative boundary),
+§4.1 (the OUT-10 finding), §5 (the classification entry), §6 (the withdrawal walk);
+`decision-records/DR-C11-S8-1_the-consent-record-and-the-consent-boundary.md` (seven rejected
+alternatives); `91_findings-register.md` (`F-S8-1`, `F-S8-4`); `92_risk-register.md` (`R-S8-1`);
+`93_open-items-and-provisional-register.md` (`OI-S8-1`);
+`traceability/S8_consent-export-and-erasure.md`.
+
+**Measured result at revision 1.** (1) **1 of 1** authority — `CMP-S4-7`, under **clause 2**, with
+clause 5 recorded as rejected alternative 3 and a split authority as rejected alternative 4; **0**
+split. (2) **14 of 14** purposes carry an explicit yes/no; **3** yes, **11** no, each `no` naming
+contract, legitimate interests, or the demonstrating-consent position; **0** unstated. (3) **33 of
+33** rows in the withdrawal walk — SUB-3's 32 plus `LD-S8-1`; **0** omitted; **3** affected.
+(4) **7 of 7** fields present; **0** back-edge edits — `03_learner-data-inventory-and-classification.md`
+is unmodified by this sub-task. (5) **1** such purpose found — operational logging, failing
+withdrawability in three independent ways — reported as `F-S8-1` with a named owner; **0** absorbed
+into prose.
+
+**The measure is met, and what it certifies is a boundary this outcome had to create rather than
+find.** Both are true and OUT-10 requires them reported together: **zero** of OUT-9's thirty-two
+entries carries consent as its lawful-basis position, and `consent` returns **zero** hits across
+`src/` and `drizzle/`. The chapter therefore draws a first boundary rather than documenting an
+existing one, which is why the severability test is published as a test a reader can re-apply rather
+than as a partition they must accept. Carried as `F-S8-4`, not smoothed over here.
+
+**Authored by.** SUB-8 (NEU-1002).
+
+---
+
+## OUT-11 — Learner-readable export and per-category erasure, each with a completion deadline and named retention exceptions
+
+**Outcome.** Export produces a **learner-readable artifact — not a database dump** — covering every
+category OUT-9 marks as the learner's plus the consent category OUT-10 creates, with its format,
+delivery, authentication and completeness stated. Erasure states, per category, whether the
+obligation is deletion or de-identification and why, the consent category included. Both carry an
+explicit completion deadline. **Every retention exception carries all four of a justification, a
+bound, an owner and a stated basis**, and one that cannot be given all four is recorded as a blocking
+finding rather than accepted.
+
+**Success measure.** OUT-11 is judged done when **all five** hold, each reported as a number:
+
+1. **The export is complete against the stated union, with the arithmetic shown.** Every category in
+   *"every category OUT-9 marks as the learner's, plus the consent category OUT-10 creates"* carries
+   an explicit disposition; the subtrahend is named by id; and **zero categories from either set are
+   unaccounted for.**
+2. **The artifact is learner-readable rather than a dump**, judged against stated properties, and any
+   value that may be truncated is **labelled** as such rather than presented as complete.
+3. **Every category carries an erasure disposition with its reason**, the consent category included,
+   and a category personal data cannot reach is named `unreachable` rather than recorded as deleted.
+4. **Zero retention exceptions of indefinite duration are accepted.** Each exception is audited
+   against all four fields; the consent record's own position is audited **as one of them, not
+   exempted**; and any exception that cannot be given all four is recorded as a **blocking finding**.
+5. **A completion deadline is stated with its provenance**, and it is not presented as an observed or
+   calibrated quantity.
+
+**Verified by.** `08_consent-and-what-a-learner-can-export-and-erase.md` §7 (the export design, the
+completeness arithmetic and the table-top), §7.4 (`LD-S3-31` and `LD-S3-32`), §8 (the per-category
+disposition), §8.2 (what erasure cannot reach), §9 (the four-field audit), §9.1 (the deadline and its
+provenance), §10 (the purge audit);
+`decision-records/DR-C11-S8-2_export-erasure-and-the-completion-deadline.md` (nine rejected
+alternatives); `91_findings-register.md` (`F-S8-2` — **blocking** — and `F-S8-3`);
+`92_risk-register.md` (`R-S8-2`, `R-S8-3`, `R-S8-4`); `94_caps-and-incomplete-scope.md` (`CAP-S8-1`);
+`95_stand-in-assumption-register.md` (`A-S8-1`); `96_spike-register.md` (`SPK-S8-1`);
+`traceability/S8_consent-export-and-erasure.md`.
+
+**Measured result at revision 1.** (1) **25 of 25** categories dispositioned — 32 − 8 = 24, plus
+`LD-S8-1`; the eight excluded entries named by id; **0** unaccounted for, and the table-top's own
+sub-counts sum to 25. (2) Seven stated properties — five readability, plus completeness and the deadline — all satisfied by the specified artifact;
+**1** category (`LD-S3-16`) requires the possibly-truncated label and carries it. (3) **33 of 33**
+categories carry an erasure disposition with a reason; **3** are `unreachable` and are named as such
+rather than as deleted. (4) **6** exceptions audited; **5 pass**, **1 fails** and is recorded as the
+blocking finding `F-S8-2`; **0** indefinite exceptions accepted; the consent record's own position is
+**audited as exception #1**, not exempted. (5) Deadline stated — 30 days for export and erasure, next
+request plus 7 days for withdrawal — with its provenance named as **derived from the ratified
+GDPR-shaped baseline**, and explicitly **not observed and not calibrated**.
+
+**One thing this measure certifies that a reader must not over-read.** The measure ranges over a
+**specification**, not a capability. Exactly **two** delete paths are reachable from a user-facing
+tool and **no export surface exists at all** (§10.2), so every disposition above is a duty a later
+charter must build. That gap is `F-S8-3` and `R-S8-4`, and stating it here is deliberate: an outcome
+register that recorded OUT-11 as met without it would read as though the product could do these
+things.
+
+**The deadline's second effect, stated because it discharges another sub-task's open term.**
+`DR-C11-S16-3` left `deadline_at`'s value here, and `16_attribution-and-detection.md` §6 records
+`SIG-S16-3` as *"fully specified and not yet evaluable"* (§3's matrix cell carries the same fact in
+different words — *"Fully specified; not yet evaluable"*) in consequence. It is now **evaluable in
+principle and still unemitted** — `ME-S16-6`'s gap is untouched by this outcome. `R-S8-3` carries the
+difference; nothing here claims the signal works.
+
+**Authored by.** SUB-8 (NEU-1002).
