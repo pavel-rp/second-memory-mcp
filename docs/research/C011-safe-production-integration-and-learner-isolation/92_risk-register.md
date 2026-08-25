@@ -309,3 +309,65 @@ severity, a mitigation, a named owner and an escalation route.
 `R-S2-2` describe the same principal under opposite answers to the same open question
 (`OI-S1-1` / `SPK-S1-1`). Collapsing them would lose one of the two live branches; leaving the
 relationship unstated would read as a register defect. It is therefore stated inside `R-S4-2`.
+
+---
+
+### SUB-16
+
+**Zero charter `R<n>` rows are authored here, correctly.** No row of the charter's § Risks table
+names **OUT-15** as its owning outcome (charter assumption 48), so this sub-task authors entries only
+for residual exposures it raises itself. **Two risks are deliberately not raised**, because each is
+already recorded exactly once elsewhere and the package carries one id per fact: that the whole design
+rests on `n = 0` evidence is **`R13`** (OUT-18, SUB-1), cited in the mitigations below; and that
+erasure completes on paper while a copy survives is the charter's § Risks row **`R2`**, owned by
+OUT-12 and **authored by SUB-9** at position 11 — `R-S16-1` below is a *specific, newly created*
+instance of that exposure and names it as such rather than pre-empting SUB-9's entry.
+
+## `R-S16-1` — Attribution creates a mixed-population table, and a per-learner erasure over it reports success while provably missing every pre-cutover row
+
+- **Risk:** Under `DR-C11-S16-2` both log tables become `learner-linked` personal data once the attribution carrier lands. Rows written **before** it lands carry no key and **can never be given one** — the only structure that ever held a session-to-subject binding is the process-local map at `src/transport/http.ts:83`, whose sole eviction path is a clean session close and which is emptied by every restart at a measured ≥3.29/day (`91_findings-register.md` § `F-S15-3`; `15_operational-objectives-for-the-real-platform.md` §3). A `DELETE … WHERE learner_key = $1` therefore returns a success and a row count while the entire pre-cutover population survives. **The failure is created by the fix**, which is what makes it easy to miss: a designer reading only *"learner-linked personal data"* would build exactly this predicate.
+- **Severity:** **High** — it is a silent, systematic erasure failure over a store that holds whole unredacted learner free text (`F-S3-1`), and the erasing party is told it succeeded.
+- **Owning outcome:** **OUT-15** — the attribution design, which is where the cutover boundary is created and therefore where the mixed population originates.
+- **Named owner:** **SUB-9** (NEU-1003) for the disposition of the pre-cutover population, under OUT-12; **the creator, as sole maintainer and sole operator**, for the population itself and for the decision to delete or retain it.
+- **Escalation route:** **`NEU-896`** at convergence, as a cross-package erasure-completeness exposure that outlives this package; **additionally SUB-9 (NEU-1003) directly**, because the disposition is a cell of its propagation matrix and the matrix is the artifact that would otherwise ship with it unresolved.
+- **Mitigation:** **Incomplete, and stated as incomplete.** What is mitigated is discoverability: the boundary is named here (`F-S16-5`), the cutover instant is identified as the only thing that will ever separate the two populations, and SUB-9 receives an explicit obligation to give the pre-cutover rows a **disposition rather than a key** — bulk deletion, bulk anonymization, or an accepted and named residual. What is **not** mitigated is the underlying fact: no design in this package can retroactively attribute a row whose binding is gone.
+- **Mitigation status:** **Open.** No disposition exists; the sub-task that owns it runs at position 11. **Residual, named:** the pre-cutover population's disposition, owned by **SUB-9** (NEU-1003); and its **size**, which is unobserved and depends on `OI-S1-5` / `OI-S1-6` (does either table hold rows with learner content) and `OI-S16-1` (is the writer mounted at all). **No row count is asserted.** `R13`'s `n = 0` label applies in full.
+
+## `R-S16-2` — Every alert route in the detection matrix is unconfirmed, so a signal that fires reaches nobody
+
+- **Risk:** All four signals in `16_attribution-and-detection.md` §3 carry the alert route `[unconfirmed]`. No monitoring, alerting or log-shipping arrangement is discoverable in the repository, and where production runs is unknown (`93_open-items-and-provisional-register.md` § `OI-S1-9`). SUB-15 recorded the same gap from the other side: `OBJ-9` states that unplanned availability is **not merely unmeasured but unmeasurable** on this platform today. A detection matrix whose routes do not exist is a matrix that converts an undetected failure into an unrouted one — an improvement in principle and, until a channel exists, none in practice.
+- **Severity:** **High** — it applies to **all four** signals simultaneously, including the cross-learner-access signal, and it is the one limb of the design that no amount of schema work fixes.
+- **Owning outcome:** **OUT-15** — the detection design, which is where a signal is required to have a route.
+- **Named owner:** **The creator, as sole maintainer and sole operator** — the only party who knows what monitoring exists, and the only party who could arrange any.
+- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether a package may declare a detection capability whose delivery mechanism is unestablished; **additionally the creator as sole operator** for the immediate arrangement, since the channel is theirs to create.
+- **Mitigation:** **Partial, and by disclosure rather than by mechanism.** Every route is labelled `[unconfirmed]` at every point it is used rather than stated as a fact; the single owning record `OI-S1-9` is cited rather than duplicated; the reading the chapter proceeds on is carried explicitly as the stand-in `95_stand-in-assumption-register.md` § `A-S16-1`, with a tolerance envelope and an invalidating outcome. What is **not** mitigated is delivery: nothing in this package creates a channel, and nothing in it may.
+- **Mitigation status:** **Open.** **Residual, named:** `OI-S1-9`, owned by the creator as sole operator — one record, cited by SUB-15, SUB-16, SUB-7 and SUB-9 rather than re-raised. Until it closes, every signal here is *specifiable and undeliverable*, and the chapter says so in `16_attribution-and-detection.md` §9 item 2.
+
+## `R-S16-3` — Every count-based signal reads a lower bound, so a zero-tolerance threshold can be silently satisfied by dropped audit entries
+
+- **Risk:** The audit pipeline loses entries on two paths and announces neither to any consumer: the circuit breaker discards the whole buffer with only a `stderr` write (`src/transport/pg-audit-transport.ts:83`–`:90`), and a batch whose `pool.query` throws is already out of the buffer (`:92`–`:93`) and is never requeued — once per failure, five times before the breaker even opens (`:32`). A count read from `mcp_request_log` is therefore a **lower bound on the true count**. A cross-learner access whose audit row was in a dropped batch is not merely unalerted; it never existed as far as any signal is concerned.
+- **Severity:** **Medium** — the loss requires a database fault to trigger, and the thresholds are chosen so the failure mode is one-directional (see the mitigation). But the events most likely to coincide with a database fault are not independent of the events the signals watch for.
+- **Owning outcome:** **OUT-15** — the detection design, which is where a threshold is set against a count.
+- **Named owner:** **The creator, as sole maintainer and sole operator**, for the deployed transport behaviour.
+- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether a detection guarantee may rest on a lossy pipeline; **additionally SUB-12 (NEU-1004)**, whose production gates measure counts from these tables and which must not treat a zero as a proven zero.
+- **Mitigation:** **Partial, by threshold design rather than by fixing the pipeline.** Every count-based threshold in the matrix is **zero-tolerance** rather than a rate, chosen specifically because the loss is one-directional: a dropped entry can **hide** an event but cannot **manufacture** one, so the design yields false negatives and never false positives. Every count is labelled a lower bound at the point it is used (`16_attribution-and-detection.md` §3 conventions, §7). What is **not** mitigated is the loss itself; fixing it would be a `src/` change, which is out of this sub-task's scope entirely.
+- **Mitigation status:** **Partially mitigated.** The direction of error is constrained and disclosed; the magnitude is not. **Residual, named:** the **audit-entry arrival rate** that would turn the structural bound into a number is unobserved and **no register item in this package covers it** — `OI-S15-3` is the distinct `t_db` question and is not claimed to settle it. No new item is raised, because no threshold stated here depends on the value; the loss accounting itself is `91_findings-register.md` § `F-S16-2`.
+
+## `R-S16-4` — Attribution converts an indefinitely retained store into an indefinitely retained store of learner-linked personal data
+
+- **Risk:** `infrastructure.operation_event_log` has **no retention bound of any kind** — no cleanup script covers it, and the codebase describes it as *"indefinitely-retained"* (`src/orchestration/topic-workflows.ts:584`; `src/orchestration/chunk-workflows.ts:160`; `scripts/retention-cleanup.sql` covers `mcp_request_log` only). Under `DR-C11-S16-2` it becomes `learner-linked` personal data. The determination therefore does not create the retention gap, but it changes what the gap **is**: an unbounded log becomes an unbounded store of personal data, and every day it runs the exposure grows monotonically with no ceiling.
+- **Severity:** **High** — unbounded retention of personal data is the exposure with the longest tail in the package, it grows without any triggering event, and the table's `data` column is free-form `JSONB` into which rationales may quote learner content verbatim up to 256 characters.
+- **Owning outcome:** **OUT-15** — this outcome makes the determination that reclassifies the store, so the consequence is raised here rather than left for a reader to infer from the classification.
+- **Named owner:** **SUB-8** (NEU-1002) under OUT-11, which defines what learners can export and erase and is therefore where a retention position belongs; **the creator, as sole maintainer and sole operator**, for the deployed absence of a cleanup script.
+- **Escalation route:** **`NEU-896`** at convergence, as a cross-package data-minimization exposure; **additionally the named owner of the controller/processor and lawful-basis open item** — `93_open-items-and-provisional-register.md` § `OI-S3-1`, cited and not duplicated — because a retention *period* rests on the lawful basis, and this package states positions rather than determinations.
+- **Mitigation:** **Incomplete, and deliberately not overstated.** What is mitigated is visibility: the reclassification is stated together with its retention consequence in the same table (`16_attribution-and-detection.md` §5.1) rather than in a separate section a reader might not reach, and the asymmetry between the two log tables — one with a 30-day script, one with nothing — is called out explicitly. What is **not** mitigated is the retention itself. **This package sets no retention period**, because doing so would be a determination resting on a lawful basis it does not hold; that is `OI-S3-1`, and stating a number here would be exactly the overstatement `R10` is registered against.
+- **Mitigation status:** **Open.** **Residual, named:** the retention position for `operation_event_log`, owned by **SUB-8** (NEU-1002); and the lawful basis it rests on, `OI-S3-1`, owned by the creator as sole operator. `DR-C11-S16-2`'s fifth revision trigger fires if a cleanup script covering the table is ever added.
+
+---
+
+**SUB-16 register totals at revision 1:** four entries — `R-S16-1` (High), `R-S16-2` (High),
+`R-S16-3` (Medium), `R-S16-4` (High). **Zero charter `R<n>` rows**, correctly: no § Risks row names
+OUT-15. Three open, one partially mitigated; every non-mitigated status names its residual and that
+residual's owner, and every entry carries a severity, a mitigation, a named owner and an escalation
+route. **Zero second records** — `R13` and the charter's `R2` are cited, not restated, and
+`OI-S1-9`, `OI-S15-3` and `OI-S3-1` are consumed by citation from their single owning records.

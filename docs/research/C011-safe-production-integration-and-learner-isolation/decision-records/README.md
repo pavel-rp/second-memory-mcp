@@ -62,3 +62,6 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S4-1_the-stdio-identity-gate.md` | SUB-4 (NEU-996) | OUT-7 (and the naming act that fires limb one of C010's `OI-S8-2`) |
 | `DR-C11-S4-2_what-the-context-token-row-carries.md` | SUB-4 (NEU-996) | OUT-13 |
 | `DR-C11-S4-3_expiry-purge-and-the-cutover-rejection-rule.md` | SUB-4 (NEU-996) | OUT-13 |
+| `DR-C11-S16-1_the-attribution-carrier.md` | SUB-16 (NEU-999) | OUT-15 |
+| `DR-C11-S16-2_the-audit-log-privacy-determination.md` | SUB-16 (NEU-999) | OUT-15 (the determination `DR-C11-S3-2` names SUB-16 as resolver of) |
+| `DR-C11-S16-3_the-stalled-propagation-signal-contract.md` | SUB-16 (NEU-999) | OUT-15 |

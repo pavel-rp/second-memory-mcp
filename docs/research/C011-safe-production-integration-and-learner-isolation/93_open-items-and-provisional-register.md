@@ -380,3 +380,41 @@ test that `R14` and `DR-C11-S1-2` impose: it was settled as a fact by reading
 `tests/smoke/smoke.test.ts:206` and `:237`, and what remains open is a **judgement about regression
 value**, which no bounded read-only experiment against production can produce. Filing a spike for it
 would have been a spike standing in for a decision.
+
+---
+
+### SUB-16
+
+**What is deliberately absent from this section.** SUB-16 raises **no open item about where a signal
+can be observed** — no monitoring, alerting or log-shipping question of its own. That is recorded
+exactly once, by SUB-1, at **`OI-S1-9`** above, which names SUB-16 as a consumer by name. SUB-16
+**cites** it — in `16_attribution-and-detection.md` §3, §4 (`ME-S16-5`) and §9, and in
+`92_risk-register.md` § `R-S16-2` — and raises no second record. Likewise: whether either log table
+holds learner-derived content in production is **`OI-S1-5`** / **`OI-S1-6`**, cited in
+`16_attribution-and-detection.md` §5.3 and in
+`decision-records/DR-C11-S16-2_the-audit-log-privacy-determination.md` decision 7; the audit-entry
+arrival rate is **`OI-S15-3`** (SUB-15); the controller/processor role and the lawful basis each
+purpose rests on is **`OI-S3-1`** (SUB-3), cited in `R-S16-4`'s escalation route; and what a normal
+restart looks like is **`OI-S15-1`**, which already names SUB-16 as a consumer. Each is consumed by
+citation. The single item below is a question SUB-16's own detection design raised and nobody else
+has recorded.
+
+#### `OI-S16-1` — Whether the audit writer is mounted in production at all is unobserved
+
+- **Id:** `OI-S16-1`
+- **Item:** The audit middleware is mounted only when an audit database URL resolves — `src/transport/http.ts:177`–`:182` guards the mount with `if (auditDbUrl)`. Whether `AUDIT_DATABASE_URL` or `DATABASE_URL` is in fact set in the production environment is not discoverable from the repository. If neither is, **no audit row is written at all**, and the resulting empty table is indistinguishable from one belonging to a deployment that served no traffic.
+- **Status:** `[unconfirmed]`
+- **Source:** `96_spike-register.md` § `SPK-S16-1` — designed, **not executed**; no access to the host, the deploy secrets or a running container. Guard site at `src/transport/http.ts:177`–`:182`; the writer itself at `src/transport/pg-audit-transport.ts`. Recorded as a finding at `91_findings-register.md` § `F-S16-4`.
+- **Consumer:** **SUB-16** itself — every count-based signal in `16_attribution-and-detection.md` §3 has **no input** if the writer is unmounted, and fails silently rather than reporting that it has none. **SUB-7** (NEU-1001), whose rollout stages depend on a signal having an input before the stage they gate. **SUB-12** (NEU-1004), for which *"the audit writer is mounted"* is a production gate rather than an assumption.
+- **Owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party with access to the deployed environment.
+- **Resolving event:** The operator states whether an audit database URL is set on the running production container — as a named value's *presence or absence*, never the value itself, which is a credential — recorded in the spike register. A row count from `infrastructure.mcp_request_log` would also settle it, and that count is already sought by `OI-S1-5`, so the two close together if `SPK-S1-5` is ever executed.
+- **Why not a stand-in:** It is a binary fact about a deployed configuration, with an obtainable answer and no tolerance envelope — the writer is mounted or it is not, and there is no band of partial mounting the design could accommodate.
+- **Why this is not a second record of `OI-S1-9`:** `OI-S1-9` asks **where a signal can be observed** once emitted — hosting, region, TLS termination, monitoring, log shipping. `OI-S16-1` asks whether anything is **emitted at all**. They have different resolving events (an operator statement about arrangements versus an operator statement about one container's environment), different failure consequences (an unrouted signal versus a signal with no input), and closing either leaves the other open. The one-question-one-id contract is satisfied by keeping them apart, and the distinction is written out here so SUB-14's cross-register check has something to check rather than a judgement to make.
+
+---
+
+**SUB-16 register totals at revision 1:** one open item, `OI-S16-1`, carrying a named owner and an
+observable resolving event, and zero blank fields. **Zero second records** of a question already
+owned by another sub-task or another package — six inherited items are consumed by citation and
+named above. **One of one** corresponds to the single spike entry `SPK-S16-1` in
+`96_spike-register.md`, on the same rule SUB-1 applied.

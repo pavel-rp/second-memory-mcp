@@ -39,3 +39,4 @@ two**. Source and non-research paths (`src/…`, `drizzle/…`) are written **ba
 | `S3_learner-data-inventory.md` | SUB-3 (NEU-995) | OUT-9 |
 | `S15_operational-objectives.md` | SUB-15 (NEU-998) | OUT-14 |
 | `S4_stdio-gate-and-bound-context-token.md` | SUB-4 (NEU-996) | OUT-7, OUT-13 |
+| `S16_attribution-and-detection.md` | SUB-16 (NEU-999) | OUT-15 |

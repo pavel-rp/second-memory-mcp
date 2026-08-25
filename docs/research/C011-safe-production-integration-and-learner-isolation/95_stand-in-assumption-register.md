@@ -483,3 +483,62 @@ fill**.
 ruled the verdict unconditional on it. Writing a plausible-sounding invalidating outcome there would
 have made the register look uniform and would have misreported a planning assumption as a
 load-bearing one.
+
+---
+
+### SUB-16
+
+**Why this entry carries an `A-S16-<k>` id and not an `A-<n>` one.** `A-<n>` continues the charter's
+own assumption numbering and is reserved for a stand-in that stands in for a **numbered charter
+assumption** — `A-33` for assumption 33, `A-34` for assumption 34. The entry below stands in for no
+charter assumption. It is an assumption this sub-task's own detection design had to make in order to
+state an alert route at all, so it takes the sub-task-scoped form on the rule
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md` fixed for exactly this case.
+
+## `A-S16-1` — The operator's own direct inspection is the only observation channel a detection signal can reach
+
+**Status:** `[unconfirmed]`
+**Stands in for:** No charter assumption. It stands in for the unanswered half of `OI-S1-9` in
+`93_open-items-and-provisional-register.md` — the single register record of hosting, monitoring and
+log-shipping arrangements, owned by the creator as sole operator and cited here rather than
+re-raised.
+
+**Assumption.** Every alert route in `16_attribution-and-detection.md` §3 is written `[unconfirmed]`,
+but a matrix cannot state a route of *nothing* and remain readable. The reading the chapter proceeds
+on, stated once here rather than four times there, is: **the only channel a signal can currently
+reach is the operator inspecting the deployment directly** — a query run by hand against the audit
+database, or the container's `stderr`. No push channel, no paging, no aggregation, no retention of
+the signal itself. **Detection under this reading is therefore pull-only and unbounded in latency:**
+a signal is "delivered" whenever the operator next happens to look.
+
+**Owner.** **The creator, as sole maintainer and sole operator of the production deployment** — the
+only party who knows what channels exist and the only party who is currently the channel.
+
+**Tolerance envelope.** The design tolerates any channel that is **at least as capable** as direct
+inspection: any arrangement that surfaces a fired signal to a human, at any latency, with or without
+aggregation. Every signal in §3 is specified as a *query over persisted state* rather than as an
+event stream precisely so that it survives this envelope — a query can be run by hand, by a cron, or
+by a monitoring agent without changing its definition. The envelope holds while `n = 1`, where the
+sole learner and the sole operator are the same person and a pull-only channel has an unbounded but
+*self-interested* latency.
+
+**Invalidating outcome.** **A second learner exists.** At `n > 1` the operator is no longer the
+affected party, and a pull-only channel with unbounded latency cannot satisfy any of the four
+signals: `SIG-S16-1` exists to catch a cross-learner leak *before a learner notices it*, which is
+the actor this sub-task is written for, and a channel whose latency is "whenever someone looks"
+inverts that ordering by construction. The stand-in also breaks if a signal is ever specified as an
+event stream rather than as a query, since a stream cannot be pulled.
+
+**Re-validation trigger.** **`OI-S1-9` closes** — the operator states the monitoring and alerting
+arrangement as a named value or an explicit "none". On that event every route in
+`16_attribution-and-detection.md` §3 is re-read against the answer, and `92_risk-register.md` §
+`R-S16-2` is re-assessed. **Additionally: a second authenticated learner is observed on the
+deployment**, which fires the invalidating outcome directly rather than merely the re-check.
+
+---
+
+**SUB-16 register totals at revision 1:** one stand-in, `A-S16-1`, carrying a named owner, a stated
+tolerance envelope, a named invalidating outcome and an observable re-validation trigger. **Zero
+charter-continued `A-<n>` ids**, correctly: this sub-task stands in for no numbered charter
+assumption. **Zero second records** — `OI-S1-9` is the single register record of the underlying fact
+and is cited, not restated.
