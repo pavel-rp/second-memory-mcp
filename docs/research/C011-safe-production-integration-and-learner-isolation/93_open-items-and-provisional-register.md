@@ -464,11 +464,25 @@ cross-package open item is always written qualified — *C010's `OI-S8-1`* — a
 always means this package's own.** Renumbering was declined because the id is computed from the
 charter's own sub-task-scoped scheme, and picking a different number to dodge a cross-package shape
 collision would break the property that makes the scheme collision-safe among concurrently authored
-siblings. **Note for a reader of SUB-3:** `03_learner-data-inventory-and-classification.md` §9's
-closing paragraph cites a bare *"`OI-S8-1`, owned by `NEU-984` (`SUB-10 of C010`)"*; that reference
-predates `F-S2-2`'s rule and its own parenthetical names the owner, so it resolves unambiguously to
-C010's item. **No revision of SUB-3 is requested or owed on this ground, and no finding is routed
-against it.**
+siblings.
+
+**Three prior bare uses, and one of them is in this very file.** SUB-3 cites a bare `OI-S8-1` twice —
+in `03_learner-data-inventory-and-classification.md` §4, in `LD-S3-13`'s minimization field, and in
+this register's own SUB-3 closing note as *"`OI-S8-1`, owned by `NEU-984` (`SUB-10 of C010`)"*. Both
+predate `F-S2-2`'s rule and both name the owner parenthetically, so both resolve unambiguously to
+C010's item. **Third and most importantly: SUB-4's section above carries a heading
+*"Disposition of `OI-S8-1`"*** — also unqualified, and also correct when written, because a bare id
+means this package's own **only where this package has one**, and until this entry it did not.
+
+**From this entry onward it does, so this file now carries both.** A reader meeting SUB-4's
+disposition and then this entry is meeting **two different items with one id shape**: SUB-4 disposes
+of **C010's** — `context_tokens` having no principal column to bind to, owner `SUB-10 of C010`
+(NEU-984), still open — while the entry above is **C011's**, the third-party-model-provider and
+cross-border question, owner the creator. The two share nothing but four characters.
+
+**No revision of SUB-3 or SUB-4 is produced, requested or owed on this ground, and no finding is
+routed against either.** Both were correct at their own positions and the append-only rule holds;
+the party positioned to normalise the two headings at assembly is **SUB-14** (NEU-1007).
 
 ---
 

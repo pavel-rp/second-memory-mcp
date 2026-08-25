@@ -129,7 +129,7 @@ this chapter's partition on trust.
 | Id | Purpose | Categories it touches | Why it is severable |
 | --- | --- | --- | --- |
 | `CP-S8-1` | **Rule-validation corpus** — retaining labelled examples drawn from a learner's chunks to measure linter-rule precision and recall | `LD-S3-14`; derived from `LD-S3-2` | The linter runs without a labelled corpus. The corpus measures how good the *rules* are; removing it degrades rule tuning, not the learner's service. |
-| `CP-S8-2` | **Scheduling-algorithm evaluation** — retaining the pre-review snapshot after the grade it preceded, so predictions can be scored after the fact | `LD-S3-10` | SUB-3 separated this from `LD-S3-9` for exactly this reason, and records that whether it survives an erasure of the grade *"would be decided deliberately — a decision that is SUB-8's"* (`03_learner-data-inventory-and-classification.md` §4). Scheduling itself reads `LD-S3-3`, not the snapshot. |
+| `CP-S8-2` | **Scheduling-algorithm evaluation** — retaining the pre-review snapshot after the grade it preceded, so predictions can be scored after the fact | `LD-S3-10` | SUB-3 separated this from `LD-S3-9` for exactly this reason, recording that it would survive an erasure of the grade *"only if that were decided deliberately — a decision that is SUB-8's, not this chapter's"* (`03_learner-data-inventory-and-classification.md` §4). Scheduling itself reads `LD-S3-3`, not the snapshot. |
 | `CP-S8-3` | **Third-party model processing** — transmitting learner content to an external provider for embedding and classification | `LD-S3-1`, `LD-S3-2` in transit | **Conditionally severable, and the condition is mechanical.** Both adapters select a provider at runtime — `src/config/resolve-embedding-config.ts:25` and `src/config/resolve-classifier-config.ts:80` — and each has a non-OpenAI branch. Where a local provider is available, the purpose is severable. Where it is not, it is **inseparable from the service** and rests on contract instead. |
 
 **`CP-S8-3`'s condition is not assumed satisfied.** Which provider production actually uses is not
@@ -229,8 +229,9 @@ chapter's own order — **plus the seventh** that only this category needs.
   own**.
 
 **Consumable as-is by both completeness checks.** §7's export-completeness check reads the union
-*"every category SUB-3 marks as the learner's, plus the consent category this sub-task creates"* and
-resolves that second term to this entry. **SUB-9's unowned-copy audit at position 11 reads the same
+SUB-3 states as *"every category this inventory marks as the learner's, **plus** the consent category
+SUB-8 creates"* (`03_learner-data-inventory-and-classification.md` §9), and resolves that second term
+to this entry. **SUB-9's unowned-copy audit at position 11 reads the same
 union.** Whether SUB-9 in fact consumes it is SUB-9's acceptance at its own position; this chapter
 asserts only that the entry exists, carries all seven fields, and is stated in the published shape.
 
@@ -676,11 +677,25 @@ collision is disclosed here rather than avoided by renumbering, because the id i
 charter's own scheme and renumbering it would break the property that makes the scheme
 collision-safe among concurrent siblings.
 
-**Note for a reader of SUB-3:** `03_learner-data-inventory-and-classification.md` §9's closing
-paragraph cites a bare *"`OI-S8-1`, owned by `NEU-984` (`SUB-10 of C010`)"*. That reference was
-written at position 3, before `F-S2-2`'s qualification rule existed, and its own parenthetical names
-the owner, so it resolves unambiguously to **C010's** item. **No revision of SUB-3 is requested or
-owed on this ground**, and no finding is routed against it.
+**Two prior bare uses, both resolving to C010's item, and neither owed a revision.** SUB-3 cites a
+bare `OI-S8-1` twice — in `03_learner-data-inventory-and-classification.md` §4, in `LD-S3-13`'s
+minimization field, and in `93_open-items-and-provisional-register.md`'s SUB-3 closing note as
+*"`OI-S8-1`, owned by `NEU-984` (`SUB-10 of C010`)"*. Both were written at position 3, before
+`F-S2-2`'s qualification rule existed, and both name the owner parenthetically, so both resolve
+unambiguously to **C010's** item.
+
+**And one more recent use, which is why this disclosure is load-bearing rather than tidy.**
+**SUB-4 (NEU-996) carries a section headed *"Disposition of `OI-S8-1`"* in
+`93_open-items-and-provisional-register.md`** — unqualified, and correctly so under the rule, since a
+bare id means this package's own only where this package has one, which it did not when SUB-4 wrote.
+**It does now.** `93_…` therefore contains, from this sub-task onward, both a disposition of
+**C010's** `OI-S8-1` and an entry for **C011's** `OI-S8-1`, in one file. The register's SUB-8 section
+states the distinction at the point of collision so a reader meeting the second does not read it as a
+continuation of the first.
+
+**No revision of SUB-3 or SUB-4 is produced, requested or owed on this ground**, and no finding is
+routed against either — both were correct when written, and the append-only rule holds. The party
+positioned to normalise the two headings is **SUB-14** (NEU-1007) at assembly.
 
 ---
 
