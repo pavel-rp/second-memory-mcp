@@ -40,9 +40,21 @@ determination is routed to `OI-S3-1` with a named owner and is **not made here**
   unrelated.
 
 **The greenfield statement, because it is load-bearing.** C010 contains no GDPR, consent or export
-material anywhere; its only retention/deletion content is the `CAP-S3-3` / `CAP-S4-1` / `F-S3-3` /
-`CAP-S7-1` chain over the two operational-log tables (charter assumption 37, full-package sweep
-2026-08-24). This chapter therefore carries **its own** evidence and its own rejected alternatives,
+material anywhere; its only retention/deletion content is the chain of **C010's** `CAP-S3-3` /
+`CAP-S4-1` / `F-S3-3` / `CAP-S7-1` over the two operational-log tables (charter assumption 37,
+full-package sweep 2026-08-24).
+
+**Those four ids are C010's, and two of them collide by shape with this package's own.** C011 has its
+own `F-S3-3` (the risk-id discrepancy, `91_findings-register.md`) and its own `CAP-S3-1`
+(`94_caps-and-incomplete-scope.md`), because C010 also had a third sub-task and the `S<n>` segment is
+a sub-task number rather than a package-unique one. **Every reference to one of C010's ids in this
+chapter is therefore written qualified**, in the same discipline the package already applies to
+`SUB-n` references. C010's `F-S3-3` is
+*"Both operational log tables hold learner payload with no retention window, no deletion owner and no
+principal field"* (`../C010-system-and-repository-architecture/02_findings-register.md:140`) — a
+different finding from this package's `F-S3-3`, and one this chapter's §5 corroborates independently.
+
+This chapter therefore carries **its own** evidence and its own rejected alternatives,
 and is not written as if it refines an upstream position. The residual — that a lifecycle position is
 quietly assumed anyway — is `R12` in `92_risk-register.md`.
 
