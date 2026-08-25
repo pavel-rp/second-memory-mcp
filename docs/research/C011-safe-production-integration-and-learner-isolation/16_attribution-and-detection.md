@@ -47,7 +47,7 @@ worse one. They are reported as two rows and never averaged.
 | Transport | **Before** — at cutoff `5111841` | **After** — under the carrier of `DR-C11-S16-1` | Residual, with owner |
 | --- | --- | --- | --- |
 | **HTTP** | **Unattributable.** An audit row is written to `infrastructure.mcp_request_log`, but **0 of its 11 columns carry a server-derived principal**. The two columns that look as though they might do are both caller-asserted: `session_id` is lifted verbatim from the tool call's own arguments (`src/transport/audit-middleware.ts:94`–`:99`) and `correlation_id` echoes a caller-supplied `X-Correlation-ID` header, minting a UUID only in its absence (`src/transport/http.ts:154`–`:157`). Emission is itself **conditional** on `auditDbUrl` being set (`src/transport/http.ts:177`–`:182`). | **Attributable**, for every request that reaches the audit middleware. `principal_kind` (`NOT NULL`, one of `user` / `client` / `none`) and `learner_key` (the `sub` verbatim, non-null **iff** kind is `user`) are written from the signature-verified token. | **Requests that never reach the middleware.** If `AUDIT_DATABASE_URL` / `DATABASE_URL` is unset in production, no row is written and an audited deployment is indistinguishable from a silent one. Whether it is set is unobserved — `93_open-items-and-provisional-register.md` § `OI-S16-1`. **Owner: the creator, as sole maintainer and sole operator.** |
-| **STDIO** | **Unattributable *and* unrecorded** — strictly worse than HTTP, and the difference matters. `src/transport/main.ts:55`–`:58` constructs the server and a bare `StdioServerTransport`; the audit middleware, the JWT middleware and the context-token gate are all constructed only inside the `mode === 'http'` branch at `:46`–`:54`. `resolveAuthConfig` returns `null` for `stdio` outright (`src/config/resolve-auth-config.ts:105`). **No row is written to either log table, and no principal is resolved to write.** | **Still unattributable.** The carrier adds columns to a row STDIO never writes. Attribution on STDIO is a **two-step** problem — first an audit record must exist, then it can carry a principal — and this chapter supplies only the second step. Reporting it as "improved" would be false. | **Named, with two owners, because there are two missing things.** The *record* is **SUB-7**'s (NEU-1001) to sequence under OUT-3. The *principal* is downstream of STDIO acquiring an identity at all, which is C010's `OI-S8-2` — the named, classified and priced STDIO gate, **owner `SUB-10 of C010` (NEU-984), co-named `NEU-896`** — for which **OUT-7** supplies the mechanism. |
+| **STDIO** | **Unattributable *and* unrecorded** — strictly worse than HTTP, and the difference matters. `src/transport/main.ts:55`–`:58` constructs the server and a bare `StdioServerTransport`; the audit middleware, the JWT middleware and the context-token gate are mounted only inside `startHttpTransport` — at `src/transport/http.ts:180`, `:164` and `:186` respectively — which is called only from the `mode === 'http'` branch at `src/transport/main.ts:46`–`:54`, and which the STDIO branch never reaches. `resolveAuthConfig` returns `null` for `stdio` outright (`src/config/resolve-auth-config.ts:105`). **No row is written to either log table, and no principal is resolved to write.** | **Still unattributable.** The carrier adds columns to a row STDIO never writes. Attribution on STDIO is a **two-step** problem — first an audit record must exist, then it can carry a principal — and this chapter supplies only the second step. Reporting it as "improved" would be false. | **Named, with two owners, because there are two missing things.** The *record* is **SUB-7**'s (NEU-1001) to sequence under OUT-3. The *principal* is downstream of STDIO acquiring an identity at all, which is C010's `OI-S8-2` — the named, classified and priced STDIO gate, **owner `SUB-10 of C010` (NEU-984), co-named `NEU-896`** — for which **OUT-7** supplies the mechanism. |
 
 **The audit's finding, stated plainly.** Attribution on HTTP is not absent for want of an identity.
 The verified subject is computed at `src/transport/jwt-middleware.ts:127` and stored into the
@@ -60,7 +60,7 @@ identity mechanism.
 that in-process map (`src/transport/http.ts:83`). It is process-local, its sole eviction path is a
 clean session close (`91_findings-register.md` § `F-S15-3`), and the deployment restarts at a
 measured **≥3.29 times per day over the most recent 7 days**
-(`15_operational-objectives-for-the-real-platform.md` §3, `C-17`). It also **fails open**:
+(`15_operational-objectives-for-the-real-platform.md` §2.2, `C-17`). It also **fails open**:
 `src/transport/http.ts:57`–`:58` returns `true` when no binding is found. **Historical rows can
 therefore never be attributed retroactively** — the binding that would have done it is gone. Carried
 as `91_findings-register.md` § `F-S16-5`.
@@ -91,7 +91,7 @@ reason it is not a single nullable column:
 **Why the third state is the point.** `DR-C11-S2-2` rejected empty-scoping a `client` principal's
 learner queries on exactly this ground: an empty result set and a refusal look identical, so *"a
 machine principal wired into a learner path"* becomes indistinguishable from *"a learner with no
-data"* — and that record noted the consequence would land here, as *"the precise class of silent
+data"* — and that record noted the consequence would land here, as *"exactly the class of silent
 failure OUT-15's detection design would then have to reconstruct from nothing."* A two-valued carrier
 would re-create that failure one layer down: it would add a column and keep the silence. Folding
 `client` into `none` would also make `R-S2-2` — the smoke principal silently acquiring a `sub` and
@@ -180,7 +180,7 @@ This is not a hypothetical mode. **Three fail-open sites** are readable in the r
    `const bound = sessionIdentity.get(sessionId); if (!bound) return true;`. A missing binding is
    admitted. Because the map is emptied by every restart (§1), it is missing for every pre-existing
    session after each of ≥3.29 daily deploys.
-2. `src/transport/context-token-middleware.ts:82`–`:86` — the context-token gate catches an internal
+2. `src/transport/context-token-middleware.ts:83`–`:86` — the context-token gate catches an internal
    exception, logs it, and calls `next()`. **An error in the gate admits the call.**
 3. `src/transport/http.ts:184`–`:187` — the gate is mounted only when the context-token repository is
    non-null. An unmounted gate is not a failing gate; it is an absent one.
@@ -209,10 +209,13 @@ C011 lands. Its weakness is that it says nothing about *who* was refused, which 
 attribution adds.
 
 **The comparison window is a deploy interval, and that window is thin.** At ≥3.29 deploys/day
-(`15_operational-objectives-for-the-real-platform.md` §3, `C-17`) the window is hours. At `n = 0`
+(`15_operational-objectives-for-the-real-platform.md` §2.2, `C-17`) the window is hours. At `n = 0`
 observed traffic there is no basis to say whether hours of traffic is enough to make the comparison
-meaningful, and this chapter does not assert that it is. The arrival rate that would settle it is
-`OI-S15-3`, owned by SUB-15's record; cited, not re-raised.
+meaningful, and this chapter does not assert that it is. **The request arrival rate that would settle
+it is unobserved and no register item in this package covers it** — `OI-S15-3` is SUB-15's distinct
+`t_db` question (mean per-call database service time) and is **not** claimed to answer this one. No
+new open item is raised for it, because this signal is a *paired comparison* rather than a threshold
+on a level: it degrades to "not enough data to compare" rather than to a wrong verdict.
 
 ---
 
@@ -267,7 +270,7 @@ it would be the overstatement `92_risk-register.md` § `R10` is registered again
 
 | Duty | `mcp_request_log` | `operation_event_log` |
 | --- | --- | --- |
-| **Export** (OUT-11) | Rows with `learner_key = <requester's sub>` are in scope. `response_body` is stored **whole and unredacted** (`91_findings-register.md` § `F-S3-1`; `src/transport/audit-middleware.ts:88`, assigned at `:109`) and is capped at 65 536 bytes (`OBJ-11`), so an export must be labelled **possibly truncated**. `params` is redacted only by a credentials denylist (`src/shared/redact-params.ts:1`). | Rows with `learner_key = <requester's sub>` are in scope. `data` is free-form `JSONB` (`drizzle/0013_create_operation_event_log.sql:9`) and rationales may quote learner content verbatim, capped at 256 characters (`src/orchestration/topic-workflows.ts:585`; `src/orchestration/chunk-workflows.ts:161`). |
+| **Export** (OUT-11) | Rows with `learner_key = <requester's sub>` are in scope. `response_body` is stored **whole and unredacted** (`91_findings-register.md` § `F-S3-1`; `src/transport/audit-middleware.ts:88`, assigned at `:109`) and is capped at 65 536 bytes (`OBJ-11`), so an export must be labelled **possibly truncated**. `params` is redacted only by a credentials denylist (`src/shared/redact-params.ts:1`). | Rows with `learner_key = <requester's sub>` are in scope. `data` is free-form `JSONB` (`drizzle/0013_create_operation_event_log.sql:9`) and rationales may quote learner content verbatim, capped at 256 characters (`src/orchestration/topic-workflows.ts:591`; `src/orchestration/chunk-workflows.ts:168`). |
 | **Erasure** (OUT-12) | Becomes reachable by `DELETE … WHERE learner_key = $1`. **Today it is reachable by no per-learner predicate at all** — that is the material change. The 30-day script (`scripts/retention-cleanup.sql`) is time-based and does not discharge an erasure request. | Becomes reachable by the same predicate. |
 | **Retention** | The 30-day script bounds the window but is not learner-scoped. | **There is no retention bound at all.** No cleanup script covers this table, and the codebase describes it as *"indefinitely-retained"*. Attribution therefore converts an unbounded store into an unbounded store **of learner-linked personal data** — `92_risk-register.md` § `R-S16-4`. |
 
@@ -398,7 +401,7 @@ Two disclosures, made here so SUB-17's audit meets the explanation rather than t
 1. **"43 gated" describes a mount, not an invariant.** The context-token gate is mounted only in HTTP
    mode and only when the context-token repository is non-null
    (`src/transport/http.ts:184`–`:187`); it **never runs for STDIO**, where all 46 tools are ungated.
-2. **The gate fails open on internal error.** `src/transport/context-token-middleware.ts:82`–`:86`
+2. **The gate fails open on internal error.** `src/transport/context-token-middleware.ts:83`–`:86`
    catches an exception, logs it and calls `next()`, admitting the call ungated.
 
 Both are recorded as `91_findings-register.md` § `F-S16-3`. Neither contradicts the 46/43/3 figure;

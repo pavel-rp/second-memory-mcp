@@ -175,7 +175,7 @@ assert the match against.
 | The audit transport drops its whole buffer on a circuit-open with only a `stderr` write, and loses a failed batch because the buffer is cleared before the query. | `src/transport/pg-audit-transport.ts:83`–`:90`, `:92`–`:93` |
 | `session_id` and `correlation_id` are caller-asserted. | `src/transport/audit-middleware.ts:94`–`:99`; `src/transport/http.ts:154`–`:157`; `../91_findings-register.md` § `F-S16-1` |
 | The one existing in-memory binding structure is process-local and lost on every restart. | `src/transport/http.ts:83`; `../91_findings-register.md` § `F-S15-3` |
-| Restart cadence is ≥3.29/day over the most recent 7 days. | `../15_operational-objectives-for-the-real-platform.md` §3 (`C-17`) |
+| Restart cadence is ≥3.29/day over the most recent 7 days. | `../15_operational-objectives-for-the-real-platform.md` §2.2 (`C-17`) |
 | `operation_event_log` is keyed only on `correlation_id` and `timestamp` and is indefinitely retained. | `drizzle/0013_create_operation_event_log.sql:3`, `:4`, `:14`, `:15`; `src/orchestration/topic-workflows.ts:585` |
 | Both log tables are `learner-linked` personal data under the proposed attribution. | `DR-C11-S16-2_the-audit-log-privacy-determination.md` decision 1 |
 | The learner key is the `sub` verbatim and `azp` is never a learner key. | `DR-C11-S2-1_the-persisted-learner-key.md` |

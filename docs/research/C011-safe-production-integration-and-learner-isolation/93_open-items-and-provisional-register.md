@@ -333,6 +333,6 @@ has recorded.
 
 **SUB-16 register totals at revision 1:** one open item, `OI-S16-1`, carrying a named owner and an
 observable resolving event, and zero blank fields. **Zero second records** of a question already
-owned by another sub-task or another package — five inherited items are consumed by citation and
+owned by another sub-task or another package — six inherited items are consumed by citation and
 named above. **One of one** corresponds to the single spike entry `SPK-S16-1` in
 `96_spike-register.md`, on the same rule SUB-1 applied.

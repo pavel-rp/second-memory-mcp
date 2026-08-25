@@ -416,7 +416,7 @@ re-raised.
 
 **Assumption.** Every alert route in `16_attribution-and-detection.md` §3 is written `[unconfirmed]`,
 but a matrix cannot state a route of *nothing* and remain readable. The reading the chapter proceeds
-on, stated once here rather than fifteen times there, is: **the only channel a signal can currently
+on, stated once here rather than four times there, is: **the only channel a signal can currently
 reach is the operator inspecting the deployment directly** — a query run by hand against the audit
 database, or the container's `stderr`. No push channel, no paging, no aggregation, no retention of
 the signal itself. **Detection under this reading is therefore pull-only and unbounded in latency:**

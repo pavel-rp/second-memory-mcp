@@ -433,8 +433,14 @@ and an owner; **0** blank cells. (2) **2 of 2** transports reported separately, 
 the principal are two different missing things. (3) **1 of 1** reading determined **per table**, for
 **2 of 2** tables, with export, erasure and retention each addressed; **0** revisions raised against
 `03_learner-data-inventory-and-classification.md`. (4) The contract states **9 required fields, 3
-location properties, 1 fire condition and 6 negative clauses**; **0** of them defer to an artifact
-that does not yet exist. (5) **7 of 7** missing emissions named with an owner; **0** signals assume
+location properties, 1 fire condition and 6 negative clauses**. **Two of them name a value another
+sub-task supplies, and neither is a deferral of the contract's own shape:** field 4's `copy_class`
+enum ranges over the classes SUB-9's matrix enumerates, and the fire condition compares against the
+propagation's *declared* cardinality — both are inputs the contract requires a conforming party to
+supply, stated as such, in the way a function signature names a parameter without computing it.
+`deadline_at`'s value is likewise SUB-8's (`DR-C11-S16-3` §5). **What is complete without reference
+to any future artifact is the shape**: no field, property or clause says *"as SUB-9 shall
+determine"*. (5) **7 of 7** missing emissions named with an owner; **0** signals assume
 an available emission.
 
 **Three things this measure does not claim, stated because the over-claim is the failure mode.**

@@ -39,8 +39,8 @@
 
    | Duty | `mcp_request_log` (`LD-S3-16`) | `operation_event_log` (`LD-S3-17`) |
    | --- | --- | --- |
-   | **Export** (OUT-11) | Rows with `learner_key = <requester's sub>` are in scope. `response_body` is stored **whole and unredacted** (`F-S3-1`; `src/transport/audit-middleware.ts:88`, assigned at `:109`), so an export returns the learner's own free text back to them — capped at 65 536 bytes per entry (`OBJ-11`), which means an export must be labelled **possibly truncated** rather than complete. `params` is redacted only by a credentials denylist (`src/shared/redact-params.ts:1`), so learner content in arguments is exported too. | Rows with `learner_key = <requester's sub>` are in scope. `data` is free-form `JSONB` (`drizzle/0013_create_operation_event_log.sql:9`) and rationales may quote learner content verbatim, capped at 256 characters (`src/orchestration/topic-workflows.ts:585`; `src/orchestration/chunk-workflows.ts:161`). |
-   | **Erasure** (OUT-12) | Becomes reachable by `DELETE … WHERE learner_key = $1`. **Today it is reachable by no per-learner predicate at all** — this is the material change attribution makes. A 30-day retention delete exists (`scripts/retention-cleanup.sql`) but it is time-based, not learner-based, and does not discharge an erasure request. | Becomes reachable by the same predicate. **No cleanup script covers this table at all**; it is described in the codebase as *"indefinitely-retained"* (`src/orchestration/topic-workflows.ts:585`; `src/orchestration/chunk-workflows.ts:161`). Attribution therefore converts an indefinitely-retained store into an indefinitely-retained store **of learner-linked personal data** — carried as `R-S16-4`. |
+   | **Export** (OUT-11) | Rows with `learner_key = <requester's sub>` are in scope. `response_body` is stored **whole and unredacted** (`F-S3-1`; `src/transport/audit-middleware.ts:88`, assigned at `:109`), so an export returns the learner's own free text back to them — capped at 65 536 bytes per entry (`OBJ-11`), which means an export must be labelled **possibly truncated** rather than complete. `params` is redacted only by a credentials denylist (`src/shared/redact-params.ts:1`), so learner content in arguments is exported too. | Rows with `learner_key = <requester's sub>` are in scope. `data` is free-form `JSONB` (`drizzle/0013_create_operation_event_log.sql:9`) and rationales may quote learner content verbatim, capped at 256 characters (`src/orchestration/topic-workflows.ts:591`; `src/orchestration/chunk-workflows.ts:168`). |
+   | **Erasure** (OUT-12) | Becomes reachable by `DELETE … WHERE learner_key = $1`. **Today it is reachable by no per-learner predicate at all** — this is the material change attribution makes. A 30-day retention delete exists (`scripts/retention-cleanup.sql`) but it is time-based, not learner-based, and does not discharge an erasure request. | Becomes reachable by the same predicate. **No cleanup script covers this table at all**; it is described in the codebase as *"indefinitely-retained"* (`src/orchestration/topic-workflows.ts:584`; `src/orchestration/chunk-workflows.ts:160`). Attribution therefore converts an indefinitely-retained store into an indefinitely-retained store **of learner-linked personal data** — carried as `R-S16-4`. |
    | **Retention** | The 30-day script bounds the exposure window but is not a learner-scoped control. Under the attributed reading it becomes a *retention* control over personal data rather than over logs. | **There is no retention bound.** This is the single largest consequence of the determination and it is stated as an exposure, not resolved here: setting a retention period is a policy decision resting on the lawful basis, which is `OI-S3-1` (SUB-3's record, cited not duplicated). |
 
 5. **Pre-attribution rows are permanently unattributable, and the population is therefore mixed.**
@@ -100,9 +100,16 @@ weaker side, which is the wrong direction to be wrong in.
 **Why the adoption condition is written out rather than left implicit.** Every other statement in
 this package about the deployment is either an observation or an explicitly labelled `[unconfirmed]`.
 A determination that read *"these tables are learner-linked personal data"* full stop would be the
-package's first unlabelled assertion about a state the deployment is not in. `R10` — *"legal
-determination asserted, authority overstated"* — is registered by SUB-3 against exactly this shape of
-error, and the cheapest way not to commit it is one sentence naming the condition.
+package's first unlabelled assertion about a state the deployment is not in. `R10` — *"A privacy or
+ownership requirement is asserted where a legal determination is actually required"*
+(`../92_risk-register.md:110`) — is registered by SUB-3 against exactly this shape of error, and the
+cheapest way not to commit it is one sentence naming the condition. **A caution on that id:** the
+charter-row table reproduced at `../92_risk-register.md:33` labels `R10` *"Compatibility contract
+written against a stale tool count"* (OUT-16, SUB-11), so the id resolves to two different risks
+inside one file. This record means **SUB-3's authored section**. **The divergence already has a
+record and this sub-task raises no second one:** it is `../91_findings-register.md` § `F-S3-3`,
+authored by SUB-3, which reports the rows 10–12 permutation and hands it to SUB-14 with SUB-11
+co-named. Cited, not restated.
 
 ## Rejected alternatives
 
@@ -144,11 +151,11 @@ error, and the cheapest way not to commit it is one sentence naming the conditio
 | Neither table has any principal column at this cutoff. | `drizzle/0010_create_infrastructure_mcp_request_log.sql`; `drizzle/0012_extend_mcp_request_log.sql`; `drizzle/0013_create_operation_event_log.sql` |
 | `response_body` is stored whole and unredacted; `redactParams` is a credentials-only denylist. | `src/transport/audit-middleware.ts:88`, `:105`, `:109`; `src/shared/redact-params.ts:1` |
 | Response bodies are capped at 65 536 bytes. | `../15_operational-objectives-for-the-real-platform.md` §4 (`OBJ-11`); `src/transport/audit-middleware.ts:14`; `src/transport/pg-audit-transport.ts:36` |
-| `operation_event_log.data` is free-form `JSONB`; rationales may quote learner content verbatim capped at 256 chars; the table is indefinitely retained with no cleanup script. | `drizzle/0013_create_operation_event_log.sql:9`; `src/orchestration/topic-workflows.ts:585`; `src/orchestration/chunk-workflows.ts:161`; `scripts/retention-cleanup.sql` covers `mcp_request_log` only |
+| `operation_event_log.data` is free-form `JSONB`; rationales may quote learner content verbatim capped at 256 chars; the table is indefinitely retained with no cleanup script. | `drizzle/0013_create_operation_event_log.sql:9`; the 256 cap at `src/orchestration/topic-workflows.ts:591` and `src/orchestration/chunk-workflows.ts:168`, the `indefinitely-retained` wording at `src/orchestration/topic-workflows.ts:584` and `src/orchestration/chunk-workflows.ts:160`; `scripts/retention-cleanup.sql` covers `mcp_request_log` only |
 | The subject-binding map is process-local and emptied by every restart, at a measured cadence of ≥3.29/day. | `src/transport/http.ts:83`; `../91_findings-register.md` § `F-S15-3`; `../15_operational-objectives-for-the-real-platform.md` §3 |
 | Whether either table holds learner-derived content in production is unobserved. | `../93_open-items-and-provisional-register.md` § `OI-S1-5`, § `OI-S1-6` |
 | The lawful basis and controller/processor role are one question with one record, owned elsewhere. | `../93_open-items-and-provisional-register.md` § `OI-S3-1` |
-| Overstating a legal determination is a registered risk. | `../92_risk-register.md` § `R10` |
+| Overstating a legal determination is a registered risk. | `../92_risk-register.md:110` — SUB-3's authored `R10` section. **Not** the same id's charter-row label at `../92_risk-register.md:33`; that rows-10–12 permutation is already recorded as `../91_findings-register.md` § `F-S3-3` (SUB-3's), and no second record is raised here. |
 | Erasure completing on paper while a copy survives is the charter's § Risks row `R2`. | C011 charter, § Risks (`_local/`, gitignored — quoted here rather than cited as a resolvable path, per `DR-C11-S1-3` § Evidence). Its register entry is **SUB-9**'s to author (charter assumption 48; the fifteen-row author mapping is reproduced in `../92_risk-register.md`), so no `R2` section exists in that register at this cutoff. |
 
 ## Revision trigger
