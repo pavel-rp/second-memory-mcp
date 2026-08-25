@@ -491,3 +491,43 @@ observable resolving event, and zero blank fields. **Zero second records** of a 
 owned by another sub-task or another package — seven inherited items are consumed by citation and named
 above — `OI-S3-1`, `OI-S1-4`, `OI-S1-5`, `OI-S1-6`, `OI-S1-7`, `OI-S1-9` and `OI-S16-1` — `OI-S3-1` most load-bearingly. **One of one** corresponds to the single spike entry `SPK-S8-1`
 in `96_spike-register.md`, on the same rule SUB-1 applied.
+### SUB-5
+
+*`NEU-997`, covering `OUT-8`. Two items. **A namespace warning:** C010 has `OI-S5-1`, `OI-S5-2` and
+`OI-S5-3`, and this package cites the first two heavily. Per `F-S2-2`'s rule, **a bare `OI-S5-<k>`
+here is C011's**; C010's is always written with its full package path. C010's `OI-S5-2` was closed by
+SUB-2 and is a different item from the one below entirely.*
+
+#### `OI-S5-1` — Whether the RLS second layer's transaction requirement is acceptable against `OBJ-1`'s pool of four
+
+- **Id:** `OI-S5-1`
+- **Item:** `DR-C11-S5-1` clause 5 recommends row-level security as an independent second defence. On this deployment the `pg.Pool` is shared and connections are reused, so a session-level setting leaks between requests and a **transaction-local** one is required — meaning every row-owning read must run inside a transaction, and most do not today. A transaction holds a connection longer than a single statement, against a pool whose `max` is 4 and which SUB-15 identifies as the first thing that breaks. **Whether that cost is acceptable is undecided**, and it cannot be decided here: pricing it needs `t_db`, which is unobserved.
+- **Status:** **Open.**
+- **Source:** `05_the-enforcement-point-that-confines-every-read-and-write.md` §2 clause 5, §12; `decision-records/DR-C11-S5-1_the-enforcement-point.md` clause 5 and rejected alternative 4. Platform facts: `src/infrastructure/db/client.ts:42`; `15_operational-objectives-for-the-real-platform.md:248` (`OBJ-1`), `:131`, `:161`–`:163`.
+- **Consumer:** **SUB-13 (NEU-1006)** under OUT-19, which would author the RLS DDL and the transaction discipline together; **SUB-7 (NEU-1001)** under OUT-3, if the second layer becomes a stage of its own.
+- **Owner:** **SUB-13 (NEU-1006)**, co-named **the creator, as sole maintainer and sole operator**, for the pool configuration itself.
+- **Resolving event:** **SUB-13 publishes its DDL and states whether the RLS layer is included and under what transaction discipline** — or, earlier, `OI-S15-3` closes with an observed `t_db`, which makes the cost calculable and lets the question be answered on a number rather than a judgement. Either closes it; deferring the RLS layer indefinitely does not, because the recommendation would still stand unpriced in a published record.
+- **Why not a stand-in:** A stand-in records an assumption the design provisionally rests on, with a tolerance envelope and an invalidating outcome. **This design rests on nothing here** — clause 5 is explicitly the *second* layer and the enforcement point is complete without it, which is why it was written that way. There is no assumption to carry, only an unanswered question about an optional addition.
+
+#### `OI-S5-2` — Who observes the four-part landing condition under which `CAP-S5-1` lifts
+
+- **Id:** `OI-S5-2`
+- **Item:** `05_the-enforcement-point-that-confines-every-read-and-write.md` §9.2 states the condition under which C010's `CAP-S5-1` lifts: a category evaluating to `holds` against target state **(a), as it stands**, at a named cutoff, with the ownership key applied, the enforcement point applied, the STDIO gate applied, and **the enumerated access-path set re-verified at that cutoff**. **Which party performs that observation and records it is undecided.** It is not this package, which may change no file under `src/` or `drizzle/` and can therefore never observe target state (a) with the changes landed. It is not `NEU-986`, the cap's owner, which sits at C010's completeness gate and has already published. The implementation charter `NEU-896` hands the work to is the natural party, but no such charter exists yet and none is named anywhere.
+- **Status:** **Open.**
+- **Source:** `05_the-enforcement-point-that-confines-every-read-and-write.md` §9.2; `decision-records/DR-C11-S5-2_the-first-holds-derivation.md` consequence 3 and its revision trigger; the cap itself at `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:189`.
+- **Consumer:** **`NEU-986` (`SUB-12 of C010`)**, the cap's owner, which must eventually weigh whether it lifted; **SUB-13 (NEU-1006)** under OUT-19, whose runbook is where a verification step of this shape would live; **SUB-14 (NEU-1007)** under OUT-20, whose `NEU-896` boundary statement is where an unassigned downstream obligation belongs.
+- **Owner:** **`NEU-896`** at convergence, as the party that hands implementation-ready packages to an implementation charter and is therefore the only one positioned to name a party that does not yet exist.
+- **Resolving event:** **`NEU-896` names the implementation charter that receives OUT-19's artifacts**, at which point the landing-condition observation attaches to it — or **SUB-13 writes the re-verification into its runbook as an executable step with a named performer**, which closes it earlier and more concretely.
+- **Why not a stand-in:** Nothing in this chapter rests on the observation happening. The `holds` verdict is against a composed target state and is complete without it, and the cap is explicitly **not** claimed lifted. This is an unanswered question about a future act, with no tolerance envelope and no invalidating outcome — exactly the open-item shape.
+
+---
+
+**SUB-5 register totals at revision 1:** two open items, `OI-S5-1` and `OI-S5-2`, both **open**, each
+with a named owner and an observable resolving event, neither blank. **Zero dispositions of another
+package's items are recorded here** — C010's `OI-S5-1` is consumed by citation inside `F-S5-9`, and
+C010's `OI-S5-2` was closed by SUB-2 and is not re-dispositioned. **Zero second records:**
+`OI-S15-3` (the `t_db` observation) and `OI-S3-1` (controller/processor and lawful basis) are cited
+from their single owning records rather than re-raised, on the same rule SUB-16 applied. **Zero of
+two correspond to a spike entry** — SUB-5 files no spike, because neither question is settled by a
+bounded experiment against production: `OI-S5-1` needs a measurement another item already owns, and
+`OI-S5-2` needs a party to be named.

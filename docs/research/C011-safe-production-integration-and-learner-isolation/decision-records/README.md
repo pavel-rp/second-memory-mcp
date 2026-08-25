@@ -67,3 +67,5 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S16-3_the-stalled-propagation-signal-contract.md` | SUB-16 (NEU-999) | OUT-15 |
 | `DR-C11-S8-1_the-consent-record-and-the-consent-boundary.md` | SUB-8 (NEU-1002) | OUT-10 |
 | `DR-C11-S8-2_export-erasure-and-the-completion-deadline.md` | SUB-8 (NEU-1002) | OUT-11 (supplies the `deadline_at` value `DR-C11-S16-3` left open) |
+| `DR-C11-S5-1_the-enforcement-point.md` | SUB-5 (NEU-997) | OUT-8 |
+| `DR-C11-S5-2_the-first-holds-derivation.md` | SUB-5 (NEU-997) | OUT-8 (and the discharge of C010's `CAP-S5-1`, which this package co-owns) |

@@ -614,3 +614,81 @@ tolerance envelope, a named invalidating outcome and an observable re-validation
 left blank for SUB-14 to fill**. **Zero charter-continued `A-<n>` ids**, correctly: this sub-task
 stands in for no numbered charter assumption. **Zero second records** — `OI-S3-1` is the single
 register record of the underlying determination and is cited, not restated.
+### SUB-5
+
+*`NEU-997`, covering `OUT-8`. One entry, taking the sub-task-scoped form `DR-C11-S15-3` fixes: it is
+not a stand-in for one of the charter's own numbered assumptions, so it does not continue the
+`A-<n>` sequence.*
+
+## `A-S5-1` — Every access path to a state category is reachable through the Drizzle table object or through raw SQL, so a module-boundary search enumerates them all
+
+**Status:** `[unconfirmed]`
+
+**Stands in for:** The completeness of the **enumerated access-path set** for `SC-S3-12`
+(`05_the-enforcement-point-that-confines-every-read-and-write.md` §8.3) — the artifact check `I3`
+requires before any category may return `holds`, and therefore the load-bearing assumption beneath
+this package's only positive instance.
+
+**Assumption:** That the four searches performed constitute a **complete** enumeration of the ways
+application code can reach `public.notes` — that is, that every read and every write must go through
+either the Drizzle table object imported from the schema module, or a raw SQL string naming the
+table, and that a tx-scoped instance or a test-only path is the only other shape. The searches
+returned: one import site (`src/adapters/drizzle/notes-repository.ts:4`), zero raw SQL naming the
+table anywhere in `src/`, no composition by `UnitOfWorkPort`, and one test-only `TRUNCATE`
+(`src/infrastructure/db/client.ts:78`). The **conclusion** that the set is closed follows from those
+results only if the search space is exhaustive.
+
+**Owner:** **SUB-13 (NEU-1006)** under OUT-19, whose consistency check re-verifies this derivation
+against the DDL it writes and is the nearest scheduled re-read; co-named **the implementation
+charter `NEU-896` hands the work to**, which performs the re-verification at the landing cutoff that
+is clause 4 of `CAP-S5-1`'s stated lifting condition.
+
+**Tolerance envelope:** The assumption tolerates a new **caller** of any of the four statements — the
+port-level caller set is enumerated separately at §8.3 and a new caller reaches no new statement, so
+`I3` is unaffected. It tolerates a change to the **body** of any of the four statements, provided the
+predicate is preserved. It tolerates the table gaining columns, gaining indexes, or being renamed,
+since the enumeration is over statements rather than over schema shape. It tolerates a **second
+adapter class** implementing `NotesRepository`, provided that adapter imports the table object and is
+therefore visible to the same search. It does **not** tolerate a reachability mechanism outside the
+two searched: a dynamic table reference built at runtime, a database view or trigger reaching the
+table, a stored procedure, or direct `psql` access by an operator — the last of which
+`05_the-enforcement-point-that-confines-every-read-and-write.md` §7.4 already names as outside the
+enforcement point entirely.
+
+**Invalidating outcome:** **Any path to `public.notes` that reaches it without importing the Drizzle
+table object and without naming the table in a SQL string.** A database view, trigger or rule over
+`notes`; a dynamically constructed table identifier; an ORM escape hatch; or any second process
+holding a credential to the same database. Reaching this outcome does **not** merely weaken the
+`holds` verdict — it **falsifies it**, because `I3`'s answer would then rest on an enumeration that
+was never complete, which is exactly the failure
+`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:239`
+forbids. The verdict would revert to `fails-confinement` or the evaluation would stop, and
+`DR-C11-S5-2` would need re-deriving rather than amending.
+
+**Re-validation trigger:** **A new import of the `notes` table object, or any raw SQL naming the
+table, lands in `src/`** — the observable event, and the one `DR-C11-S5-2`'s revision trigger names.
+Additionally: **SUB-13 (NEU-1006) publishes its DDL**, at which point the consistency check re-runs
+the four searches at that cutoff; and **the landing cutoff of clause 4 of `CAP-S5-1`'s lifting
+condition**, where the re-verification is mandatory rather than advisory. The trigger is deliberately
+an event in the repository rather than a date, because the assumption is about code and not about
+time.
+
+---
+
+**SUB-5 register totals at revision 1:** one entry, `A-S5-1`, `[unconfirmed]`, carrying a named
+owner, a tolerance envelope, an invalidating outcome and an observable re-validation trigger, with
+no blank field. **Zero charter-continued `A-<n>` entries**, correctly: this stand-in is not a
+stand-in for one of the charter's numbered assumptions, so it takes the sub-task-scoped form per
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`.
+
+**One assumption is deliberately not filed here, because it is a finding instead.** That the charter's
+`AppContext` count of 56 and port composition of 9 are correct was **not** assumed — both were
+re-derived and both were wrong, and they are recorded as `F-S5-3` and `F-S5-1`. A stand-in records
+something the design rests on pending confirmation; a figure that has been checked and refuted is a
+finding, not a stand-in.
+
+**`A-28` is not restated here.** C010's stand-in bounds this outcome's enforcement point and its
+re-validation trigger fires on this package's publication; the envelope check is performed at
+`05_the-enforcement-point-that-confines-every-read-and-write.md` §10 and the entry is cited from its
+single owning record at `../C010-system-and-repository-architecture/93_stand-in-assumption-register.md:104`–`:115`,
+never duplicated.

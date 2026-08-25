@@ -41,3 +41,4 @@ two**. Source and non-research paths (`src/…`, `drizzle/…`) are written **ba
 | `S4_stdio-gate-and-bound-context-token.md` | SUB-4 (NEU-996) | OUT-7, OUT-13 |
 | `S16_attribution-and-detection.md` | SUB-16 (NEU-999) | OUT-15 |
 | `S8_consent-export-and-erasure.md` | SUB-8 (NEU-1002) | OUT-10, OUT-11 |
+| `S5_the-enforcement-point.md` | SUB-5 (NEU-997) | OUT-8 |
