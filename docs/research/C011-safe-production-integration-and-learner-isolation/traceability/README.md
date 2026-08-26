@@ -44,3 +44,4 @@ two**. Source and non-research paths (`src/…`, `drizzle/…`) are written **ba
 | `S5_the-enforcement-point.md` | SUB-5 (NEU-997) | OUT-8 |
 | `S6_the-disposition-of-unowned-rows.md` | SUB-6 (NEU-1000) | OUT-2 |
 | `S11_the-client-compatibility-contract.md` | SUB-11 (NEU-1004) | OUT-16 |
+| `S9_propagation-and-completion-proof.md` | SUB-9 (NEU-1003) | OUT-12 |

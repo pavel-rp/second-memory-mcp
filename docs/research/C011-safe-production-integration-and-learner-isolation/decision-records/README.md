@@ -73,3 +73,6 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S6-2_archiving-the-pre-cutover-log-population.md` | SUB-6 (NEU-1000) | OUT-2 (the disposition of the population `F-S8-2` and `R-S16-1` route to SUB-9 for its *propagation* action) |
 | `DR-C11-S6-3_aggregate-then-generate-and-the-exclusion-evidence.md` | SUB-6 (NEU-1000) | OUT-2 (and the evidence SUB-3 named SUB-6 to supply for the exclusion recorded at position 3) |
 | `DR-C11-S11-1_the-client-compatibility-contract.md` | SUB-11 (NEU-1004) | OUT-16 |
+| `DR-C11-S9-1_the-pre-cutover-population-disposition.md` | SUB-9 (NEU-1003) | OUT-12 (and `F-S8-2`'s stated resolving event — bulk deletion at archive close, under storage limitation) |
+| `DR-C11-S9-2_the-copy-set-closure-argument.md` | SUB-9 (NEU-1003) | OUT-12 (the "no unowned copy" claim, closed over write paths with a stated falsifier) |
+| `DR-C11-S9-3_the-completion-proof-record.md` | SUB-9 (NEU-1003) | OUT-12 (the completion-proof design, asserting the field-by-field match `DR-C11-S16-3` left to SUB-9) |
