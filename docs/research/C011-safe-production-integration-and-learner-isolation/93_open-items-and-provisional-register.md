@@ -746,6 +746,45 @@ expiry. The exposure is a finding, the unknown is a spike, and neither is an ope
 
 ---
 
+### SUB-12
+
+One open item.
+
+#### `OI-S12-1` — Whether the production database holds any server-side execution object
+
+- **Question.** Does the production database carry any trigger, rule, function-backed view, foreign
+  data wrapper, publication or logical-replication slot that reads or writes a learner table?
+- **Why it is an open item and not a finding.** The *exposure* — that such an object would be
+  invisible to every reading of this repository — is answered and is filed as the blocking finding
+  `F-S12-5`. What is unanswered is the **factual question** of whether any such object exists, and it
+  has an observable resolving event, which is the shape an open item takes here. The finding is the
+  gap; this is the question.
+- **Why no reading of this repository can close it.** A server-side execution object is created
+  through a direct database session (`IN-4`) and leaves no artifact under `src/` or `drizzle/`. This
+  is the one extension shape (`X-3`) that `DR-C11-S12-1`'s ingress argument is structurally unable to
+  close, as distinct from the four it merely has not observed.
+- **Owner.** **The creator, as sole maintainer and sole operator** — the only party who can connect to
+  the production database.
+- **Resolving event.** The operator runs the enumeration `SPK-S12-2` specifies against the production
+  database and states the result, including a negative result.
+- **Consumers.** **SUB-13** (NEU-1006), whose DDL and migration plan assume no such object;
+  **SUB-14** (NEU-1007) at assembly; **SUB-17** (NEU-1008), which audits that a blocking finding was
+  not quietly accepted; **`NEU-896`**, since a second writer to the production database is a
+  program-level fact.
+- **Status:** **open**. Spike `SPK-S12-2`, **not executed**.
+
+**Three things that would look like open items and are not filed as such.** That the hosting,
+monitoring and log-shipping arrangements are unknown is **`OI-S1-9`**; that backups may exist is
+**`OI-S1-8`**; that the audit writer may not be mounted in production is **`OI-S16-1`**. All three are
+consumed by this sub-task's gates — `GATE-S12-14`, `TP-S12-43` and `GATE-S12-19` respectively — **by
+citation only.** This sub-task raises **no second record** of any of them, so the package continues to
+carry one id per question.
+
+**One thing that would look like an open item and is filed as a spike instead.** Whether any Tier-2
+verdict field has ever tripped in production is `SPK-S12-3`: it is a bounded observation with a
+method rather than an unanswered question about the design, and `F-S12-1` does not depend on the
+answer — the finding is about what the deployment permits, which is read off the code.
+
 ### SUB-13
 
 > **Id-collision disclosure.** **`OI-S13-1` also exists in C010**
