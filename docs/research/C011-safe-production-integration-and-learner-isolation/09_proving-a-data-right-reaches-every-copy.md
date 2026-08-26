@@ -350,8 +350,16 @@ the one it records as never made.
 
 ## 7. The propagation matrix
 
-Three duties × six classes. Every cell carries a propagation action, a completion deadline, a
-permitted retention exception, a learner-visible result and an auditable proof.
+Three duties × six classes = **18 (class, duty) pairs**, presented as **17 rows**: under consent
+withdrawal C4 and C5 take one shared row, because the answer is identical for both and stating it
+twice would imply a distinction that does not exist. **The merge is presentational only** — under
+`DR-C11-S9-3` clause 1 each of the six classes still emits its **own** completion-proof row on every
+request, so the declared cardinality stays 6 and `SIG-S16-3` still counts C4 and C5 separately. The
+count is given as 17 rows rather than 18 so a reader recounting the tables gets the number this
+chapter states.
+
+Every cell carries a propagation action, a completion deadline, a permitted retention exception, a
+learner-visible result and an auditable proof.
 
 **Deadline convention.** Every `30 days` below is `A-S8-1`'s value, consumed by citation, not set
 here. It is *"not observed, not calibrated, and not a legal determination"*

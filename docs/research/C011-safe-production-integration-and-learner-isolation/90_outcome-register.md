@@ -984,8 +984,11 @@ dispositions); `decision-records/DR-C11-S9-1`, `DR-C11-S9-2`, `DR-C11-S9-3`;
 
 **Measured result at revision 1.**
 
-1. **MET.** 18 cells across three duty tables (§7.1–§7.3), each carrying all five elements. Zero
-   read "unknown". Three C3 cells are flagged **unresolved-with-owner-and-date**, which is the state
+1. **MET.** **18 (class, duty) pairs presented as 17 rows** across three duty tables (§7.1–§7.3),
+   each carrying all five elements — C4 and C5 share one row under consent withdrawal, a
+   presentational merge only, since each class still emits its own completion-proof row. The row
+   count is stated so a reader recounting the tables gets the same number. Zero cells read
+   "unknown". Three C3 cells are flagged **unresolved-with-owner-and-date**, which is the state
    OUT-12 explicitly permits — the owner and the resolving event are carried from `OI-S1-8`, not
    invented here.
 2. **MET.** §3.1. `web-owned state` resolved to browser-side device state; the server-side sub-class
