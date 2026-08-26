@@ -248,8 +248,9 @@ not repeated per stage; the exposure is `R-S16-2`, cited and not re-raised.
   `principal_kind` and `learner_key`; and new rows are written with that determined kind.
 - **Isolation signal.** `SIG-S16-1` limb 1b becomes computable — `principal_kind = 'client'` on a
   non-exempt tool.
-- **Health signal.** Audit-write success rate; a fall indicates the writer is failing rather than the
-  gate.
+- **Health signal.** Audit-write success rate — **an HTTP-only signal**. Under STDIO no audit or event
+  row is written at all (`F-S7-9`), so this signal has no STDIO limb and its absence there is not
+  evidence of health.
 - **Owner.** SUB-2 (NEU-994) for the identity rule; SUB-13 (NEU-1006) for the DDL; the creator to apply.
 
 **Why the identity rule shares this stage rather than getting its own.** It is not bundled for
@@ -311,7 +312,11 @@ case a **lower** bound per `F-S16-2`.
   has been read by the owner. **This exit condition is a human read, not a metric**, because the
   channel that would deliver it is unconfirmed (`A-S16-1`).
 - **Isolation signal.** The would-refuse record itself, partitioned by `principal_kind` — this is the
-  first point at which the `sub`/`azp` distribution in production is visible.
+  first point at which the `sub`/`azp` distribution in production is visible. **On HTTP it is a
+  queryable table. On STDIO it is stderr and nothing else** — see `F-S7-9`: the database log
+  transports are wired only by the HTTP path, so `T4` must *build* the STDIO recording surface, not
+  merely switch it on. A reader must not assume this stage yields one uniform dataset across both
+  transports.
 - **Health signal.** Unchanged refusal rate. Observe-only must refuse nothing; a change here means it
   is not observe-only.
 - **Owner.** The creator.
@@ -486,7 +491,7 @@ would be the failure mode `A-S16-1` guards against.
 | --- | --- | --- | --- | --- |
 | **T0** | Smoke red for a reason unrelated to the chosen route | Revert the CI change | 1 deploy | **Nothing.** No runtime state is touched. |
 | **T1** | Audit-write failure rate rises | Toggle carrier writes off; revert by migration | 1 restart to contain; 1 deploy to reverse | **Nothing irrecoverable.** Rows written while off carry `none`, which is a defined value, not a corruption. |
-| **T2** | Write failures persist beyond the move window | Move rows back from the retained store | 1 migration | **Two things, and they are not nothing.** The five-week window in which the Tier-2 aggregate under-reported (`F-S6-3`) is not replayed. And post-cutover rows written while the reversal stood sit alongside pre-cutover rows again, **re-creating the mixed population `S1` existed to end** — the rows return, the timestamp separation does not. |
+| **T2** | Write failures persist beyond the move window | Move rows back from the retained store | 1 migration | **Two things, and they are not nothing.** The five-week window in which the Tier-2 aggregate under-reported (`F-S6-3`) is not replayed — and that same five-week horizon is now in live conflict with the merged 30-day retention window, filed by SUB-9 as **`F-S9-6`** and cited here, not resolved. And post-cutover rows written while the reversal stood sit alongside pre-cutover rows again, **re-creating the mixed population `S1` existed to end** — the rows return, the timestamp separation does not. |
 | **T3** | Boot duration breaches `OBJ-8` | Drop the added columns | 1 migration | **Nothing.** Nullable columns carrying no data. |
 | **T4** | Observe-only is found to refuse something | Toggle recording off; revert by deploy | 1 restart to contain; 1 deploy to reverse | **The observation window itself.** Reverting discards the would-refuse record accumulated so far, and `T5`'s entry condition then has no evidence to read. |
 | **T5** | — | **None. This stage is irreversible.** | — | **Every `context_tokens` row.** They are destroyed. The loss is bounded by a consumed decision rather than caused here: `DR-C10-S8-2`'s reject-don't-grandfather rule has already voided every one of them, so what is destroyed is rows that would have been refused anyway. It is still destruction, and no control, backup or migration brings them back. Callers re-mint; in-flight sessions holding a pre-purge token fail once. |
@@ -624,7 +629,11 @@ safety argument had a hole is worth naming even when the conclusion survives.
   is a specification.
 - **It does not choose `T0`'s route.** `OI-S7-1` is open and the creator owns it.
 - **It does not discharge `F-S8-2`, `R-S6-1` or anything SUB-9 owns.** `T2` relocates a population;
-  what a data right does to it is SUB-9's, concurrently.
+  what a data right does to it is SUB-9's, which has since merged (PR #796). SUB-9 downgraded
+  `F-S8-2` from blocking to resolved **as a discharge of the design obligation, not of the rows** —
+  the population is dispositioned as bulk deletion at archive close under storage limitation, and
+  execution remains open as `R-S9-1`. This chapter's `T2` is unaffected: it still only decides where
+  the rows live.
 - **It changes no code.** Zero files under `src/` or `drizzle/`.
 
 **Two disclosures, made because certifying their absence would be easier than checking.**
@@ -667,7 +676,8 @@ safety argument had a hole is worth naming even when the conclusion survives.
 | `F-S7-5` | No stage can be executed at a chosen moment; three stages' only reversal is a deploy | **SUB-13**, `NEU-896` |
 | `F-S7-6` | cd-prod is serialised, so `R-S15-3`'s overlap window is conditional | **SUB-15**'s owner, **SUB-13** |
 | `F-S7-7` | The forwarded abort condition's `ease_factor` limb is safe, and why | **SUB-13**, `NEU-896` |
-| — | *(withdrawn)* The risk register's id-convention permutation for rows 10–12 is **`F-S3-3`**, already registered by SUB-3. This chapter raises no second record and cites it. | — |
+| `F-S7-9` | Under STDIO no audit or event row is written at all, so `T4`'s observe-only record has no database limb on that transport | **SUB-13**, **SUB-4**'s owner (NEU-996) |
+| — | *(withdrawn)* The risk register's id-convention permutation for rows 10–12 is **`F-S3-3`**, already registered by SUB-3. This chapter raises no second record and cites it. `F-S7-8` is retired, not reused. | — |
 | `R3` | The Critical charter § Risks row, authored here | **SUB-14** (aggregates), `NEU-895` |
 | `R4` | The High charter § Risks row, authored here | **SUB-14** (aggregates), `NEU-896` |
 | `R-S7-1` | Accepting a known-failing smoke step blinds the rollout for its duration | the creator, `NEU-896` |

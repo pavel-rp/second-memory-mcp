@@ -915,11 +915,20 @@ introduced a transient window without saying it was *not* a third would leave SU
   cites it and adds nothing. One id per fact.
 - **Found by:** this sub-task's own independent adversarial pass, before the pull request was opened.
 
+#### `F-S7-9` — Under STDIO no audit or event row is written at all, so the observe-only stage has no database limb on that transport
+
+- **Id:** `F-S7-9`
+- **Finding:** The two database log transports are wired **only** by the HTTP path. `createAuditPinoLogger` and `createEventPinoLogger` are called from exactly two sites, `src/transport/http.ts:179` and `:181`, and from nowhere else in `src/`. The STDIO branch of `bootstrap()` is three statements — `createMcpServer(ctx)`, `new StdioServerTransport()`, `server.connect(transport)` (`src/transport/main.ts:55`–`:58`) — and calls neither. `eventPinoLogger` therefore stays at its `null` initial value (`src/shared/logger.ts:214`), and `logEvent` *"falls back to a plain stderr log"* when unconfigured (`:227`). **Under STDIO, `infrastructure.mcp_request_log` and `infrastructure.operation_event_log` receive zero rows and the entire event stream goes to stderr.**
+- **Evidence:** `src/transport/http.ts:179`, `:181`; `src/transport/main.ts:55`–`:58`; `src/shared/logger.ts:214`, `:220`–`:222`, `:227`. Read at `56bd7b6`, 2026-08-26, by following every caller of the two factory functions across `src/`. This extends charter assumption 17, which records that STDIO carries no audit *middleware*; what is established here is the stronger fact that **no row reaches either table by any path** on that transport.
+- **Consequence:** Three stages in `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §6 are affected, and each now says so rather than implying uniformity. **`T4` is the material one:** SUB-4's stage `B` is *"the gate and the audit path reach STDIO in observe-only"*, and this finding is why *"the audit path reaches STDIO"* is **work the stage must do**, not a switch it flips — until it is done, the STDIO would-refuse record exists only as stderr, which `A-S16-1` already records as readable by the operator alone. `T4`'s exit condition is a human read for that reason, and its output is **not one uniform dataset across both transports**. `T1`'s and `T2`'s audit-write health signals are correspondingly **HTTP-only**, so their silence on STDIO is not evidence of health. This does not change the stage order: `T4` still surfaces the defect before `T5`, and on HTTP it does so into a queryable table.
+- **What is assumed rather than derived:** Nothing about the wiring — every call site was enumerated. **Not established:** whether the production deployment runs the STDIO transport at all. That is `A-S4-2` (the STDIO edge's reachability), cited rather than restated; if STDIO is unreachable in production the consequence above is latent rather than live, and the finding is about the code either way.
+- **Handed to:** **SUB-13** (NEU-1006), which writes `T4`'s runbook step and must scope the recording work rather than assume a mount; and **SUB-4**'s owner (NEU-996) as the author of the stage whose one-line description this qualifies.
+
 ---
 
-**SUB-7 register totals at revision 1:** **seven** findings, `F-S7-1` … `F-S7-7`. An eighth was
-drafted and **withdrawn before publication** as a second record of `F-S3-3`; `F-S7-8` is retired
-above rather than reused. **Two are the findings
+**SUB-7 register totals at revision 1:** **eight** findings — `F-S7-1` … `F-S7-7` and `F-S7-9`.
+**`F-S7-8` is retired, not reused:** it was drafted and **withdrawn before publication** as a second
+record of `F-S3-3`, so the id is burned rather than recycled onto a different fact. **Two are the findings
 OUT-3 and OUT-4 name by requirement**, and they share a single entry because they share a single
 cause: `F-S7-5` carries both OUT-3's *"a stage that cannot be executed under the auto-deploy /
 auto-migrate constraint"* clause — checked against all ten stages, which returned **none
@@ -932,11 +941,11 @@ with its reason and its owner"* in the stage's own row rather than reported sepa
 named exceptions appear at `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §8, none
 blank.
 
-Of the remaining **six**, two are platform mechanics this sub-task read first-hand and no predecessor
-had (`F-S7-1`, `F-S7-2`), two are interlocks visible only after composition and therefore invisible
-to every predecessor individually (`F-S7-3`, `F-S7-4`), one corrects the premise of another
-sub-task's risk entry without re-raising its residual (`F-S7-6`), and one closes a gap in a safety
-argument this sub-task is forwarding (`F-S7-7`). Every entry carries an owner.
+Of the remaining **seven**, three are platform mechanics this sub-task read first-hand and no
+predecessor had (`F-S7-1`, `F-S7-2`, `F-S7-9`), two are interlocks visible only after composition and
+therefore invisible to every predecessor individually (`F-S7-3`, `F-S7-4`), one corrects the premise
+of another sub-task's risk entry without re-raising its residual (`F-S7-6`), and one closes a gap in
+a safety argument this sub-task is forwarding (`F-S7-7`). Every entry carries an owner.
 
 **No amendment is routed to `NEU-895` by SUB-7.** C010 §4.3's `I4`→`I5` sequencing consequence is the
 one consumed constraint this sub-task could have contradicted, and the audit at
