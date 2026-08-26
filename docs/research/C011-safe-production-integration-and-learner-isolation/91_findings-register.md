@@ -1035,3 +1035,108 @@ This package has its own `F-S5-*` (SUB-5's, thirteen entries) and its own `F-S8-
 C010 also has a sub-task 8 — so any `S<n>`-scoped id may collide across the two packages. Per
 `README.md` § Id conventions, a C010 record is always cited qualified and a bare id is always this
 charter's own. `F-S2-2` records the same hazard for `OI-S1-2`.
+
+---
+
+### SUB-9
+
+#### `F-S9-1` — Learner content egresses to two external providers, and the resulting copy rests outside every copy class the propagation matrix defines
+
+- **Id:** `F-S9-1`
+- **Finding:** Chunk text and classifier prompts over learner content are sent to external providers on two outbound call sites. The copy that results rests **in a third party's systems** — outside all six copy classes, outside every port, and outside any mechanism this package can bind. No propagation action, no completion deadline and no auditable proof can be written for it, because nothing in this deployment can reach it. This is the one copy location the unowned-copy audit surfaced that no class claims.
+- **Evidence:** `src/adapters/langchain/embedding-adapter.ts:89` (`new OpenAIEmbeddings({`); `src/adapters/langchain/content-classifier-adapter.ts:199` (`new ChatOpenAI({`), invoked at `:145`. Enumerated as write channel `W-3` in `09_proving-a-data-right-reaches-every-copy.md` §4.2, whose grep over `src/` returned exactly three outbound call sites, the third (`src/transport/jwt-middleware.ts:15`, the IdP discovery request) carrying no learner content. SUB-5 named the confinement half at `05_the-enforcement-point-that-confines-every-read-and-write.md:549`–`:562`.
+- **Consequence:** OUT-12's *"no unowned copy"* claim is **true only over copies this deployment creates**, and false as an unqualified statement. An erasure that clears all six classes leaves the egressed copy untouched, and the learner cannot be shown a proof for it because no proof can be emitted. Every completeness claim in `09_…md` §7 and §8 is bounded by this finding explicitly rather than silently.
+- **What is assumed rather than derived:** That the two adapters are actually reachable in the production configuration — the enumeration is static over `src/` at cutoff `ee0a750` and no production observation exists. Which provider actually receives the content, and on what retention terms, is **not** established: `SPK-S8-1` asks the first question and is unexecuted, and `SPK-S9-1` asks what the terms are. Neither is assumed here.
+- **Handed to:** **`NEU-896`** at convergence, as a cross-package data-lifecycle exposure that outlives this package and that no single package can close — a third party's retention terms are not this repository's to set. **`NEU-986`** is *not* the route: this is not a log-table retention gap. **SUB-12** (NEU-1004) under OUT-17, which must model the egress path as a threat rather than exempt it. **SUB-14** (NEU-1007) for aggregation.
+
+#### `F-S9-2` — The package's designed-spike total is twenty-two at this cutoff, and a heading-level inconsistency makes a naive count return twenty
+
+- **Id:** `F-S9-2`
+- **Finding:** Two counting methods disagree on this register's size, and the gap grows with every entry added at the wrong heading level. Counting **distinct `SPK-` ids** and counting **`####`-level entry headings** — the method SUB-5 used to reconcile the figure to twenty at cutoff `cc38cc9` — differ by exactly the number of entries written at `##` level. A later sub-task re-running the heading-count method silently undercounts.
+- **Evidence:** Three entries are written at `##` rather than `####`: `96_spike-register.md:447` (`## \`SPK-S16-1\``), `:491` (`## \`SPK-S8-1\``), and SUB-11's `SPK-S11-1`. Counts taken mechanically:
+
+  | Point | Distinct `SPK-` ids | `####` headings | `##` headings |
+  | --- | --- | --- | --- |
+  | Cutoff `ee0a750` (this chapter's cutoff, before this sub-task's own entry) | **22** | 20 | 2 |
+  | This branch at HEAD, after merging `origin/develop` @ `7450bfb` and adding `SPK-S9-1` | **24** | 21 | 3 |
+
+  The 22 decomposes as SUB-1 nine, SUB-2 three, SUB-4 two, SUB-15 four, SUB-16 one, SUB-8 one, SUB-6 two; SUB-6 independently reached the same figure by arithmetic rather than by counting headings, at `96_spike-register.md:673`–`:679`. The 24 adds SUB-11's `SPK-S11-1` (merged from `develop`) and this sub-task's `SPK-S9-1`. **The heading-level divergence is recorded nowhere in the register.** The one divergence it does note, at `:693`–`:697`, concerns *content ownership* — that the front matter names SUB-1 as owning every entry while five sub-tasks have appended their own — and is a different fact entirely.
+- **Consequence:** The running correction chain is eighteen → nineteen → twenty → twenty-two → twenty-four, and each step was a real correction rather than drift. This finding records **why** the two methods disagree, so the next sub-task to state a total does not rediscover it — and records that the gap is **not fixed at two**: it is the count of `##`-level entries, which grew from two to three while this sub-task was in flight. A figure is only correct at a named cutoff, the convention SUB-4 recorded and SUB-5 and SUB-6 each restated.
+- **What is assumed rather than derived:** Nothing. Every figure above was counted mechanically over the file at the stated point. **The two cutoffs are given separately rather than collapsed**, because this sub-task's chapter is written against `ee0a750` while its branch contains the later merge, and reporting one number for both would be the drift this finding is about.
+- **Handed to:** **SUB-14** (NEU-1007) under OUT-20, which owns register reconciliation and is the only party that may normalise a heading level in a merged file. **No predecessor's text is edited here** — this register is append-only, and repairing the two headings in place would mean rewriting SUB-16's and SUB-8's sections.
+
+#### `F-S9-3` — C010 and C011 each define a different `CAP-S4-1`, and the charter's shorthand for the C010 one resolves to a different register in C011
+
+- **Id:** `F-S9-3`
+- **Finding:** `CAP-S4-1` denotes two unrelated caps. In **C011** it is SUB-4's — that the STDIO mechanism is designed and never exercised (`94_caps-and-incomplete-scope.md:115`). In **C010** it is the log-table deletion-owner cap, owned by `NEU-986` (`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:165`). OUT-12 requires a disposition for the C010 one; writing it bare would route the disposition to SUB-4's cap and to the wrong owner. Compounding it, the charter cites the C010 cap register as `91_…md:283` — a shorthand that in C011's own band resolves to the **findings** register, since C010 numbers caps `91_` and C011 numbers findings `91_`.
+- **Evidence:** `94_caps-and-incomplete-scope.md:115` (C011's `CAP-S4-1`); `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:165` (C010's), `:148` (`CAP-S3-3`), `:277`–`:284` (`CAP-S7-1`, whose `Owner:` line at `:283` names `NEU-893`), `:499`–`:500` (both owners). `README.md:61`–`:64` records that C011's band differs from C010's — *"the outcome and findings registers sat at `01_`/`02_`"* — which establishes that the two packages number differently; **the specific consequence that `91_` means caps in C010 and findings in C011 is derived here, not quoted from there**, and is checkable against `README.md:52`–`:59`'s own band table.
+- **Consequence:** This is a second instance of the collision class `F-S2-2` records for `OI-S1-2`, and it is sharper, because the two `CAP-S4-1`s have **different owners** — misrouting is not merely ambiguous, it hands a deliverable to a party that does not hold the cap. Every C010 cap reference in `09_…md` §10 is therefore written fully qualified with its path and line, and the package rule is restated there: a bare `-S4-` id in this package is C011's own.
+- **What is assumed rather than derived:** Nothing. Both entries were read directly at this cutoff.
+- **Handed to:** **SUB-14** (NEU-1007) under OUT-20, for the cross-register consistency check, which must treat `CAP-S4-1` as two ids rather than one. **SUB-17** (NEU-1008) at the gate. **`NEU-895`** (C010) is **not** routed anything: this is a naming collision between two packages' independent id spaces, not a contradiction of a C010 decision, and an addition is not a contradiction.
+
+#### `F-S9-4` — Three of the six copy classes have no mechanism the deployment can execute, so half the matrix propagates by instruction, citation or hand
+
+- **Id:** `F-S9-4`
+- **Finding:** Only three of the six classes are reachable by a statement this deployment can issue. **C2** (web-owned, browser-side) is on the learner's own device and the server cannot reach it — propagation is an *instruction* the client may or may not honour. **C3** (backups) has no established contents, location or restore path, so no statement can be written at all. **C6** (the package's own captures) lives at `_local/scratch/`, behind no port and reached by no SQL statement, so propagation is a *manual operator action*. Only C1, C4 and C5 are propagated to by a query.
+- **Evidence:** C2 — `DR-C10-S6-1` (`M-A`): the web tier holds no write authority and no database credential, so there is no server-side copy to act on, and the device copy is outside the deployment. C3 — `93_open-items-and-provisional-register.md:117`–`:126`. C6 — `05_the-enforcement-point-that-confines-every-read-and-write.md:564`–`:582`, which records that the class is outside the database, "reached by no port and by no SQL statement", and `03_learner-data-inventory-and-classification.md:451` for the quarantine path.
+- **Consequence:** A completion proof for C2 and C6 attests to an *action taken*, not to a *state reached* — the deployment can prove it issued the instruction or that the operator ran the deletion, and cannot prove the bytes are gone. `DR-C11-S9-3`'s fifth negative clause (nothing emitted before the action is durable) is satisfiable for these classes only in the weaker sense, and the matrix says so rather than implying parity across the six. This bounds what `SIG-S16-3` can detect: it detects a **missing proof**, never an **unhonoured instruction**.
+- **What is assumed rather than derived:** That no future server-side web-owned state is introduced — a grant `NEU-896` converges, explicitly not pre-empted here. C6's non-reachability is derived from SUB-5's recorded observation, not re-derived.
+- **Handed to:** **SUB-12** (NEU-1004) under OUT-17, whose threat model must treat an unhonoured client instruction and an unperformed manual deletion as distinct failure modes from a missing proof. **SUB-14** (NEU-1007) for aggregation.
+
+#### `F-S9-5` — Learner free text is written to stderr by the shared pino sink, so an erasure that correctly clears both log tables leaves the same content in the container's logs
+
+- **Id:** `F-S9-5`
+- **Finding:** The pino logger writes to **file descriptor 2** in MCP mode, and its redact configuration is **shared across every sink** — the file states it "censors credential/secret fields to `[REDACTED]` at serialization time across every pino sink (**stderr** + both DB transports)". The redaction is **credentials-only**, and the same file records that "**Learner `response` text is intentionally NOT redacted** — it is useful diagnostic data". Therefore **every learner payload that reaches `infrastructure.operation_event_log` or `infrastructure.mcp_request_log` through a pino transport also reaches stderr**, which in this deployment is captured by the container runtime and written to the host. The copy rests outside the database, outside every port, and outside all six copy classes.
+- **Evidence:** `src/shared/logger.ts:65` (`pino.destination(2)`); `:25`–`:26` (the sink-scope statement); `:39`–`:54` (the fourteen credentials-only redact paths); `:35`–`:36` (learner `response` deliberately not redacted). Enumerated as write channel `W-8` in `09_proving-a-data-right-reaches-every-copy.md` §4.2 and §4.5. Consistent with charter assumption 19 and with `F-S3-1`, neither of which reaches the **stderr** sink — both are about what the two tables persist.
+- **Consequence:** **This is the sharpest instance of `R2` in the package**, and it is created by a path no outcome had examined. The entire mechanism of `09_…md` §6 and §7 — the per-learner delete, the bulk disposal of the pre-cutover population, the retention windows handed to `CAP-S3-3` / `CAP-S4-1` (both C010) — operates on the two tables and **does nothing whatever to the log-file copy**. An operator who executes every action in the matrix correctly, and can prove it, has still not erased the learner's free text. It also bounds `F-S9-4`: a completion proof for C4 or C5 attests to rows removed from a table, never to bytes removed from a log file.
+- **What is assumed rather than derived:** That the deployment's container runtime persists stderr, and for how long. **Neither is established** — the log driver, its rotation and its retention are a deployment arrangement outside this repository, in the same class of unknown as `OI-S1-9`'s hosting and log-shipping facts, and **no claim is made about them here**. What *is* derived, from the code alone, is that the learner content reaches the stream. Whether anything downstream keeps it is the open half.
+- **Handed to:** **`NEU-896`** at convergence, as a data-lifecycle exposure whose remedy is a deployment change (a log driver with a bounded retention, or redacting `response` at the sink) rather than a schema or code change this package scopes. **The creator, as sole maintainer and sole operator**, as the only party who can inspect or change the log driver. **SUB-12** (NEU-1004) under OUT-17, whose threat model must carry a learner-content sink that no erasure path reaches. **SUB-14** (NEU-1007) for aggregation. **`NEU-986` is deliberately not the route** — this is not a log-*table* retention gap, and routing it to `CAP-S3-3`/`CAP-S4-1`'s owner would hand it to a party whose caps do not cover it.
+
+#### `F-S9-6` — SUB-8's merged 30-day window for `operation_event_log` is five days below the 5-week floor the Tier-2 gate's own query fixes
+
+- **Id:** `F-S9-6`
+- **Finding:** Two merged positions conflict, and neither is wrong on its own terms. **SUB-8** set `operation_event_log`'s retention window at **30 days**, audited it against the four-field rule and recorded it as passing (`08_consent-and-what-a-learner-can-export-and-erase.md:491`). **The Tier-2 blocking gate reads a rolling 5-week (35-day) window** of that same table (`src/adapters/drizzle/tier2-blocking-stats-repository.ts:41`). A retention policy that deletes at 30 days therefore **removes rows the gate still reads**, permanently truncating its last five days of input rather than transiently as `F-S6-3` describes for the archive. The gate is a live blocking-eligibility control (`src/orchestration/tier2-circuit-breaker.ts`), so the effect is on running behaviour, not only on reporting.
+- **Evidence:** `08_…md:491` (SUB-8's window, *"30 days, the same window as `LD-S3-16`, set here as a position"*, and its own note that **no mechanism implements it**); `src/adapters/drizzle/tier2-blocking-stats-repository.ts:41` (`AND "timestamp" >= NOW() - INTERVAL '5 weeks'`), `:39`–`:40` for the table and event filter. SUB-8's exception #5 **cites `:39` itself**, so the table's role as a gate input was known; the arithmetic against the window was not performed.
+- **Consequence:** The retention-and-deletion mechanism this sub-task hands to `CAP-S3-3` / `CAP-S4-1`'s owner (`09_…md` §6.6) **cannot implement SUB-8's window as written** without degrading a running gate. Implementing it needs one of: widen the window to ≥ 35 days; narrow the deletion to exclude `event = 'classifier.tier2_blocked'` rows; or accept the truncation with a stated reason. **This sub-task does not choose** — the window is SUB-8's under OUT-11 and the gate is C010's territory, and picking a number here would be the silent override this finding exists to prevent. Note the exposure is currently latent: SUB-8 records that **no mechanism implements the window at all**, so nothing deletes from this table today.
+- **What is assumed rather than derived:** Nothing. Both figures were read at this cutoff. **Not assumed: that the gate matters enough to widen the window for** — that is a product judgement for the owner, not a fact this chapter can settle.
+- **Handed to:** **`NEU-986`** (`SUB-12 of C010`), co-named **`NEU-896`**, as owner of `CAP-S3-3` and `CAP-S4-1` — the caps whose mechanism this conflict blocks. **SUB-8** (NEU-1002) is named as the window's author so the conflict is visible to whoever revisits OUT-11, but **no revision of SUB-8's entry is requested and none is owed**: its audit was correct against the four fields it tested, and this is a fifth consideration outside them. **SUB-14** (NEU-1007) for cross-register consistency; **SUB-17** (NEU-1008) at the gate.
+
+---
+
+**SUB-9 register totals at revision 1:** **six findings**, `F-S9-1` … `F-S9-6`, none blocking.
+`F-S9-1` and `F-S9-5`, together with the STDIO-host location carried in `F-S9-4`, are the findings
+OUT-12 requires — the **three** copy locations the unowned-copy audit surfaced that no class claims —
+and each carries a named owner and an escalation route.
+
+**`F-S9-5` was found by re-attacking an enumeration that had already returned green**, and that is
+recorded rather than smoothed over. The first draft of `DR-C11-S9-2` asserted seven write channels
+and the sentence *"there is no eighth channel"*, backed by four greps that all passed. The greps
+searched for filesystem-API call names, and a logger writing to a file descriptor calls none of
+them — so a channel carrying unredacted learner free text sat outside a check that reported clean.
+The lesson is registered with the finding because it is the package's most concrete instance of the
+failure class its own reviews keep naming: **a green mechanical check is evidence about the check,
+not about the claim.**
+
+**One inherited blocking finding is dispositioned rather than re-raised.** `F-S8-2` is downgraded
+from **blocking** to **resolved** on its own stated resolving event at `:436` — *"SUB-9 publishes a
+disposition for the pre-cutover population"* — which `DR-C11-S9-1` does, selecting bulk deletion.
+**SUB-8's entry is not edited**: this register is append-only and no sub-task rewrites another's, so
+the downgrade is recorded here and routed to **SUB-14** (NEU-1007) to reflect at assembly. What is
+discharged is the **design obligation**, not the rows; the execution is `R-S9-1`.
+
+**One finding was checked for and deliberately not filed.** OUT-12 requires that a copy class for
+which no propagation action, deadline or owner can be named be reported as a finding. **C3
+(backups) was tested against that trigger and does not meet it:** its cells carry a named owner and
+a resolving event, both carried across from `OI-S1-8` (`93_…md:123`–`:125`), which is precisely the
+state OUT-12 permits — the prohibition is on a cell reading "unknown" *that lacks an owner and a
+date*, not on an unresolved cell as such. Filing one anyway would raise **a second register record
+of the backups fact**, which this sub-task's scope forbids outright and which would leave SUB-14's
+cross-register check reconciling two ids for one question. Recorded as *checked and not filed*, on
+the precedent SUB-5 and SUB-6 each set, rather than left as a silent absence.
+
+**No contradiction with C010 was found by SUB-9.** `F-S9-3` records a **naming collision** between
+two independent id spaces, which is not a contradiction of a C010 decision and routes no amendment
+to `NEU-895`. C010's `CAP-S3-3`, `CAP-S4-1` and `CAP-S7-1` are consumed with their owners exactly as
+`NEU-988` left them; `CAP-S7-1` is discharged by supplying the lifting condition its own entry
+names, which its entry invites rather than contradicts. The settled **46 / 43 / 3** tool surface is
+not restated as a codebase fact anywhere in `09_…md`, and `42` appears nowhere in it.

@@ -758,3 +758,67 @@ writer mounted) are cited from their single owning records rather than re-design
 all three questions would be settled by reaching the same operator. The overlap is recorded so that
 whoever reaches them knows **four** production facts can be settled in one conversation — the two
 above, `SPK-S8-1`'s provider question, and this one.
+
+---
+
+### SUB-9
+
+#### `SPK-S9-1` — Which external provider actually receives learner content in production, and on what retention and deletion terms?
+
+- **Id:** `SPK-S9-1`
+- **Question:** For the two outbound call sites that carry learner content — the embedding adapter and the content classifier — **which provider endpoint does the production deployment actually reach, and what are that provider's retention, deletion and sub-processing terms for the content it receives?** The question has a wrong answer: a provider that retains submitted content for training, or that offers no deletion path, makes `F-S9-1`'s exposure materially worse than one with a zero-retention API tier.
+- **Why reading could not settle it:** Reading settles the *client libraries* and **rules one thing in that a first pass missed** — there are **two** embedding branches, not one: `new OpenAIEmbeddings` (`src/adapters/langchain/embedding-adapter.ts:89`) and `new OllamaEmbeddings` (`:118`), selected by `provider` at `:71`–`:72`, plus the classifier's `new ChatOpenAI` (`content-classifier-adapter.ts:199`). What reading **cannot** settle is which branch production runs and where it points. Both resolve from environment variables that are **unset in this environment**; the Ollama branch's `baseUrl` comes from `OLLAMA_BASE_URL` (`src/config/resolve-embedding-config.ts:34`) with a **self-hosted default** of `http://localhost:11434` (`src/domain/config/embedding-defaults.ts:11`), so the answer to *"does learner content leave the deployment at all"* is configuration-dependent and could legitimately be **no**. A base URL override, a proxy or a self-hosted compatible endpoint all read identically in the source. Contractual retention terms are not in the repository at all, under any reading.
+- **Exit condition:** The production configuration is read and the receiving endpoint identified for both adapters, **and** the corresponding provider's data-retention terms for API submissions are recorded — or the operator states that no such content is sent because the feature is disabled in production.
+- **Method:** Read the production environment's classifier and embedding configuration (endpoint, model, account tier) from the deployment's compose environment, without invoking either adapter. Record the resolved endpoint per adapter. Then record the provider's published API data-retention policy for that tier, with its retrieval date. **No learner content is submitted, and no call is made through either adapter** — this is a configuration read plus a document read, and the spike must not exercise the egress path it exists to characterise.
+- **Quarantine path:** Nothing lands under `src/`, `tests/` or `drizzle/`; nothing is merged as product code. Any captured configuration is redacted of key material and held at `_local/scratch/`, under `LD-S3-31`'s recorded terms. **If any capture is taken, the sixth copy class acquires its first member** and `09_proving-a-data-right-reaches-every-copy.md` §7.5's routing applies — the class's terms attach at that instant.
+- **Date:** **Not executed.** Determined impossible to execute on 2026-08-26: no production credential, configuration access or deployment access of any kind exists in this environment.
+- **Result:** **None.** No endpoint is identified and no retention term is recorded. `F-S9-1` therefore names the exposure and its owner without characterising its severity, and **no claim about which provider production actually uses, or on what terms, appears anywhere in this sub-task's output.** The *existence* of the three learner-content call sites is a code fact and is asserted (`F-S9-1`); their *destination and terms* are not.
+- **Confidence:** **none.** Confidence would be raised to `high` by reading the production configuration directly; it cannot be raised at all by any further reading of the repository, which is what makes this a spike rather than an open item about the code.
+- **Expiry:** **2027-02-26**, six months from design. Also expires immediately on any change to either adapter's client construction or configuration resolution.
+- **Expiry rationale:** Provider retention terms and account tiers change on the provider's schedule, not this package's, and a term quoted long after it was read is a claim about the past presented as a claim about the present. Six months is the shortest interval over which the answer is likely to remain true and the longest over which the question stays worth asking unchanged. The adapter-change clause is separate because a configuration change can invalidate the endpoint answer overnight while leaving the terms answer intact.
+- **Routes to:** **`F-S9-1`** in `91_findings-register.md`, which carries the unclosed exposure. **It routes to no new open item** — `F-S9-1` already carries the owner and the escalation route, and a second record would give SUB-14's cross-register check two ids for one gap.
+
+---
+
+**SUB-9 register totals at revision 1:** **one spike designed, zero executed** — `SPK-S9-1`.
+
+**The cumulative figure is given at two named points, because this sub-task's chapter and its branch
+sit at different ones and one number for both would be wrong at one of them.**
+
+| Point | Distinct `SPK-` ids | `####` headings | `##` headings | Executed |
+| --- | --- | --- | --- | --- |
+| Cutoff `ee0a750` — this chapter's cutoff, before this section's own entry | **22** | 20 | 2 | **0** |
+| This branch at HEAD, after merging `origin/develop` @ `7450bfb` and adding `SPK-S9-1` | **24** | 21 | 3 | **0** |
+
+The 22 decomposes as SUB-1 nine, SUB-2 three, SUB-4 two, SUB-15 four, SUB-16 one, SUB-8 one, SUB-6
+two, agreeing with SUB-6's arithmetic at `:673`–`:679`. The 24 adds SUB-11's `SPK-S11-1`, merged from
+`develop` while this sub-task was in flight, and this section's `SPK-S9-1`.
+
+**The two methods disagree by exactly the number of `##`-level entries, and that number is not
+stable:** it was two at `ee0a750` (`SPK-S16-1` at `:447`, `SPK-S8-1` at `:491`) and is three at HEAD,
+SUB-11's entry being the third. A heading-count therefore undercuts the id-count by three today and
+by more tomorrow. Registered as **`F-S9-2`** and routed to **SUB-14 (NEU-1007)**, which owns register
+reconciliation and is the only party that may normalise a heading level in a merged file. **No
+predecessor's text is edited here** — this register is append-only, and repairing the three headings
+in place would mean rewriting SUB-16's, SUB-8's and SUB-11's sections.
+
+The figure is stated as a count taken at a named cutoff rather than as a standing total, for the
+reason SUB-4 recorded and SUB-5 and SUB-6 each restated: a cumulative total is only correct on the
+day it is written. The running chain is eighteen → nineteen → twenty → twenty-two → twenty-three,
+and every step was a real correction rather than drift.
+
+**Zero executed remains the package-wide figure, and it is what forces this sub-task's proof into
+the form it takes.** Propagation cannot be demonstrated against a real copy, so
+`09_proving-a-data-right-reaches-every-copy.md` §4 argues it instead — a closure over write paths
+with a stated falsifier — and registers `SPK-S9-1` as the deferred observation for the one thing the
+argument cannot reach. `observed-in-production` is used **zero** times in `09_…md`, and **no
+production quantity is asserted anywhere in it**: no row count, no population size, no backup fact.
+
+**Zero second records.** `SPK-S8-1` — which model provider does production use, and does learner
+content therefore leave the deployment — overlaps `SPK-S9-1`'s territory and is **cited, not
+re-designed**. The two are distinct questions and both are kept: `SPK-S8-1` asks *whether* content
+leaves the deployment, which is a question about the code path and which this sub-task has now
+answered statically in the affirmative at `09_…md` §4.4; `SPK-S9-1` asks *what happens to it after
+it arrives*, which is a question about a third party and which no reading of this repository can
+settle. A run of either would inform the other, and whoever executes one should execute both in the
+same session.

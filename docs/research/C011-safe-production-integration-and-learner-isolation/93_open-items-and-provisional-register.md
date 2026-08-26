@@ -701,3 +701,45 @@ two questions this sub-task *does* need production to answer are registered else
 existing client exists at all is **`SPK-S11-1`**, with `CAP-S11-1` as its standing cap; and whether
 the smoke principal's token carries a `sub` is **`SPK-S1-1`**, cited rather than re-designed, with
 `A-S11-2` carrying the assumption this chapter makes in its absence.
+
+---
+
+### SUB-9
+
+**Namespace note.** C010 has its own sub-task 9, so `OI-S9-1` collides in shape with a C010 id
+space. It does not collide in subject, and the package rule applies unchanged: a bare `OI-S9-<k>` in
+this package is C011's own; C010's is always cited with its full path and line.
+
+#### `OI-S9-1` — The rollback window that bounds the archive's deletion date is not set at this position
+
+- **Id:** `OI-S9-1`
+- **Item:** `DR-C11-S9-1` clause 5 deletes the archived pre-cutover population **at the close of the rollback window**. The length of that window is set by the rollout and rollback design, which is **SUB-7's** (NEU-1001) under OUT-3 and OUT-4 and which runs at position 9. SUB-7 ships concurrently with this sub-task, and **its output was deliberately not read** — a disposal date chosen by reading an unmerged sibling's artifact would be a number with no citable source. Until SUB-7's window is published and reconciled, the deletion date rests on the 90-day stand-in `A-S9-1`.
+- **Status:** `[unconfirmed]`
+- **Source:** `decision-records/DR-C11-S9-1_the-pre-cutover-population-disposition.md` clause 5 and its first revision trigger; `09_proving-a-data-right-reaches-every-copy.md` §6.2.
+- **Consumer:** **SUB-9** (NEU-1003) itself, whose matrix carries the deadline; **SUB-12** (NEU-1004) under OUT-17, for which an overdue disposal is a measurable gate; **SUB-13**, for the implementation charter that executes the deletion.
+- **Owner:** **SUB-7** (NEU-1001) under OUT-3 / OUT-4, which owns the rollback window. Where SUB-7 sets no window at all, the owner of the resulting default is **the creator, as sole maintainer and sole operator**.
+- **Resolving event:** SUB-7 publishes a rollback window for the migration stages, and the deletion date in `DR-C11-S9-1` clause 5 is reconciled against it — adopting SUB-7's figure where the two differ.
+- **Why not a stand-in:** The **question** — how long the rollback window is — has an obtainable answer from a party inside this charter, at a known position, by an observable event. That is an open item. The **assumption resting on it** — that 90 days is an acceptable bound if none is set — is separately carried as `A-S9-1`, which is where the tolerance envelope and the invalidating outcome live.
+
+---
+
+**SUB-9 register totals at revision 1:** **one open item**, `OI-S9-1`, with a named owner and an
+observable resolving event.
+
+**Zero second records, and one of them is a scope constraint rather than a preference.** The
+**backups fact** is `OI-S1-8` and is cited by id in `09_…md` §7 and §10, never restated: that entry
+names this sub-task as the consumer which *"populates its backups column by citation"* (`:123`) and
+carries its owner at `:124`. **No open item, finding, risk or register entry about backups is raised
+here**, so the package continues to carry one id for one fact and SUB-14's cross-register check has a
+single id to reconcile. `OI-S5-1` (owner `NEU-850`) is likewise **consumed by citing the stand-in
+entry SUB-3 authored at position 3** — the reading this package adopted, its owner and its
+re-validation trigger — rather than re-raised or answered here; the log tables enter the matrix under
+the classification `DR-C11-S16-2` determined, and this sub-task assumes no reading of `OI-S5-1`'s
+question of its own.
+
+**One thing that would look like an open item and is filed as a finding instead.** That learner
+content egresses to external providers and lands outside every copy class is **`F-S9-1`**, not an
+open item: an open item records an unanswered question with an observable resolving event, and this
+is an **answered** one — the enumeration found the call sites and named them. What is unanswered is
+the *terms* the receiving provider applies, and that is `SPK-S9-1`, a spike with a method and an
+expiry. The exposure is a finding, the unknown is a spike, and neither is an open item.

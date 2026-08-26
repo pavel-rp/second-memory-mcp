@@ -1063,3 +1063,87 @@ what the cost is a cost *of*, and offers no hours. It does not claim the DP rubr
 finds and scopes it, and the remedy is a `src/` change this sub-task may not make.
 
 **Authored by.** SUB-11 (NEU-1004).
+
+---
+
+### SUB-9
+
+## OUT-12 — Propagation and completion proof across all six copy classes, with no unowned copy
+
+**Outcome.** For consent withdrawal, export and erasure alike, each of the **six** copy classes —
+MCP-owned state, web-owned state (browser-side only under `M-A`), backups, operational logs, audit
+logs, and this package's own captured production evidence — carries an explicit propagation action,
+a completion deadline, a permitted retention exception, a learner-visible result and an auditable
+proof. The copy set is closed by an argument with a stated falsifier rather than by a survey, and
+the one copy location no class claims is reported as a finding with an owner rather than absorbed.
+
+**Success measure.** OUT-12 is judged done when all eight hold:
+
+1. A six-column × three-duty matrix exists in which **every** cell carries all five elements, and
+   **zero** cells read "unknown" without a named owner and a date.
+2. Every column heading resolves to a **defined class** rather than an inherited label — in
+   particular `web-owned state`, resolved to browser-side device state with the server-side
+   sub-class recorded empty-by-decision under `M-A` and cited to `DR-C10-S6-1`.
+3. The sixth column carries the owner, retention bound and destruction condition **SUB-1 recorded at
+   position 1**, with that origin named, and any *"destroy on schedule"* action is stated with its
+   reasoning rather than assumed.
+4. Each candidate package-internal copy is admitted or excluded **on its derivation**, with the
+   answer written down; SUB-6's synthetic dry-run dataset is recorded as excluded and **no term is
+   set for it here**.
+5. The backups column is resolved by **citation to `OI-S1-8`** with that item's named owner carried
+   across, and **zero** backups records are raised here.
+6. The unowned-copy audit runs mechanically over **SUB-3's inventory plus `LD-S8-1`**, reports a
+   count, includes the package's own copies, and reports every unowned copy and every unresolvable
+   cell as a finding with a named owner.
+7. The completion-proof design conforms to SUB-16's published signal contract **field by field**,
+   with the match asserted here because SUB-16 declined to assert it.
+8. `CAP-S3-3`, `CAP-S4-1`, `CAP-S7-1`, `CAP-S5-1` and `OI-S5-1` each carry an explicit recorded
+   disposition with its actual owner named.
+
+**Verified by.** `09_proving-a-data-right-reaches-every-copy.md` §3 (the six defined classes), §4
+(the write-path closure argument and its falsifier), §5 (the membership test), §6 (the pre-cutover
+disposition), §7 (the matrix), §8 (the audit), §9 (what the proof does not cover), §10 (the
+dispositions); `decision-records/DR-C11-S9-1`, `DR-C11-S9-2`, `DR-C11-S9-3`;
+`traceability/S9_propagation-and-completion-proof.md`.
+
+**Measured result at revision 1.**
+
+1. **MET.** **18 (class, duty) pairs presented as 17 rows** across three duty tables (§7.1–§7.3),
+   each carrying all five elements — C4 and C5 share one row under consent withdrawal, a
+   presentational merge only, since each class still emits its own completion-proof row. The row
+   count is stated so a reader recounting the tables gets the same number. Zero cells read
+   "unknown". Three C3 cells are flagged **unresolved-with-owner-and-date**, which is the state
+   OUT-12 explicitly permits — the owner and the resolving event are carried from `OI-S1-8`, not
+   invented here.
+2. **MET.** §3.1. `web-owned state` resolved to browser-side device state; the server-side sub-class
+   recorded empty-by-decision under `M-A`, cited to `DR-C10-S6-1`.
+3. **MET.** §7.4. All five terms read from `01_production-evidence-and-the-access-audit.md:151`–`:159`
+   with the origin named; "destroy on schedule" reasoned from the retention bound's unconditional
+   expiry at publication, and explicitly **not** claimed to replace erase-on-request in the
+   pre-publication window.
+4. **MET.** §5 — five candidates tested on derivation. §5.1 states the dry-run exclusion and sets no
+   term, and **adds the exclusion's own falsifier**, which SUB-6 did not state.
+5. **MET.** §10. `OI-S1-8` cited by id with its owner carried; a grep of this chapter confirms zero
+   second records of the backups fact.
+6. **MET.** §8 — 33 categories audited, 0 with no propagation owner, **2** copy locations surfaced
+   that no class claims, reported as `F-S9-1` (external-provider egress) and `F-S9-5` (the stderr
+   log sink that mirrors both log tables) with named owners. Zero revisions raised against SUB-3's
+   inventory.
+7. **MET.** `DR-C11-S9-3` — 9/9 fields, 3/3 location properties, the timing rule and 6/6 negative
+   clauses walked individually.
+8. **MET.** §10, all five, including the qualification that C010's `CAP-S4-1` and C011's own
+   `CAP-S4-1` are different caps sharing an id.
+
+**What this measure does not claim.** It does not claim the copy set is complete over copies that
+*exist* — only over copies **this deployment creates**, with two named exceptions: the
+external-provider egress (`F-S9-1`) and the stderr log sink (`F-S9-5`). **It specifically does not
+claim that executing every action in the matrix erases a learner's free text**, because `F-S9-5`
+establishes that a copy survives on stderr that no cell of the matrix addresses. It does not claim any disposal has been executed: `F-S8-2` is downgraded
+to resolved on its own stated resolving event, which is the **publication of a disposition**, and
+the execution is carried as `R-S9-1` with an owner outside this package. It does not claim any
+production fact — no row count, no population size, no backup fact, and `observed-in-production`
+used **zero** times. It does not claim a running completion-proof store exists; `propagation_proof`
+is a specification. And it claims no implementation: no file under `src/` or `drizzle/` changes, no
+DDL is authored, and nothing is applied.
+
+**Authored by.** SUB-9 (NEU-1003).
