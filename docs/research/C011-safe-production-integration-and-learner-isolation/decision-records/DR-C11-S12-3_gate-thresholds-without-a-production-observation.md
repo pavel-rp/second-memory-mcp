@@ -86,8 +86,8 @@ running system.
 ## Consequences
 
 1. **Every row of the gate register carries a provenance label**, and the totals are reported: at
-   this cutoff, **seventeen `D`, two `S`, five `K`**, and **zero** production observations, over
-   **twenty-four** gates.
+   this cutoff, **nineteen `D`, two `S`, five `K`**, and **zero** production observations, over
+   **twenty-six** gates.
 2. **Eight spikes are registered by this sub-task** — `SPK-S12-1` … `SPK-S12-8`, each with a question,
    a method and a mandatory expiry, each recorded `not executed`. **Five gate rows carry the `K`
    label** (`GATE-S12-13`, `-14`, `-15`, `-19`, `-23`), and the two figures are different things and

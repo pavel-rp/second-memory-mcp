@@ -2,7 +2,12 @@
 
 **Sub-task:** SUB-12 (NEU-1005) · **Charter:** C011 (umbrella NEU-893) · **Covers:** OUT-17
 **Written:** 2026-08-26 · **Model:** claude-opus-5[1m]
-**Codebase cutoff:** `origin/develop` @ `57aeba3`
+**Codebase cutoff:** `origin/develop` @ `57aeba3`. **Branch synced to `origin/develop` @ `fd05ca1`,
+and the cutoff is deliberately not restamped:** every `src/` and `drizzle/` citation below was read at
+`57aeba3`, and `git diff --name-only 57aeba3 origin/develop -- src drizzle` returns **zero paths**, so
+the code the model is written against is byte-identical at both. What `fd05ca1` adds is SUB-7's
+chapter `07_`, which is why §1 says twelve chapters precede this one rather than eleven. Restamping a
+cutoff whose citations were verified at the earlier SHA would assert a verification that did not run.
 **Depends on:** SUB-5 (NEU-997), position 5 — merged, at `05_the-enforcement-point-that-confines-every-read-and-write.md`; SUB-15 (NEU-998), position 6 — merged, at `15_operational-objectives-for-the-real-platform.md`; SUB-16 (NEU-999), position 7 — merged, at `16_attribution-and-detection.md`; SUB-9 (NEU-1003), position 11 — merged, at `09_proving-a-data-right-reaches-every-copy.md`
 **Also consumes:** `../C010-system-and-repository-architecture/decision-records/DR-C10-S5-1_isolation-invariant-as-a-decision-procedure.md` (the five checks, as given); `../C010-system-and-repository-architecture/11_web-api-scope-and-resource-inventory.md` (the web API's scope and negative boundary, consumed and not re-decided)
 **Decision records:** `decision-records/DR-C11-S12-1_closing-the-threat-set-over-ingress.md`, `decision-records/DR-C11-S12-2_the-unconfined-aggregate-as-a-control-input.md`, `decision-records/DR-C11-S12-3_gate-thresholds-without-a-production-observation.md`
@@ -185,10 +190,11 @@ breach the other, and several below do.
 Three verdicts are used per path, and they are deliberately weaker than C010's six because this
 matrix is about *paths*, not about state categories reaching `holds`:
 
-- **`held-by-design`** — the invariant is satisfied under the C011 mechanism as designed by SUB-5,
-  SUB-8 and SUB-9. Never a claim about the deployment.
+- **`held-by-design`** — the invariant is satisfied under the C011 mechanism **as designed by SUB-4,
+  SUB-5, SUB-8, SUB-9 and SUB-16** — the five sub-tasks whose designs the verdicts below actually
+  rest on. Never a claim about the deployment.
 - **`gap`** — the invariant is stated and is **not** satisfied, by design or by omission. Every `gap`
-  resolves to a gate in §8 or to a blocking finding.
+  resolves to a gate in §8, to a registered upstream risk, or to a blocking finding.
 - **`out-of-reach`** — the invariant is stated and this deployment has no mechanism that could
   satisfy it. These are not exemptions: an `out-of-reach` path still carries its invariant, still
   carries an owner, and still appears in the cross-check.
@@ -196,6 +202,37 @@ matrix is about *paths*, not about state categories reaching `holds`:
 **`out-of-reach` is the category that keeps the operator path honest.** Exempting the operator would
 have been the easy move, and it is precisely what OUT-17 forbids. Naming the invariant and then
 recording that no mechanism reaches it is a different statement, and it is the true one.
+
+**One word this chapter uses in exactly one sense, because an earlier draft used it in two.**
+**"Blocking"** means *a finding filed under OUT-17's rule that a critical gap without a measurable
+control is recorded as a blocking finding rather than accepted*. There are exactly **two**, `F-S12-5`
+and `F-S12-6` (§8.1). An earlier draft also wrote `gap — blocking` in two verdict cells to mean
+"serious", which would have let a reader counting from the matrix arrive at four. Those cells now
+read `gap`, and severity lives in the finding, not in the verdict.
+
+### 3.1 Which ingress surfaces each class reaches
+
+§2 builds the ingress partition and §4 is organised by *path class*, so the mapping between them is
+given here rather than left for a reader to reconstruct. Every class names at least one surface, and
+every surface is named by at least one class.
+
+| Class | §4 ref | Ingress surfaces |
+| --- | --- | --- |
+| A — MCP read | §4.1 | `IN-1`, `IN-2` |
+| B — MCP write | §4.2 | `IN-1`, `IN-2` |
+| C — session | §4.3 | `IN-1` |
+| D — retrieval | §4.4 | `IN-1`, `IN-2` |
+| E — context token | §4.5 | `IN-1` |
+| F — analytics / aggregate | §4.6 | `IN-1` (the breaker's input is HTTP-only, §7.4 bound 2); `IN-3`/`IN-7` for the boot-read control input `F-S12-9` |
+| G — migration | §4.7 | `IN-3`, `IN-6`, `IN-7` |
+| H — operator | §5 | `IN-4`, `IN-5`, `IN-6`, `IN-7` |
+| I — prospective web API | §4.9 | `IN-8`, which is a **client of `IN-1`** rather than a surface of its own |
+| J — egress | §4.10 | **None.** These are *exits*, not entries — see §2.1's registered second premise and `R-S12-5` |
+| K — package's own captures | §4.11 | **None.** At-rest, reached by no request — same premise |
+
+**Two classes reach no ingress surface, and that is the point of stating the table.** It makes
+visible, in one place, that six of the fifty-six paths are carried by SUB-9's egress closure rather
+than by this chapter's ingress closure — the dependency `R-S12-5` registers.
 
 ---
 
@@ -214,7 +251,7 @@ the count is reported in §9.
 | `TP-S12-4` | `IN-1`, gate **not mounted** because the context-token repository is null | **ISO:** an unmounted gate is an absent gate; the deployment must be able to tell the two apart | `gap` → `GATE-S12-1` | `src/transport/http.ts:184`–`:187` |
 | `TP-S12-5` | `IN-2`, **any** of the 46 tools — all ungated on STDIO | **ISO:** the STDIO principal is server-held configuration, and an unconfigured deployment **refuses** every gated tool rather than degrading to today's behaviour | `gap` → `GATE-S12-2` | `04_the-stdio-identity-gate-and-the-bound-context-token.md:189`–`:194`; today: `src/transport/main.ts:55`–`:59` |
 | `TP-S12-6` | `init_agent_context` — a **gate-exempt** tool that is nonetheless **row-owning** | **ISO:** the six port reads it fires are each subject to the adapter predicate, and the fail-open must not convert a refusal into a `null` that reads as "no data" | `gap` → `GATE-S12-3` | Six parallel row-owning reads at `src/orchestration/learner-context-workflows.ts:95`–`:103`; the fail-open at `src/server/server-context-tools.ts:28`–`:31` |
-| `TP-S12-7` | A **prompt** invocation — 3 of the 49 entry points, outside the 46/43/3 tool arithmetic | **ISO:** a prompt that reaches learner state is subject to the same predicate as a tool; one that reaches none carries the invariant vacuously and is recorded as doing so | `held-by-design` | `src/transport/create-server.ts:25`, `:45`, `:80`; the pack is static content (`src/shared/prompts/prompt-pack.ts`) |
+| `TP-S12-7` | A **prompt** invocation — 3 of the 49 entry points, outside the 46/43/3 tool arithmetic. **The context-token gate does not see it:** the middleware short-circuits on `body?.method !== 'tools/call'`, so `prompts/get` bypasses it on HTTP as well as STDIO | **ISO:** a prompt that reaches learner state is subject to the same predicate as a tool; one that reaches none carries the invariant vacuously, and *that it reaches none must be an enforced property rather than a fact about today's three handlers* | `gap` → `GATE-S12-25` | `src/transport/context-token-middleware.ts:49`–`:51`; `src/transport/create-server.ts:25`, `:45`, `:80`; the pack is static content today (`src/shared/prompts/prompt-pack.ts`) |
 
 **`TP-S12-6` is the path most likely to be misfiled, and it has been misfiled once already.** It is
 exempt from the *gate* and row-owning in *fact*. Under `DR-C11-S5-1` clause 3 every one of its six
@@ -240,8 +277,8 @@ one layer down and behind a fail-open. `GATE-S12-3` is set on it.
 | --- | --- | --- | --- | --- |
 | `TP-S12-14` | Session-binding verification with **no binding found** | **ISO:** an unknown session is refused, not admitted | `gap` → `GATE-S12-6` | `src/transport/http.ts:57`–`:58` returns `true` when no binding is found — a fail-open |
 | `TP-S12-15` | A session surviving a restart — the binding map's **only** eviction path is a clean close | **LIFE:** the binding either survives a restart or the session is re-authenticated; it may not silently become unbound-and-admitted | `gap` → `GATE-S12-6` | `91_findings-register.md` § `F-S15-3`; the deployment restarts ≥3.29×/day (`15_operational-objectives-for-the-real-platform.md` §2.2, `C-17`) |
-| `TP-S12-16` | `session_id` in an audit row, lifted verbatim from the tool call's own arguments | **ISO:** a caller-asserted value may never carry attribution | `held-by-design` (as a **rule**; the emission is `ME-S16-1`) | `16_attribution-and-detection.md:49`; `src/transport/audit-middleware.ts:94`–`:99` |
-| `TP-S12-17` | `correlation_id`, echoing a caller-supplied `X-Correlation-ID` header | **ISO:** as above | `held-by-design` (as a rule) | `16_…:49`; `src/transport/http.ts:154`–`:157` |
+| `TP-S12-16` | `session_id` in an audit row, lifted verbatim from the tool call's own arguments | **ISO:** a caller-asserted value may never carry attribution | `gap` → `GATE-S12-26` | `16_attribution-and-detection.md:49`; `src/transport/audit-middleware.ts:94`–`:99` |
+| `TP-S12-17` | `correlation_id`, echoing a caller-supplied `X-Correlation-ID` header | **ISO:** as above | `gap` → `GATE-S12-26` | `16_…:49`; `src/transport/http.ts:154`–`:157` |
 | `TP-S12-18` | Unbounded growth of the transport and binding maps from abandoned sessions | **LIFE:** process-local learner state carries a bound; today the only bound is the deploy cadence | `gap` → `GATE-S12-7` | `F-S15-3`; `R-S15-2` — *"contained only by release cadence"* |
 
 **`TP-S12-14` and `TP-S12-15` are one exposure, not two, and the composition is worse than either.**
@@ -366,7 +403,7 @@ the operator can bypass entirely*. A confinement that holds for all 49 entry poi
 | --- | --- | --- | --- | --- |
 | `TP-S12-35` | **Direct `psql`** against the production database | **ISO:** operator access to learner rows is *authorized, attributed and bounded* — the enforcement point cannot apply, so the invariant must be met by a different layer or recorded as unmet | `out-of-reach` → `GATE-S12-15` | `05_…:719`–`:722`; the enforcement point is *"inside each row-owning adapter"* (`:229`–`:230`), and `psql` is below it |
 | `TP-S12-36` | **SSH to the VPS**, reading the container's log files | **LIFE:** learner free text on disk carries a retention bound and a deletion owner | `out-of-reach` → `GATE-S12-14` | `F-S9-5`; log-driver retention is *"a deployment arrangement outside the repository"* |
-| `TP-S12-37` | **`clearAllTables()`** — `TRUNCATE … CASCADE` over ten tables including every learner table | **LIFE:** a destructive maintenance operation is gated on a property of the **target**, not on a property of the **caller's environment** | **`gap` — blocking** → `GATE-S12-16` | §5.1. **Filed as `F-S12-4`** |
+| `TP-S12-37` | **`clearAllTables()`** — `TRUNCATE … CASCADE` over ten tables including every learner table | **LIFE:** a destructive maintenance operation is gated on a property of the **target**, not on a property of the **caller's environment** | `gap` → `GATE-S12-16` | §5.1. **Filed as `F-S12-4`** |
 | `TP-S12-38` | **`pnpm db:seed`** — inserts into `learning_topics`, `learning_chunks`, `learning_sessions`, `session_chunks` | **ISO:** every write to a learner table carries a principal; a write with none creates an unowned row of exactly the kind SUB-6 spent a chapter dispositioning | `gap` → `GATE-S12-17` | `package.json:43`; the script is imported by nothing under `src/` — it is an operator path, not a runtime one |
 | `TP-S12-39` | **`scripts/retention-cleanup.sql`**, run by hand or by an unregistered cron | **LIFE:** the retention window is enforced by a mechanism whose execution is observable | `gap` → `GATE-S12-18` | SUB-8 exception #4: the cron registration *"exists only as a comment"* (`08_…:490`) |
 | `TP-S12-40` | **Setting `OLLAMA_BASE_URL`** — redirects learner content to any host | **ISO:** the destination of learner content is declared and reviewable | `gap` → `GATE-S12-13` | `src/config/resolve-embedding-config.ts:34`; default `http://localhost:11434` at `src/domain/config/embedding-defaults.ts:11` |
@@ -761,8 +798,10 @@ rather than a footnote. **Four values, and the legend is exhaustive over the col
 | `GATE-S12-22` | The **`LIFE` limb** of `TP-S12-34` and `TP-S12-47` … `TP-S12-50` — the paths whose lifecycle invariant needs a completion proof to be checkable at all. `SIG-S16-3` is handed here **by name** as a measurable gate. **`TP-S12-51` is deliberately excluded** — see the note below the table | A `propagation_proof` row per copy class per request, conforming to `DR-C11-S16-3`'s nine fields | **Fewer than 6** distinct `copy_class` values with a complete proof at `t ≥ deadline_at` fires the signal; `deadline_at` = **30 days** (`A-S8-1`) makes it evaluable | S — `A-S8-1`, *"not observed, not calibrated, not a legal determination"*, owner SUB-8 | — | **SUB-9** (NEU-1003) for the design; the implementation charter for the store | `16_…:449`; `09_…:610`–`:612` (declared cardinality **6**) |
 | `GATE-S12-23` | `TP-S12-54` — a shipped in-repo script opens an arbitrary-CRUD GUI against production from a **credential file** the environment probe cannot see | Every production credential path is enumerated, including file-based ones, and each has a named holder | Count of production credential paths with no named holder: target **zero**; **today it is at least one** (`.env.prod`, presupposed by `package.json:29`, contents unenumerated) | K — **`SPK-S12-8`**: enumerate credential files on the host; **not executed** | — | **The creator**, as sole operator; escalates to **`NEU-896`** | `package.json:29`; `.gitignore:18`; §5.3 |
 | `GATE-S12-24` | `TP-S12-55` — a second, hand-runnable migrator entry point beside the unguarded boot migrator | Exactly one migrator path exists, or every path shares one lock | Count of independent migrator entry points: target **one**; **today it is two** (`src/transport/main.ts:27` at boot, `package.json:23` by hand) | D — read from `package.json:23` and `src/transport/main.ts:27` | — (static) | **SUB-13** (NEU-1006) under OUT-19, which authors the migration runbook | `R-S15-3` for the boot half, **cited not re-raised** |
+| `GATE-S12-25` | `TP-S12-7` — `prompts/get` bypasses the context-token gate, which short-circuits on anything that is not `tools/call` | Either the gate covers every method that can reach learner state, or the set of methods that cannot is **enforced** rather than true of today's handlers | Count of non-`tools/call` MCP methods that can reach a row-owning port: target **zero**; **today it is zero and nothing holds it there** | D — `src/transport/context-token-middleware.ts:49`–`:51`; the three prompts at `src/transport/create-server.ts:25`, `:45`, `:80` | H | **SUB-7** (NEU-1001) under OUT-3 for the mount; **SUB-13** (NEU-1006) if the answer is a schema-level assertion | `src/shared/prompts/prompt-pack.ts`; `resources/*` is unenumerated and is part of the same count |
+| `GATE-S12-26` | `TP-S12-16`, `TP-S12-17` — `session_id` and `correlation_id` are caller-asserted and cannot carry attribution | The server-derived `principal_kind` / `learner_key` pair is written, and **no signal reads a caller-asserted column as attribution** | Count of signals or gates whose attribution input is caller-asserted: target **zero**; **today every one of them is**, because the carrier does not exist | D — `16_attribution-and-detection.md:49`; `src/transport/audit-middleware.ts:94`–`:99`; `src/transport/http.ts:154`–`:157`; `ME-S16-1` | H | **SUB-13** (NEU-1006) DDL; **SUB-7** (NEU-1001) sequencing | `F-S16-1` |
 
-**Twenty-four gates.** Provenance: **seventeen `D`**, **two `S`**, **five `K`**. **Zero claim a
+**Twenty-six gates.** Provenance: **nineteen `D`**, **two `S`**, **five `K`**. **Zero claim a
 production observation.**
 
 **One exclusion, made because an earlier draft was internally contradictory.** `GATE-S12-22`'s
@@ -812,8 +851,8 @@ as counts in both directions"*. Both directions are reported, and the counts are
 
 | Measure | Count |
 | --- | --- |
-| Gates in §8 | **24** |
-| Gates naming at least one `TP-S12-*` threat path | **24** |
+| Gates in §8 | **26** |
+| Gates naming at least one `TP-S12-*` threat path | **26** |
 | Gates naming no threat path | **0** |
 
 Every gate's *"Gap it closes"* column names one or more paths. There is no gate in this register that
@@ -826,15 +865,15 @@ exists for its own sake.
 | Threat paths enumerated (`TP-S12-1` … `TP-S12-56`) | **56** |
 | Paths carrying an explicit invariant | **56** |
 | **Paths carrying no invariant** | **0** — this is OUT-17's first acceptance scenario, and it is the count it asks for |
-| Paths whose verdict is `held-by-design` (no gap, so no gate owed) | **17** |
-| Paths whose verdict is `gap` or `out-of-reach` | **39** |
-| … of which resolve to a `GATE-S12-*` in §8 | **35** |
+| Paths whose verdict is `held-by-design` (no gap, so no gate owed) | **14** |
+| Paths whose verdict is `gap` or `out-of-reach` | **42** |
+| … of which resolve to a `GATE-S12-*` in §8 | **38** |
 | … of which resolve to a **registered upstream** risk, cited not re-raised | **2** — `TP-S12-31` (`R-S15-3`), `TP-S12-32` (`R-S6-2`) |
 | … of which resolve to a **blocking finding** because no measurable control exists | **1** — `TP-S12-51` (`F-S12-6`) |
 | … of which resolve to a **registered upstream open item**, cited not re-recorded | **1** — `TP-S12-43`, the backups path (`OI-S1-8`) |
 | **Gap paths resolving to nothing** | **0** |
 
-17 + 39 = 56, and 35 + 2 + 1 + 1 = 39. **Both directions close.**
+14 + 42 = 56, and 38 + 2 + 1 + 1 = 42. **Both directions close.**
 
 **One finding is deliberately outside both counts.** `F-S12-5` — the database-side execution path —
 attaches to `X-3`, the enumeration's own boundary, not to any of the 56 paths (§8.1). It is therefore
@@ -984,7 +1023,7 @@ mechanism. What it contributes to the movement is different and is stated in its
 | State categories reaching `holds` on the deployment | 0 of 45 | **0 of 45** — unchanged, and no claim otherwise |
 | Paths carrying an explicit invariant | **No path-level enumeration existed** | **56 of 56** |
 | Operator paths modelled | **0** | **12**, none exempted |
-| Critical gaps with a control, a threshold, an owner and an evidence source | 0 | **24** |
+| Critical gaps with a control, a threshold, an owner and an evidence source | 0 | **26** |
 | Gaps with no measurable control, named as blocking findings with owners | (not asked) | **2** |
 | Failure modes routed as amendments to `DR-C10-S5-1` | **0** across the twelve merged chapters | **1 record, 2 items** |
 
@@ -1093,7 +1132,7 @@ that defines the rule.
 | Spikes (`96_spike-register.md`) | `SPK-S12-1` … `SPK-S12-8` |
 | Completeness gate (`97_package-completeness-gate.md`) | `G-S12-1` … `G-S12-12` |
 | Decision records | `DR-C11-S12-1`, `DR-C11-S12-2`, `DR-C11-S12-3` |
-| Chapter content | `TP-S12-1` … `TP-S12-56`; `GATE-S12-1` … `GATE-S12-24`; `IN-1` … `IN-8`; `X-1` … `X-5` |
+| Chapter content | `TP-S12-1` … `TP-S12-56`; `GATE-S12-1` … `GATE-S12-26`; `IN-1` … `IN-8`; `X-1` … `X-5` |
 | Document numbers | `12_` only |
 
 **No charter `R<n>` entry is authored here, and that is a computed result rather than an omission.**
