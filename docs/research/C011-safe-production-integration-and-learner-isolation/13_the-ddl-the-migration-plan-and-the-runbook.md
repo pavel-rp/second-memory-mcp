@@ -333,6 +333,15 @@ SUB-5 settled `R-S4-1` at the port boundary by making the principal an indivisib
 (`05_the-enforcement-point-that-confines-every-read-and-write.md:1436`). This is how:
 
 ```sql
+-- LANDS AT T9, NOT T3 — with the tightening, as part of what SUB-7 calls
+-- "the carrier's constraint". Adding a STORED generated column REWRITES the
+-- table, and at T3 that rewrite would run over the entire pre-cutover
+-- population under ACCESS EXCLUSIVE; by T9 the table has been emptied by T5
+-- and holds only rows minted between T5 and T6, so the rewrite is trivial.
+-- Nothing needs the column before T9: the enforcement point that goes live
+-- at T8 reads the indivisible (principal_id, principal_kind) pair, never
+-- this column.
+--
 -- The learner key as a GENERATED column: NULL by construction whenever the
 -- kind is not `user`. A consumer cannot read the learner key without the
 -- database having consulted the kind first, because the database computed
@@ -354,10 +363,17 @@ beside it and the guarantee is entirely upstream — the adapter refuses `client
 write (`DR-C11-S5-1` clause 3). No database constraint can check that, because the fact the check
 would need is not in the row. That residual is `R-S13-4`, registered rather than implied.
 
-Two costs, stated: a `STORED` generated column occupies storage per row, and its expression cannot be
-altered in place — changing it means dropping and re-adding the column. Both are acceptable for a
-table `T5` empties wholesale six stages earlier. Generated columns require **PostgreSQL 12 or
+**Three costs, stated.** A `STORED` generated column occupies storage per row. Its expression cannot
+be altered in place — changing it means dropping and re-adding the column. And **adding one rewrites
+the table**, which is why the statement is placed at `T9` rather than with the other two `T3`
+additions: `T5` empties `context_tokens` wholesale **four stages earlier**, so by `T9` the rewrite
+runs over only the rows minted between `T5` and `T6`. All three costs are acceptable at that
+position and would not all be acceptable at `T3`. Generated columns require **PostgreSQL 12 or
 later**; see `SPK-S13-1`.
+
+*(`T5` to `T9` is four stages, not six. The figure is spelled out here because `F-S13-8` registers
+that two merged texts get this same separation wrong, and a draft of this paragraph got it wrong in
+exactly the same way.)*
 
 ### 2.3 The partial unique index SUB-5 §4.2 requires
 
@@ -1125,8 +1141,10 @@ executable from reversal**, which is OUT-4's requirement.
 #### `T3` — Additive schema, nullable: gate stage `A` and `S3`
 
 - **Entry.** `T2` exited.
-- **Apply.** Migration `0027`: `context_tokens`' three nullable columns, their four constraints and
-  the generated `learner_key` (§2.2); the ten `user_id` columns and their ten indexes (§2.1).
+- **Apply.** Migration `0027`: `context_tokens`' three nullable columns and their four constraints
+  (§2.2); the ten `user_id` columns and their ten indexes (§2.1). **The generated `learner_key`
+  column is *not* here** — it lands at `T9`, because adding a `STORED` generated column rewrites the
+  table and at this stage the table still holds the full pre-cutover population (§2.2).
 - **Verify.** `SELECT column_name FROM information_schema.columns WHERE table_name = 'context_tokens';`
   returns seven names; the ten-table unkeyed count of §3.5 returns the full row count of each table
   (nothing is keyed yet, which is the expected state). Boot duration against `OBJ-8`.
@@ -1229,8 +1247,11 @@ executable from reversal**, which is OUT-4's requirement.
 #### `T9` — Tighten: `S5`, gate stage `D`, and the carrier's constraint
 
 - **Entry.** `T8` exited.
-- **Apply.** Migration `0030`: gate `D`'s NULL-binding purge, `context_tokens`' three
-  `SET NOT NULL`s, the ten tables' four-step tightening (§3.6), and the partial unique index (§2.3).
+- **Apply.** Migration `0030`: gate `D`'s NULL-binding purge, the generated `learner_key` column on
+  `context_tokens` (§2.2 — placed here, not at `T3`, because it rewrites the table), `context_tokens`'
+  three `SET NOT NULL`s, the ten tables' four-step tightening (§3.6), and the partial unique index
+  (§2.3). Order within the migration matters: the purge runs **before** the generated column is
+  added, so the rewrite touches the smallest possible population.
 - **Verify.** `SELECT is_nullable FROM information_schema.columns` returns `NO` for `user_id` on all
   ten and for all three `context_tokens` binding columns. **A failed constraint addition means a row
   was missed at `T7`** — that is the signal, and it is a good one.
