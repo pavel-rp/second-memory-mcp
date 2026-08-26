@@ -1289,3 +1289,103 @@ by accident. It does not lift `CAP-S5-1`. It claims **no** production fact — n
 population size, no probe result — and `observed-in-production` is used **zero** times.
 
 **Authored by.** SUB-13 (NEU-1006).
+
+---
+
+### SUB-17
+
+## OUT-20 — The package ships in house style, standalone and cold-readable, with its split fidelity and its `NEU-896` boundary both stated
+
+**Outcome.** The package is published under tracked
+`docs/research/C011-safe-production-integration-and-learner-isolation/` in the delivered house style —
+a README, fifteen numbered topic documents, 37 decision records with rejected alternatives, 14
+traceability files, and the reserved `90`–`99` band carrying all eight registers plus this audit set.
+Its split fidelity against `DR-C10-S5-2` is stated as counts, its `NEU-896` boundary is stated as a
+seam, and a reader with no access to the gitignored `_local/` or `docs/wf-plans/` trees can reconstruct
+every decision, its evidence and its rejected alternatives from the package alone.
+
+**OUT-20 is carried by two sub-tasks.** SUB-14 (NEU-1007) assembled and published the body at position
+15 and authored no register content. SUB-17 (NEU-1008) audits it at position 16 and authors this row,
+the four OUT-20-owned risk entries, and the audit set. **This row is SUB-17's**, which is why the
+20/20 count below is reachable here and was not at position 15.
+
+**Success measure.** OUT-20 is judged done when all nine hold:
+
+1. The package is published in house style in the reserved band, with all eight registers present and
+   none dropped as decorative.
+2. **Band completeness:** every finding, cap, open item, stand-in, outcome and risk appears in exactly
+   one register, and any id in more than one carries the same owner and status in each.
+3. **The findings-register enumeration** is reported as two counts in both directions over the
+   outcomes the charter names as finding producers.
+4. **The risk-register audit:** every entry carries a severity, a mitigation, a named owner and an
+   escalation route; each names its **authoring** sub-task rather than its aggregator; and all fifteen
+   charter § Risks rows are covered by their named authors.
+5. **The outcome-register audit:** every `OUT-n` row carries its resolving evidence and its success
+   measure, recorded by the producing sub-task, with **zero** measures authored at assembly — reported
+   as **20/20**.
+6. **The split-fidelity audit:** 8/8 List B answered, 0 List A claimed, and every touched C010 residual
+   id in exactly one of four classes with its actual C010 owner named.
+7. **The citation audit:** every codebase claim resolves to a real path at a stated cutoff, every
+   upstream claim carries a version or date, and **42 appears nowhere as a codebase fact**.
+8. **The inherited-universe risk** is published as a risk-register entry with its owner, its escalation
+   owner, its amendment route and **whether it fired**, alongside the other three OUT-20-owned entries.
+9. **An independent cold read** confirms the package is reconstructable from itself alone, with every
+   gap routed to an owning sub-task.
+
+**Verified by.** `98_audit-record.md` (all six audits and the declared exit state);
+`97_package-completeness-gate.md` § SUB-17 (21 gate rows); `92_risk-register.md` § SUB-17 (`R5`, `R6`,
+`R7`, `R15`); `91_findings-register.md` § SUB-17 (`F-S17-1` … `F-S17-21`);
+`94_caps-and-incomplete-scope.md` § SUB-17 (the named residuals);
+`00_method-and-provenance.md` (the assembly record this audit ranges over).
+
+**Measured result at revision 1.**
+
+1. **MET.** Eight registers present in the `90`–`99` band plus `98_audit-record.md`. 15 chapters, 37
+   decision records, 14 traceability files, a README — one traceability file and at least one decision
+   record for **every one of the fourteen** producing sub-tasks.
+2. **MET on uniqueness, MET WITH CAP on status.** **406 minted ids, `0` appearing as an entry in more
+   than one register** — re-derived mechanically. On owner-and-status: **one divergence**, declared by
+   SUB-14 rather than discovered here (`F-S3-3`'s body still reads live; `A-S11-1` carries no discharge
+   record) and **confirmed still open**. Carried as `F-S17-13` and as a named residual.
+3. **MET. 11 and 11.** Charter assumption 43's eleven outcomes; every named outcome carries the
+   requirement in its own text, and every outcome whose text carries it is named.
+4. **MET.** **53 entries, `0`** missing any of the four fields, **`0`** authored in a SUB-14 section,
+   **15/15** charter rows covered by their named authors, **`0`** routed gaps.
+5. **MET. 20/20** — this row is the twentieth. All twenty carry a success measure and a measured
+   result; **`0`** authored at assembly. Three measured results read NOT MET and none was restated to
+   fit its outcome.
+6. **MET.** **8/8** List B answered, **0** List A claimed, **23** touched C010 residual ids classified
+   — 16 from the charter's enumeration and 7 at assembly under the open-enumeration rule — with **`0`**
+   in two classes and **`0`** in none. `DR-C10-S5-2`'s revision trigger did not fire.
+7. **MET, with a line-level residual.** The armed gate reports **0 non-resolving** over 78 files, and
+   **103 of 103** distinct codebase-path targets resolve. **`42` is asserted as a tool-surface count in
+   zero places.** All three checker blind spots were re-derived rather than inherited, and **a fourth
+   was found** (`F-S17-17`): the gate resolves paths and never checks line content. Three
+   `package.json` line citations are wrong (`F-S17-16`) and four `README.md` line citations are stale
+   (`F-S17-17`). **Every codebase *path* resolves, which is the test this measure sets**; the
+   line-level defects are registered and named rather than folded in.
+8. **MET, and it fired.** `R5` is published with its owner, its escalation owner (`NEU-895`, co-named
+   `NEU-896`), its amendment route, and the report that **the route fired** — SUB-12's
+   `DR-C11-S12-2`, received here as the named recipient. `R6`, `R7` and `R15` are published alongside
+   it with all four fields each.
+9. **MET WITH CAP.** The cold read confirms the criterion this measure sets: an implementer **can**
+   reconstruct every substantive decision, its evidence and its rejected alternatives from the package
+   alone, and all 37 decision records carry a decision, a rationale and reasoned alternatives. Its
+   overall verdict is **PARTIAL**, on a different axis — the accuracy of figures the package states
+   **about itself**. Seven findings were filed from it (`F-S17-15` … `F-S17-21`); two reconstruction
+   gaps it reports were already registered and routed by the package itself (`F-S13-1`, `F-S13-11`).
+   **Five of its findings were withdrawn** on re-verification and are recorded as withdrawn rather than
+   filed.
+
+**What this measure does not claim.** It does not claim the package is **correct as engineering**. The
+audit checks that every claim is supported, registered, routed and reachable — a different and weaker
+thing than checking that the DDL is right, the rollout order is safe or the threat set is closed.
+It does not claim the package is **complete**: `97_package-completeness-gate.md` § SUB-17 records
+**two `not met` rows**, one of which — the absent SUB-7 gate section — no remaining party may fill. It
+does not claim the audit's own findings are **resolved**; all twenty-one are routed and none is
+repaired, because every predecessor has shipped and this sub-task holds no amend authority. It does not
+claim `8/8` proves the split is complete — the universe is C010's and was not re-derived (`R5`). And it
+claims **nothing about production**: no credential exists, **33 spikes are designed and zero executed**,
+and `observed-in-production` is applied to **zero** claims package-wide.
+
+**Authored by.** SUB-17 (NEU-1008).

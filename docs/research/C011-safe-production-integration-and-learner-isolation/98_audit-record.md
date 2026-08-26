@@ -31,9 +31,9 @@ So this sub-task **appends and nothing else**. Its writes are exactly five, all 
 | Write | Where | Authority |
 | --- | --- | --- |
 | The four OUT-20-owned risk entries `R5`, `R6`, `R7`, `R15` | `92_risk-register.md` § SUB-17 | charter § Risks rows 5, 6, 7, 15; slots reserved at `00_method-and-provenance.md:189`–`:199` |
-| OUT-20's outcome-register row | `90_outcome-register.md` § SUB-17 | charter assumption 47; the reserved slot at `00_…md:72` |
+| OUT-20's outcome-register row | `90_outcome-register.md` § SUB-17 | charter assumption 47; the reserved slot at `00_method-and-provenance.md:72` |
 | This sub-task's findings | `91_findings-register.md` § SUB-17 | *"report as a finding; never absorb into prose"* |
-| The gate verdict | `97_package-completeness-gate.md` § SUB-17 | `97_`'s own header; `00_…md` §2 |
+| The gate verdict | `97_package-completeness-gate.md` § SUB-17 | `97_`'s own header; `00_method-and-provenance.md` §2 |
 | This file | the reserved `90`–`99` band | *"The audit set published into the package's reserved `90`–`99` band"* |
 
 **`git diff --numstat origin/develop` reports a deletions count of `0` on every file this sub-task
@@ -100,8 +100,9 @@ re-derives; `C5` and `C6` are consumed as the *requirements* whose satisfying me
 `C7`–`C9` are consumed as verdicts; `C10` is C010's own no-amendment record.
 
 **The one place this needed care.** SUB-5 carries `SC-S3-12` to verdict `holds`
-(`05_…md` §8) — the invariant's first positive instance. That is **applying** C010's procedure to one
-category, which `06_…md:555` routes to `SUB-14 of C010` and to `OI-S5-3`, *not* a claim to have closed
+(`05_the-enforcement-point-that-confines-every-read-and-write.md` §8) — the invariant's first positive instance. That is **applying** C010's procedure to one
+category, which `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:555`
+routes to `SUB-14 of C010` and to `OI-S5-3`, *not* a claim to have closed
 `C2`, `C3` or `C4`, which are about what the procedure *is*. C011 does not re-state the invariant, does
 not add or remove a check, and does not alter the verdict set. **`C1`…`C10` remain closed by C010.**
 
@@ -170,7 +171,7 @@ attribution is reproduced and the round-1–5 mis-citation is not re-derived.**
 **`CAP-S5-1` carries a real worked `holds` verdict** — `SC-S3-12`, derived in
 `decision-records/DR-C11-S5-2_the-first-holds-derivation.md` against an enumerated access-path set —
 and is recorded **discharged, not lifted**, with its four-part landing condition stated
-(`94_caps-and-incomplete-scope.md:184`–`:205`). Verified: `94_…md:201`–`:205` reads *"No cap is
+(`94_caps-and-incomplete-scope.md:184`–`:205`). Verified: `94_caps-and-incomplete-scope.md:201`–`:205` reads *"No cap is
 recorded as lifted."*
 
 **`OI-S5-3` appears in none of the four, by decision.** It is the C010-internal *invariant published
@@ -302,7 +303,7 @@ stated twice — in the chapter itself and at `00_method-and-provenance.md:373`�
 as `MISSING-target`, which is not gated. **Verdict: leaving it was right.**
 
 **(b) The extension-less decision-record refs are correctly left, and the two figures are both
-right.** `00_…md:370` reports **3** under a column headed *"Distinct targets"*; `00_…md:543` says
+right.** `00_method-and-provenance.md:370` reports **3** under a column headed *"Distinct targets"*; `00_method-and-provenance.md:543` says
 *"The four extension-less decision-record references"*. Both are correct under their own units:
 **three distinct targets** (`DR-C11-S13-1`, `DR-C11-S9-1`, `DR-C11-S9-3`) across **four citation
 sites** (`90_outcome-register.md:1106`, `:1245`; `97_package-completeness-gate.md:380`;
@@ -363,15 +364,15 @@ order, from the charter, without seeing the index table. Two descriptive correct
 `F-S17-8`:
 
 - It is a **3-cycle**, not a transposition. `F-S3-3` itself uses the accurate word, *"permutation"*.
-- **The charter does not carry the permutation.** `00_…md:167`–`:169` and `92_…md:46` both say so
+- **The charter does not carry the permutation.** `00_method-and-provenance.md:167`–`:169` and `92_risk-register.md:46` both say so
   correctly; the brief-level shorthand *"charter → decomposition → tracker → table"* is wrong at its
-  first term. The chain begins at the decomposition. Relatedly `00_…md:168` says *"**Four** artifacts
+  first term. The chain begins at the decomposition. Relatedly `00_method-and-provenance.md:168` says *"**Four** artifacts
   downstream of the charter carry the permutation"* where **three** distinct artifacts do — the
   decomposition (twice), the tracker description, and the index table. Four occurrences, three
   artifacts.
 
-**One declared divergence, met rather than discovered.** `00_…md:91`–`:105` reports that `F-S3-3`'s
-body in `91_findings-register.md` still reads live and `A-S11-1` in `95_…md` carries no discharge
+**One declared divergence, met rather than discovered.** `00_method-and-provenance.md:91`–`:105` reports that `F-S3-3`'s
+body in `91_findings-register.md` still reads live and `A-S11-1` in `95_stand-in-assumption-register.md` carries no discharge
 record, because SUB-14 could resolve the conflict without authority to rewrite the entries recording
 it, and routes it here. **This audit confirms the divergence is real and still open.** It is correctly
 declared; it is not repairable here for the same reason; it becomes a named residual, `F-S17-9`.
@@ -438,3 +439,230 @@ sentence overreaches and is `F-S17-3`.
 
 ## 8. The independent cold read
 
+**Method.** An implementation agent with **no access to `_local/` or `docs/wf-plans/`**, working only
+from the published package and the repository paths it cites. It began at `README.md`, followed the
+stated reading order, and was asked one question: *can an implementer reconstruct every decision, its
+evidence and its rejected alternatives from the package alone?*
+
+### 8.1 The verdict on the criterion, and the verdict overall
+
+**On the criterion the charter sets — PASS.** An implementer can reconstruct every substantive
+decision from the package alone. The cold read walked all **37** decision records and reports that
+**every one** states a decision, enumerates rejected alternatives **with reasons**, and grounds its
+rationale in reachable evidence; that **none** rests on a tracker issue for its content; and that the
+identity rule, the STDIO gate and token row, the enforcement point and its first `holds` derivation,
+the per-table disposition, the ten-stage order, the propagation matrix and the DDL/migration/runbook
+are each reconstructable and evidenced against real repository lines.
+
+**Overall — PARTIAL**, on a different axis: the accuracy of figures the package states **about
+itself**. Its summary is worth quoting because it is the sharpest statement of this package's actual
+shape: *"treat every number the package states **about itself** as unverified; treat every number it
+states **about the codebase** as reliable."*
+
+**This is not a failed cold read**, and the distinction is load-bearing because a failed cold read is
+one of the three classes that block the discharge declaration. The charter's criterion is
+reconstructability, and reconstructability passed. The PARTIAL is bookkeeping, every instance of it is
+now a registered finding with an owner, and none of it undermines an engineering conclusion.
+
+### 8.2 Five findings the cold read raised and this audit withdrew
+
+Recorded because a withdrawn accusation is as much a result as a filed one, and because the reason is
+instructive.
+
+**The package changed underneath the reader.** Two of this sub-task's own commits landed mid-read,
+adding `98_audit-record.md`, `92_risk-register.md` § SUB-17 and `91_findings-register.md` § SUB-17.
+The cold read initially reported the band total as 411 against a published 406, the risk register as
+53 against a published 49, `98_audit-record.md` as an unresolvable reference, and a contradiction on
+the four reserved slots — and called the register discrepancy *"the single most damaging finding"*.
+**All five were artifacts of reading a moving tree.** Re-checked at `6d981bf`, the publication commit:
+`92_` carries **49** entries with zero `### SUB-17` section, `91_` carries **88**, and no
+`98_audit-record.md` exists. **`README.md:98`–`:109` and `00_method-and-provenance.md` §3 are
+accurate**, and the cold read retracted all five itself before reporting.
+
+The episode is the reason this audit pins every self-referential measurement to a **named commit that
+predates the measurement** (§4.4), and it is a live demonstration of the defect class SUB-14 diagnosed:
+*a figure measured over the package and quoted inside it is falsified by the act of quoting.* Here it
+was falsified by the act of **auditing**.
+
+### 8.3 What the cold read found that survived verification
+
+Seven findings, each **re-verified against the file by this sub-task** before filing — `F-S17-15` …
+`F-S17-21`. The four that most affect a reader:
+
+- **Ten places tell the reader the CI citation gate does not cover this package.** It does, armed by
+  the publication commit itself. `F-S17-15`.
+- **Three `package.json` line citations are wrong by exactly 19 lines**, including the row `12_threat-model-and-the-gates-that-authorize-implementation.md`
+  calls *"the most consequential single row in this chapter's operator model"* — and `package.json`
+  was byte-identical at that chapter's own commit, so they were wrong when written. `F-S17-16`.
+- **There is a fourth checker blind spot**, and it is the one that produced the third finding: the gate
+  resolves a citation's **path** and never checks its **line content**. `00_` §4.5 enumerates three and
+  treats the list as closed. Four stale `README.md:NN` citations, created when the README was
+  superseded wholesale, are invisible to it — one quoting text no longer in the file. `F-S17-17`.
+- **The bare-id rule is stated in three incompatible forms**, and it is the package's only mechanism
+  for disambiguating 124 id strings defined in both packages. `F-S17-19`.
+
+**Two reconstruction gaps it reports were already registered and routed by the package itself** —
+`F-S13-11` (which stages the disable-path control governs) and `F-S13-1` (whether `session_chunks`
+carries its own key). Both are disclosed in `00_` §7.2 as deliberately unactioned because their owners
+had shipped. They are not new, and they are not counted twice.
+
+### 8.4 Vocabulary — `R15` measured against a reader rather than an author
+
+The cold read is where the vocabulary-collision risk is tested from a reader's position. It found
+`subject`, `session` and `context token` **disambiguated wherever they carry the mechanism**, and no
+place where an unqualified use changed the meaning of a decision. It also found the terms genuinely
+live in more than one sense across chapters — `subject` in a JWT, actor, academic and subject-matter
+sense; `session` in a learning, transport and database sense — and several short id families reused
+across chapters (`C1`–`C5`, `T1`–`T7`, `R1`/`R2`). `docs/GLOSSARY.md` carries rows for the terms the
+package **introduces**; it does not carry rows for several it **inherits and leans on**. This is
+recorded in `R15`'s mitigation status as a partial mitigation with a named residual rather than filed
+as a finding, because no instance was found where a reader was actually misled.
+
+---
+
+## 9. The findings this audit raised
+
+**Twenty-one**, `F-S17-1` … `F-S17-21`, in `91_findings-register.md` § SUB-17. Fourteen from this
+sub-task's own passes; seven from the cold read, each re-verified here before filing.
+
+**None is repaired.** Each names its owning sub-task, and each is carried as a named residual in
+`94_caps-and-incomplete-scope.md` § `CAP-S17-1` with its owner.
+
+**By class**, against the defect classes this package produces:
+
+| Class | Count | Examples |
+| --- | --- | --- |
+| False self-certification — a count or completeness claim asserted rather than tested | **8** | `F-S17-1` (11 + 2 ≠ 14), `F-S17-3` (55 is 57), `F-S17-4` (a `:42` denial containing one), `F-S17-5`, `F-S17-10`, `F-S17-11`, `F-S17-20`, `F-S17-6` |
+| A misattributed line number under the claim it evidences | **2** | `F-S17-16` (three `package.json` sites), `F-S17-18` (the fifth escapee, in the handover paragraph) |
+| An enumeration a differently-shaped search would extend | **4** | `F-S17-2` (a search confined to C011 cannot see C010's cap), `F-S17-15` (ten unswept sites), `F-S17-17` (a fourth blind spot), `F-S17-21` (filename collisions, not just id collisions) |
+| A stated rule that is not applied where it was said to be | **3** | `F-S17-7`, `F-S17-8`, `F-S17-19` |
+| Declared-and-unresolvable, inherited from an earlier pass | **3** | `F-S17-9`, `F-S17-12`, `F-S17-13` |
+| Reported-not-fixed, by constraint | **1** | `F-S17-14` |
+
+**Zero are engineering defects.** Every one is a defect in what the package says **about itself** —
+which is the surface this audit ranges over, and also, on the cold read's evidence, the only surface on
+which this package is unreliable.
+
+---
+
+## 10. The re-audit log
+
+Per routed finding: its owning sub-task, its round, its final state.
+
+| Findings | Owning sub-tasks | Round reached | Final state |
+| --- | --- | --- | --- |
+| `F-S17-1` … `F-S17-21` (all 21) | SUB-1, SUB-2, SUB-3, SUB-5, SUB-7, SUB-8, SUB-9, SUB-11, SUB-12, SUB-14, SUB-16, and the creator as sole maintainer | **1 of 2** | **routed; not repaired; not re-audited** |
+
+**No finding reached round 2, and none was closed.** The loop's premise — a re-openable owner — is
+false at position 16, and this sub-task may not repair in an owner's place. Recorded as
+`CAP-S17-1` with one shared non-convergence reason, and as `G-S17-21` **not met** on the gate.
+
+**What was re-run, and what it changed.** Two audits were re-run within this sub-task against its own
+first pass rather than against repaired content: the risk-register field check, after its first
+mechanical pass produced five false positives against SUB-12's entries (declined on reading the file,
+§5); and the `:42` and extension-less-DR-reference checks, after a first reading treated two correct
+figures stated in different units as a contradiction (withdrawn, §4.5). **Both re-runs changed this
+audit's own output and neither produced a finding against the package.** They are logged because an
+audit that reports only what it found, and never what it withdrew, is not reporting its error rate.
+
+**And a third, which is the sharpest evidence in this file that the armed gate is worth having.** This
+sub-task's first draft wrote **61** path references using the `…md` shorthand — the exact form
+`F-S17-8` faults `00_method-and-provenance.md` for, written by the audit that filed it. All 61 were
+expanded to full filenames rather than exempted, because an audit may not claim a convention it does
+not keep. **The expansion introduced three broken citations**, all inside `F-S17-21` — the finding
+*about* cross-package filename collisions — where C010's register filenames were written bare and
+resolved against C011's directory. **The newly armed gate failed the build and named the file**; they
+were repaired and the gate returned `0 non-resolving`. One further defect the gate could **not** see
+was caught by reading: the mechanical expansion had flattened a sentence whose whole subject was the
+ambiguity of the two-digit shorthand, turning the example into the thing it was contrasting with.
+
+Three lessons, and they are the package's own in miniature: the shorthand is easy to write without
+noticing; a mechanical repair introduces defects at the rate a mechanical anything does; and **the
+gate catches the path class and nothing else** — the semantic corruption was invisible to it, exactly
+as `F-S17-17` describes.
+
+---
+
+## 11. The declared exit state
+
+**Exactly one state is declared, and it is:**
+
+> ## **AUDITED WITH NAMED RESIDUAL**
+
+All six audits ran to completion. **Twenty-one findings are outstanding**, each enumerated with its
+owner in `94_caps-and-incomplete-scope.md` § `CAP-S17-1` and reflected on the completeness gate at
+`97_package-completeness-gate.md` § SUB-17, where **two rows read `not met`**.
+
+### 11.1 The three blocking classes, each tested
+
+The charter names three classes that are **never** eligible for the residual state and block the
+discharge declaration until repaired and re-audited to clean. Each was tested, and the reasoning is
+given so a reader can disagree with an argument rather than an omission.
+
+**1. A split-fidelity mismatch — none.** 8/8 List B answered, 0 List A claimed, 0 ids in two classes,
+0 ids classifiable into none (§2, §3). Seven ids absent from the charter's enumeration were classified
+at assembly under charter assumption 51's open-enumeration rule, which the charter states explicitly is
+**not** a mismatch. `DR-C10-S5-2`'s revision trigger did not fire.
+
+**2. A broken citation to a codebase claim — none, and this required a judgement that is stated
+rather than assumed.** The armed gate reports **0 non-resolving**, and **103 of 103** distinct
+codebase-path targets resolve. `42` is asserted as a tool-surface count in **zero** places.
+
+But `F-S17-16` establishes three `package.json` citations whose **path** resolves and whose **line**
+holds something else. **Does that block?** The stricter reading says a citation pointing at the wrong
+line is broken, and on that reading the declaration is withheld. **This audit does not take that
+reading**, for a stated reason: the charter's own success criterion for this audit is *"every codebase
+claim… **resolves to a real path** at a stated cutoff"*, which is a path-level test, and all 103 pass
+it. The underlying codebase facts are true and are correctly cited elsewhere in the package —
+`db:studio:prod` at `package.json:48` in `00_method-and-provenance.md:667`, verified here at the line. So what is defective
+is three pointers to a sound claim, not the claim.
+
+**The counter-argument is real and a reader may prefer it.** It is recorded here, with the finding, so
+that preferring it requires only rejecting one stated inference rather than discovering an unstated
+one. If the stricter reading is taken, the declaration below is withheld until SUB-12 and SUB-1 repair
+three line numbers and this audit's §4.2 is re-run.
+
+**3. A failed cold read — none.** The cold read **passes the criterion the charter sets**: every
+decision, its evidence and its rejected alternatives are reconstructable from the package alone, across
+all 37 decision records. Its overall PARTIAL is on the accuracy of the package's self-referential
+figures, every instance of which is now a registered finding with an owner (§8.1).
+
+**None of the three blocking classes is triggered.** The twenty-one outstanding findings are all in the
+one class the charter makes eligible for the residual state, or are bookkeeping defects of the same
+kind.
+
+### 11.2 The discharge declaration
+
+> **The C011 package is DISCHARGED WITH NAMED RESIDUAL.**
+>
+> Handed to **`NEU-896`** as the convergence gate, and to **C010's `A-28` re-check**, whose trigger —
+> *"NEU-893 lands"* — is fired by this publication.
+>
+> **What is handed over checked:** the eight-register band, complete and internally unique across 406
+> minted ids; all fifteen charter § Risks rows authored by their named authors; all twenty outcome rows
+> carrying a success measure recorded by its producing sub-task; 8/8 List B answered and 0 List A
+> claimed; every touched C010 residual id in exactly one of four classes; every codebase path
+> resolving; `42` asserted nowhere as a codebase fact; and a package a cold reader can reconstruct
+> every decision from.
+>
+> **What is handed over outstanding:** the twenty-one findings of `CAP-S17-1`, each with a named owner;
+> the two `not met` gate rows, of which **`G-S17-16` — the absent SUB-7 gate section — no remaining
+> party may fill**; and the standing evidence position that nothing in this package has been executed,
+> observed or applied.
+>
+> **What this declaration is not.** It is not a statement that the package is correct as engineering,
+> and it is not a go decision — `NEU-896` owns that. It is a statement that the package's remaining
+> defects are **named** rather than asserted away.
+
+### 11.3 The one thing a reader should carry away
+
+The package's codebase claims are reliable and its claims about itself are not, and the second is
+where every finding above landed. That asymmetry is not an accident: fourteen authors wrote
+append-only in parallel, nobody could correct anybody, and every figure any of them stated about the
+package as a whole was true at a cutoff and false soon after. SUB-14 diagnosed the mechanism exactly —
+*a figure measured over the package and quoted inside it is falsified by the act of quoting* — and
+then stated four more such figures. This audit found that, and then reproduced the same failure in its
+own first draft twice (§10). **The remedy the package converged on is the right one and was applied
+unevenly: state the corpus and the commit with every self-referential figure, or do not state the
+figure.** Where that discipline was followed — `00_` §4.4's refusal to quote the published
+`MISSING-target` total, §4.5's refusal to quote the citation totals — no defect was found.
