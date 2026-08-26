@@ -72,3 +72,5 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S6-1_the-migration-disposition-scheme.md` | SUB-6 (NEU-1000) | OUT-2 |
 | `DR-C11-S6-2_archiving-the-pre-cutover-log-population.md` | SUB-6 (NEU-1000) | OUT-2 (the disposition of the population `F-S8-2` and `R-S16-1` route to SUB-9 for its *propagation* action) |
 | `DR-C11-S6-3_aggregate-then-generate-and-the-exclusion-evidence.md` | SUB-6 (NEU-1000) | OUT-2 (and the evidence SUB-3 named SUB-6 to supply for the exclusion recorded at position 3) |
+| `DR-C11-S7-1_the-rollout-stage-order.md` | SUB-7 (NEU-1001) | OUT-3 (the total order, and the audit that the transport gate is not last) |
+| `DR-C11-S7-2_the-deploy-independent-disable-path.md` | SUB-7 (NEU-1001) | OUT-3 (the per-stage disable path) and OUT-4 (containment separately exercisable from reversal) |

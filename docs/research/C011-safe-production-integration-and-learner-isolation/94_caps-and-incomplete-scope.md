@@ -248,3 +248,42 @@ would close it. None is a limit on what this package can decide — the disposit
 `06_the-disposition-of-every-unowned-row.md` §3 are settled, and not one of them turns on a row count
 or a probe result. A cap filed here would mis-describe the situation as unresolvable when it is
 merely unobserved, and would give SUB-17's audit a permanent limit where there is a closable one.
+
+---
+
+### SUB-7
+
+> **Id-collision disclosure, stated before the entry rather than after it.** C010 also has a
+> sub-task 7, and its caps register carries a `CAP-S7-1` of its own — *"The web API's erasure
+> capability cannot be scoped at all, because no row holding learner payload has a deletion owner"*,
+> at `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:277`, whose `Owner:`
+> line at `:283` names `NEU-893`. **The `CAP-S7-1` below is C011's, and is a different record about a
+> different subject.** Under the package-wide rule `F-S2-2` establishes, a bare `CAP-S7-1` means this
+> package's, and C010's is always written qualified — *"C010's `CAP-S7-1`"*. The collision is
+> disclosed here because this sub-task is the one that creates it, and because the package has
+> already been bitten once by same-numbered ids across the two packages meaning different things.
+
+#### `CAP-S7-1` — This package prices no rollout stage's duration, so no stage is shown to fit `OBJ-8`
+
+- **Id:** `CAP-S7-1`
+- **Cap:** The rollout sequence states what `OBJ-8`'s availability budget **would allow** per restart, and derives how the allowance tightens as stages land. It does **not** state how long any stage takes. No stage is shown to fit the budget, and two of the ten — `T2`, the log-table archive, and `T7`, the ten-table backfill — have durations that scale with row counts and are therefore unbounded here.
+- **Why it is capped:** Pricing a stage needs two things this package does not have. The **row counts** were never taken: SUB-6's aggregate probes were published but not executed for want of a credential (`OI-S6-1`, `SPK-S6-2`). And the **restart duration** of a `docker compose up -d --build` with a boot-time migration is itself unobserved (`OI-S15-1`, cited by `OBJ-8`'s own evidence cell at `15_operational-objectives-for-the-real-platform.md:255`). With neither, any duration written here would be invented, and an invented duration in a runbook is worse than an absent one because it reads as a budget an operator can plan against.
+- **What it leaves unsupported:** A reader must **not** infer that the rollout fits inside `OBJ-8`, that any individual stage does, or that the ten-stage decomposition reduces the availability cost. The §10.2 arithmetic supports only the opposite direction: adding stages *tightens* the per-restart allowance, so compressing the rollout concentrates its cost rather than reducing it. A reader must also not treat the "at most one stage per day" cadence as a duration guarantee — it is a statement about the denominator, not the numerator.
+- **Owner:** **SUB-13 (NEU-1006)**, which chooses the batching and therefore fixes each slice's size, co-named **the creator** as the only party who can execute the aggregates that would supply the counts.
+- **What would lift it:** `OI-S6-1` closing — the aggregate probe set executed against production, yielding per-table row counts — together with `OI-S15-1` closing, which supplies the restart-duration baseline. With both, each stage's slice count becomes computable and `R-S6-2`'s conflict becomes an arithmetic question rather than an open one.
+
+---
+
+**SUB-7 register totals at revision 1:** one cap, `CAP-S7-1`, with a named owner and an observable
+lifting condition, plus one id-collision disclosure. One cap rather than several because this
+sub-task's other limits are not limits on what it could decide — the sequence is complete, every
+stage carries its five fields, every stage carries a control or a named exception, and every stage
+has a reversal or is named irreversible. What it cannot do is **price** what it has ordered, and that
+is a single limit with a single cause.
+
+**Two things that would look like caps and are filed elsewhere.** That the disable paths are
+specified but not built is not a cap on this package — it is the correct division of labour, since
+building them is SUB-13's and would require touching `src/`, which the charter forbids here; it is
+recorded as a residual of `R4`. That no signal is established to reach anybody is `R-S16-2` under
+`OI-S1-9`, already capped by SUB-1's `CAP-S1-1` as part of the package-wide absence of live
+production evidence.

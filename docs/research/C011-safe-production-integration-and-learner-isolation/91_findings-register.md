@@ -821,3 +821,118 @@ this sub-task adds **no third cause** to `F-S5-12` as to record the window it do
 explicit that the whole content of `F-S5-12` is that fixing one cause does not fix the other; a
 sub-task that quietly introduced a third would destroy that fact's usefulness to SUB-7, and one that
 introduced a transient window without saying it was *not* a third would leave SUB-7 to work it out.
+
+---
+
+### SUB-7
+
+#### `F-S7-1` — The smoke break blinds the rollout rather than blocking it, because the smoke job runs after the deploy has landed
+
+- **Id:** `F-S7-1`
+- **Finding:** `smoke-test` declares `needs: [deploy-prod]` (`.github/workflows/cd-prod.yml:110`–`:111`), so the smoke suite executes only after the deploy has already reached the VPS. A smoke failure therefore does not prevent the deployment; the new code is running in production at the moment the job goes red. The next deploy still fires, because `deploy-prod` is gated on the **CI** workflow's conclusion (`:19`–`:21`), not on cd-prod's own previous result.
+- **Evidence:** `.github/workflows/cd-prod.yml:3`–`:7` (trigger is `workflow_run` on CI completed), `:19`–`:21` (the gate), `:110`–`:111` (`needs`), read at `ee0a750`, 2026-08-26.
+- **Consequence:** What a standing smoke failure destroys is the **post-deploy verification**, which `16_attribution-and-detection.md` §3.3 records as the only automated limb of `SIG-S16-4`, the rollout-regression signal. This sharpens `F-S5-12` and `R-S4-2` rather than contradicting them: their wording — *"breaking the deploy on every release"* — describes the workflow going red, and both are correct about that. The operational reading changes, and it changes in the direction that matters for sequencing: the two causes do **not** make later stages inexecutable, so `T0` is not a hard prerequisite for *execution*. It is a hard prerequisite for *observation*, because every stage after it is watched through the signal it breaks.
+- **What is assumed rather than derived:** Nothing about the pipeline — the workflow was read directly. What is **not** established is whether a red cd-prod run is noticed by anyone; that is the unconfirmed-alert-route question, carried once as `R-S16-2` under `OI-S1-9` and cited rather than restated.
+- **Handed to:** **SUB-13** (NEU-1006), which writes the runbook and must not present `T0` as a gate on execution; **SUB-11** (NEU-1004), whose client-guarantee contract covers the smoke run as an existing MCP client; and **the creator**, who owns `R-S4-2`'s route choice.
+
+#### `F-S7-2` — Every deploy-independent disable path is read at boot, and every boot re-runs the migrator first
+
+- **Id:** `F-S7-2`
+- **Finding:** Configuration is resolved at boot — `resolveTransportConfig()` and `resolveAuthConfig()` at `src/transport/main.ts:42`–`:43`, and the composition root's own configuration including the existing feature toggle at `src/composition-root.ts:377`, `:379`. `bootstrap()` runs `await initializeDatabase()` **first**, at `src/transport/main.ts:27`, which executes the migrator unconditionally with no environment guard and no repository-owned lock (`src/infrastructure/db/migrate.ts:38`–`:50`). Applying any environment-variable control therefore requires a container restart, and that restart runs the migrator **before** the new value is read.
+- **Evidence:** `src/transport/main.ts:27`, `:42`–`:43`; `src/infrastructure/db/migrate.ts:38`–`:50`; `src/composition-root.ts:377`, `:379`; all read at `ee0a750`, 2026-08-26.
+- **Consequence:** Containment is not free of the thing it contains. On a migration-bearing stage, using the disable path **re-enters the migration** — the control that pauses a sweep is read only after the sweep has had another opportunity to run. The pause is therefore necessarily *between* batches and never *during* one, which is why `R-S6-2`'s batched-idempotent-resumable requirement is load-bearing rather than a preference, and why `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` forwards it to SUB-13 as a hard obligation. It is also why every time bound in that chapter's rollback tabletop is expressed in restarts rather than seconds.
+- **What is assumed rather than derived:** That a configuration change on the off-repo compose stack requires a container restart to take effect. This follows from the boot-time resolution above for every setting the repository owns; it is not established for any setting the off-repo compose stack may resolve differently, because that stack is outside this repository (`.github/workflows/cd-prod.yml:15`).
+- **Handed to:** **SUB-13** (NEU-1006), which builds the controls and writes their runbook steps.
+
+#### `F-S7-3` — "Only bookkeeping after the gate" is a property of SUB-4's own stage set and does not survive composition
+
+- **Id:** `F-S7-3`
+- **Finding:** SUB-4 states that *"Under this stage set the transport gate is B and C, with only bookkeeping after it"* and immediately scopes the claim — *"Whether the schedule SUB-7 builds honours it is SUB-7's audit, and this chapter asserts only that the set does not preclude it"* (`04_the-stdio-identity-gate-and-the-bound-context-token.md:452`–`:454`). In the composed ten-stage order, **three substantive stages follow the transport gate**: the backfill (`T7`), the enforcement point going live (`T8`), and the tightening (`T9`). Only the third is bookkeeping.
+- **Evidence:** `04_the-stdio-identity-gate-and-the-bound-context-token.md:452`–`:454`; `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §3, §4.
+- **Consequence:** **This is not a defect in SUB-4 and not a violation of C010 §4.3.** SUB-4 scoped its claim correctly and handed the audit forward. §4.3's requirement is that the gate is not *last* and that the principal-kind defect does not surface after the migration is irreversible — both of which the composed order satisfies with margin. The finding exists because a reader of SUB-4 alone could carry "only bookkeeping after the gate" forward as a property of the rollout, and it is not one: two of the three following stages change behaviour, and one of them (`T8`) is the second independent cause of the deploy-pipeline break.
+- **What is assumed rather than derived:** Nothing. Both texts are read directly.
+- **Handed to:** **SUB-13** (NEU-1006), which must not schedule `T7`/`T8` as if they were bookkeeping; **SUB-17**, which audits the composed claim set.
+
+#### `F-S7-4` — `S2` and gate stage `D` are two distinct purges, and neither subsumes the other
+
+- **Id:** `F-S7-4`
+- **Finding:** SUB-6's `S2` purges `context_tokens` wholesale under the `purge` disposition (`06_the-disposition-of-every-unowned-row.md:682`). SUB-4's stage `D` purges rows whose **binding** is NULL — *"a one-shot, binding-predicated operation, not the expiry-predicated sweep"* — and then sets the columns `NOT NULL` (`04_the-stdio-identity-gate-and-the-bound-context-token.md:445`). These are different predicates over the same table at different times.
+- **Evidence:** `06_the-disposition-of-every-unowned-row.md:682`; `04_the-stdio-identity-gate-and-the-bound-context-token.md:445`, `:447`–`:448`.
+- **Consequence:** In the composed order `S2` is `T5` and stage `D` is `T9`, six stages apart, and **both are non-empty**. After `T5` empties the table, `D`'s predicate can still match rows minted between `T5` and `T6` on a path that did not bind. Collapsing the two — a natural-looking simplification, since both "purge `context_tokens`" — would leave that second population unpurged and would make `NOT NULL` unaddable at `T9`. Neither predecessor could have caught this, because neither owns both stages.
+- **What is assumed rather than derived:** That a path capable of minting an unbound row exists between `T5` and `T6`. This follows from gate stage `A`'s design, which binds on HTTP mint while *"the gate still accepts a NULL binding"* (`:442`), and from stage `C` being the point at which both transports refuse identically (`:444`). If in practice every mint path binds from `T3` onward, `D`'s purge is a no-op rather than incorrect — the ordering is safe either way, which is why this is a finding and not a risk.
+- **Handed to:** **SUB-13** (NEU-1006), which writes both migrations.
+
+#### `F-S7-5` — No stage can be executed at a chosen moment, and three stages' only reversal is a deploy
+
+- **Id:** `F-S7-5`
+- **Finding:** A merge to `develop` deploys whenever CI goes green (`.github/workflows/cd-prod.yml:3`–`:7`, `:19`–`:21`), and `OBJ-7` records **≥ 7 unannounced restarts per day** from ordinary version bumps. The operator controls *what* lands, not *when*. Separately, three stages of the ten — `T0`, `T3` and `T9` — have no reversal other than shipping a further change through that same pipeline.
+- **Evidence:** `.github/workflows/cd-prod.yml:3`–`:7`, `:19`–`:21`; `15_operational-objectives-for-the-real-platform.md:254` (`OBJ-7`); `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §7, §9.
+- **Consequence:** This is OUT-3's *"reported as a finding with an owner"* clause and OUT-4's *"where a stage's only reversal is a deploy, that is stated as the finding it is"* clause, discharged together because they have the same cause: on this platform a schema change and its deployment are not separable events. Every stage in the sequence is executable, so none is reported as inexecutable — but none is executable *on demand*, and the runbook must not be written as though a stage can be entered at a chosen instant.
+- **What is assumed rather than derived:** Nothing about the pipeline. What is **not** established is whether the operator can suppress an automatic deploy other than by disabling the `CD Prod` workflow wholesale, which is the pipeline-level all-or-nothing control recorded at `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §8.
+- **Handed to:** **SUB-13** (NEU-1006), and **`NEU-896`** as the convergence gate, since a stage that cannot be scheduled is an input to the go / conditional-go decision rather than a defect this package can close.
+
+#### `F-S7-6` — cd-prod is serialised by a concurrency group, so `R-S15-3`'s overlap window is conditional rather than continuous
+
+- **Id:** `F-S7-6`
+- **Finding:** `R-S15-3` states that deploys fire automatically from `develop` on green CI *"with no serialisation"*. At this cutoff `.github/workflows/cd-prod.yml:9`–`:11` declares `concurrency: group: cd-prod` with `cancel-in-progress: false`, which **queues** a second run rather than running it alongside the first. Two boot-time migrators can therefore only overlap if the first run's job releases its concurrency slot while its container is still migrating — which happens when the health poll fails or times out (`:100`–`:104`), not on the normal path, because a successful health poll implies the server got past `initializeDatabase()`.
+- **Evidence:** `.github/workflows/cd-prod.yml:9`–`:11`, `:100`–`:104`; `src/transport/main.ts:27`; `92_risk-register.md:169`–`:177` (`R-S15-3`).
+- **Consequence:** The residual `R-S15-3` names is **real and unchanged** — `OBJ-12` still requires exactly one concurrent migrator and the platform still cannot guarantee it, because the failure path exists. What changes is its shape: the window is **conditional on a health-poll failure** rather than continuous on cadence, which makes it rarer and also makes it correlated with exactly the situation in which a migration is most likely to be mid-flight. This chapter's ten-stage sequence adds ten restarts and therefore ten more opportunities for that condition to arise, which is why the correction is recorded rather than left as a footnote. **No competing risk entry is opened**; `R-S15-3` remains the single record and keeps its owner and status.
+- **What is assumed rather than derived:** That `docker compose up -d --build` returns before the container's boot migration completes, so the health poll rather than the compose command is what the job waits on. This follows from the poll existing at all (`:100`–`:104`) but was not observed. Whether the Drizzle migrator takes an internal advisory lock was **not** verified here either, and `R-S15-3` already records that as a bounded reading gap — cited, not re-raised.
+- **Handed to:** **SUB-15**'s owner (NEU-998) as a correction to its own entry's premise, and **SUB-13** (NEU-1006), which inherits the serialisation fact when writing the migration.
+
+#### `F-S7-7` — The forwarded abort condition's `ease_factor` limb is safe, and the argument that establishes it was missing
+
+- **Id:** `F-S7-7`
+- **Finding:** `R9` hands the `P-RANGE-1` query forward as a pre-flight abort condition, and this sub-task forwards it into stage `T7`'s entry condition. SUB-6 justified the `ease_factor < 1.3` limb by citing the clamp (`src/domain/config/algorithm.ts:76`) and the default (`src/domain/config/algorithm-defaults.ts:7`). **Neither establishes that the floor cannot be lowered by configuration** — and if it could, an operator running a lower floor would produce legitimate rows below 1.3 and this limb would abort a healthy migration, which is precisely the defect the `1–5` difficulty bound would have caused in a different column. It cannot be lowered: `src/config/resolve-algorithm-config.ts:12`–`:14` wraps the override in `Math.max(parseNumber(env.SM_MIN_EASE_FACTOR, DEFAULT_ALGORITHM_CONFIG.minimumEaseFactor), DEFAULT_ALGORITHM_CONFIG.minimumEaseFactor)`, so `SM_MIN_EASE_FACTOR` can only **raise** the floor.
+- **Evidence:** `src/config/resolve-algorithm-config.ts:12`–`:14`; `src/domain/config/algorithm.ts:76`; `src/domain/config/algorithm-defaults.ts:7`; `06_the-disposition-of-every-unowned-row.md:476`. The difficulty limb was re-verified in parallel and is over-determined: `src/domain/types/spaced-repetition-tools.ts:102`, `src/domain/types/session.ts:147`, `src/domain/types/recommendations.ts:78`, `src/shared/constants/validation.ts:6`–`:7`, and the clamp at `src/domain/algorithms/sr-calculator.ts:191` all agree on `1–10`; `src/infrastructure/db/schema.ts:58` carries no `CHECK`.
+- **Consequence:** The predicate is forwarded **unchanged** and the conclusion survives. This is an **addition** to SUB-6's derivation, not a contradiction of it, so no amendment is routed to `NEU-895` and no correction is routed to SUB-6. It is recorded because a forwarded abort condition whose safety argument had a hole is worth naming even when the answer is right — the `1–5` bound was also *nearly* right, and what caught it was checking rather than the conclusion looking plausible.
+- **What is assumed rather than derived:** Nothing. Every declaration was read at this cutoff.
+- **Handed to:** **SUB-13** (NEU-1006), which writes the pre-flight step, and **`NEU-896`**, which per `R9` inherits the pre-flight re-run and the abort condition.
+
+#### `F-S7-8` — The risk register's own id-convention table contradicts the charter's row order for rows 10–12, and one of the three ids is already occupied
+
+- **Id:** `F-S7-8`
+- **Finding:** `92_risk-register.md:17` fixes the rule: *"`R<n>` is the row's position in the charter's § Risks table."* The charter's rows 10, 11 and 12 are, in order, the **legal-determination** risk (Medium, OUT-9), the **stale-tool-count** risk (High, OUT-16) and the **lifecycle-half-has-no-upstream** risk (High, OUT-9). The register's own convention table at `92_risk-register.md:33`–`:35` instead lists `R10` as the stale-tool-count row, `R11` as the lifecycle row and `R12` as the legal-determination row — a rotation of all three. SUB-3's **authored entries follow the charter**, not the table: `R10` is the legal-determination entry (`92_risk-register.md:110`) and `R12` is the lifecycle entry (`:122`).
+- **Evidence:** `92_risk-register.md:17`, `:33`–`:35`, `:110`, `:122`; charter § Risks rows 10–12 (`_local/`, gitignored, so the register's own entries at `:110` and `:122` are the readable evidence that the charter order is the one SUB-3 applied). Read at `ee0a750`, 2026-08-26.
+- **Consequence:** **`R10` is already occupied.** The convention table directs **SUB-11 (NEU-1004)** to author the stale-tool-count risk as `R10`; under the register's own stated rule, and under the ids SUB-3 actually used, SUB-11's row is **`R11`**. A sub-task following the table rather than the rule would create a duplicate `R10` and leave `R11` empty — which is exactly the condition SUB-14's cross-register consistency check is defined to catch, and exactly the condition SUB-17 treats as blocking. SUB-11 is in flight at the time of writing, which is why this is filed rather than left for assembly.
+- **What is assumed rather than derived:** Nothing about the register. The charter itself is in gitignored `_local/`, so a reader of the published package alone cannot check the charter order directly — but they do not need to: the table at `:33`–`:35` is internally inconsistent with the authored entries at `:110` and `:122` regardless of which order the charter carries, and that inconsistency is visible from the published package alone.
+- **Handed to:** **SUB-14** (NEU-1007), which aggregates this register and owns its cross-register consistency check, and **SUB-17**, which audits it. **No correction is applied here** — this register is append-only and no sub-task rewrites another's content, so the defect is reported, not fixed.
+
+---
+
+**SUB-7 register totals at revision 1:** eight findings, `F-S7-1` … `F-S7-8`. **Two are the findings
+OUT-3 and OUT-4 name by requirement**, and they share a single entry because they share a single
+cause: `F-S7-5` carries both OUT-3's *"a stage that cannot be executed under the auto-deploy /
+auto-migrate constraint"* clause — checked against all ten stages, which returned **none
+inexecutable**, so the clause is recorded as *checked and returned empty* with the weaker real
+constraint (no stage is executable at a chosen moment) filed in its place — and OUT-4's *"a stage
+whose only reversal is a deploy"* clause, which returned **three**: `T0`, `T3` and `T9`. OUT-3's
+third finding requirement, *"a stage for which no deploy-independent disable path exists"*, is
+**not** filed as a finding because the outcome's own text directs that case to be *"named as such
+with its reason and its owner"* in the stage's own row rather than reported separately; four such
+named exceptions appear at `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §8, none
+blank.
+
+Of the remaining six, two are platform mechanics this sub-task read first-hand and no predecessor
+had (`F-S7-1`, `F-S7-2`), two are interlocks visible only after composition and therefore invisible
+to every predecessor individually (`F-S7-3`, `F-S7-4`), one corrects the premise of another
+sub-task's risk entry without re-raising its residual (`F-S7-6`), one closes a gap in a safety
+argument this sub-task is forwarding (`F-S7-7`), and one is a package-hygiene defect found in
+passing that is live against a concurrently-running sibling (`F-S7-8`). Every entry carries an owner.
+
+**No amendment is routed to `NEU-895` by SUB-7.** C010 §4.3's `I4`→`I5` sequencing consequence is the
+one consumed constraint this sub-task could have contradicted, and the audit at
+`07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §4 honours it with margin — the
+principal-kind work is at position 5 of 10 and precedes the only irreversible stage. `F-S7-7`'s
+completion of SUB-6's safety argument and `F-S7-3`'s scoping of SUB-4's claim are both **additions to
+consumed positions rather than contradictions of them**, which is the distinction the charter's
+amendment route turns on.
+
+**Three facts are deliberately not raised here, because each is already recorded exactly once
+elsewhere and this package carries one id per fact.** The backups question is **`OI-S1-8`** — cited
+by id in `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §7 as the reason no reversal
+may assume a restore, with **no second record raised anywhere in this sub-task's artifacts**. That
+boot-time migration cannot be deferred and that batching converts one long availability breach into
+several short ones is **`R-S6-2`**, whose named owner already includes SUB-7 and which this sub-task
+discharges by fixing the batch boundary and pricing the cadence rather than by opening a competing
+entry. That every alert route is unconfirmed is **`R-S16-2`** under `OI-S1-9`.

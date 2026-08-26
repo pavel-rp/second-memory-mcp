@@ -646,3 +646,79 @@ the Tier-2 aggregate's counts for five weeks is `F-S6-3`, not a risk entry: it i
 bounded, self-correcting consequence of a decision taken here, with a known end date — a fact about
 what will happen, not an exposure that might. A risk entry would imply an uncertainty the finding does
 not have.
+
+---
+
+### SUB-7
+
+## `R3` — The rollout is sequenced so the transport gate lands last, and the `sub`/`azp` principal-kind defect surfaces after the migration is irreversible
+
+- **Risk:** The rollout is sequenced so the transport gate lands last, and the `sub`/`azp` principal-kind defect surfaces after the migration is irreversible. C010's check `I4` precedes `I5`, so the unauthenticated transport currently **masks** the defect: closing the gate makes it visible rather than resolving it. A sequence that schedules the gate at the end therefore discovers `H6` only once state has already been destroyed and cannot be un-destroyed.
+- **Severity:** **Critical**
+- **Owning outcome:** **OUT-3** — the staged rollout, which is where the sequence is authored and where the transport gate's position is audited.
+- **Named owner:** **SUB-7 (NEU-1001)** for the sequence as designed; **the creator**, as sole operator, for the order in which stages are actually merged, since the design cannot bind the operator's merge order.
+- **Escalation route:** **`NEU-895` (C010)**, which owns `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md` §4.3's `I4`→`I5` sequencing consequence: a sequence that cannot honour it is a contradiction of a consumed constraint and routes a recorded amendment there, never a silent divergence. Co-named **`NEU-896`**.
+- **Mitigation:** The sequencing consequence is carried as a **binding constraint** (`K9` at `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §2), not a footnote, and the composed order is audited against it explicitly at §4. Three structural properties discharge it rather than one: the principal-kind work sits at **`T4`, position 5 of 10**, not at the end; it is an **observe-only** stage that reveals the defect while refusing nothing, which is the cheapest possible place to discover it and is explicitly *"not a permissive mode"* (`04_the-stdio-identity-gate-and-the-bound-context-token.md:435`–`:436`); and it precedes **`T5`, the only irreversible stage in the entire sequence** (`06_the-disposition-of-every-unowned-row.md:682`, `:695`–`:697`). `T5`'s entry condition is written as *"`T4` exited **and** its observation has been read"*, so the irreversible step is gated on the evidence rather than merely ordered after it. OUT-4 supplies the per-stage data-loss position and the irreversibility declaration that make "irreversible" a named property rather than a discovery.
+- **Mitigation status:** **Partially mitigated, and the residual is a channel rather than an order.** The ordering half is closed: ten constraints audited, ten satisfied, with the gate not last and the defect surfacing five stages before anything irreversible. **The residual is that `T5`'s entry condition depends on a human reading `T4`'s observation, and no alert route is established to deliver it** — every route in SUB-16's matrix is `[unconfirmed]` under stand-in `A-S16-1`, carried as `R-S16-2` and cited here rather than re-raised. The protection this entry claims is therefore only as strong as an operator remembering to look. That residual's owner is **the creator**. A second, smaller residual: the design fixes the order, but nothing in the platform enforces it — merges reach production automatically (`F-S7-5`), so an out-of-order merge is possible and would not be refused by anything.
+
+---
+
+## `R4` — The isolation mechanism cannot actually be rolled out or rolled back on the real deployment
+
+- **Risk:** The isolation mechanism cannot actually be rolled out or rolled back on the real deployment — no rollback exists in git, the compose stack is outside the repository, migrations run on boot and deploys fire automatically from `develop`.
+- **Severity:** **High**
+- **Owning outcome:** **OUT-4** — rollback, which is where each stage's reversal, its data-loss position and its deploy-independent disable path are authored. OUT-14 (SUB-15) supplies the platform objectives it is checked against, without transferring authorship of this entry.
+- **Named owner:** **SUB-7 (NEU-1001)** for the tabletop and the disable-path specification; **SUB-13 (NEU-1006)** for building the controls the specification names; **the creator**, as sole operator, for everything on the VPS and in the off-repo compose stack.
+- **Escalation route:** **`NEU-896`** as the convergence gate: a stage that can be neither executed nor reversed on the real platform is an input to the program-level go / conditional-go decision, not a defect this package can close, since the compose stack and the VPS are outside this repository entirely.
+- **Mitigation:** Bound to verified platform facts rather than an idealized platform, and stated in four parts. **(1) Rollout is possible but not schedulable.** All ten stages are executable; none is executable at a chosen moment, because a merge to `develop` deploys whenever CI goes green and `OBJ-7` records ≥ 7 unannounced restarts per day. That is reported as `F-S7-5` rather than written around. **(2) Every rollback action was checked against a capability the deployment actually has.** Zero of the ten depend on an image registry, an IaC revert, a schema down-migration or a backup — forced rather than achieved, since SUB-15's tabletop found four of six recovery rows resolve to a capability the platform is not established to have, and the backups question is **`OI-S1-8`**, cited by id with no second record raised. `OBJ-13`/`OBJ-14` remain unset under `F-S15-1`. **(3) Containment exists and is separately exercisable.** Six of ten stages carry a deploy-independent disable path — an operator-set environment variable on the off-repo compose stack, applied over SSH, following the in-repository `CLASSIFIER_ENABLE` precedent (`src/config/resolve-classifier-config.ts:22`–`:62`) whose runbook already distinguishes an immediate flip from a permanent deploy-borne change (`docs/runbooks/classifier-blocking-activation.md:261`, `:167`, `:169`). The remaining four carry a **named exception with a reason and an owner**; zero are blank. A pipeline-level all-or-nothing control also exists — disabling the `CD Prod` workflow — recorded as such and credited to no individual stage. **(4) Irreversibility is named, not discovered.** One stage, `T5`, is named irreversible; three stages' only reversal is a deploy and that is stated as the finding it is.
+- **Mitigation status:** **Partially mitigated, and three residuals are named rather than one.** **First, none of the disable paths exists.** They are specified with a cited in-repository precedent; SUB-13 builds them, and until it does every "off" position in the feature-control audit is a specification rather than a control. **Second, containment is not free of what it contains** — `F-S7-2`: every control is read at boot and every boot re-runs the migrator first, so using a disable path during a migration-bearing stage re-enters that migration, and a pause can only ever land between batches. **Third, `T8`'s off position is not a safe resting place** — disabling the enforcement predicate returns the system to today's unconfined behaviour, so containment there trades an isolation failure for an isolation absence. The availability cost of the whole sequence is derived at §10.2 and is not zero: ten added restarts tighten the per-restart `OBJ-8` allowance on every day a stage lands, from ≤ 13.1 s at baseline to ≤ 11.4 s at one stage per day. Residual owners: **SUB-13** for the first two, **`NEU-896`** for the third and for the availability position.
+
+---
+
+## `R-S7-1` — The smoke run is left known-failing, and the rollout's only automated signal is dark for its whole duration
+
+- **Risk:** `R-S4-2` offers three routes for the deploy pipeline's smoke run, and one of them is *"accept a known-failing step"*. If that route is chosen at stage `T0`, `SIG-S16-4`'s only automated limb is red from `T6` onward — for the remaining four stages, including the backfill and the enforcement point going live. A subsequent genuine regression then arrives as one more red smoke run on a job that has been red for weeks, which is indistinguishable from the standing failure. The rollout would continue to be executable throughout, because `smoke-test` runs after `deploy-prod` (`F-S7-1`), so nothing would stop and nothing would signal.
+- **Severity:** **Medium** — it creates no new exposure of its own; it removes the ability to see one. Rated below `R3` and `R4` because two of the three available routes avoid it entirely and the choice has not yet been made.
+- **Owning outcome:** **OUT-3**, which owns the stage sequence and each stage's health signal, and which makes `T0` a stage precisely so that this choice is made deliberately rather than by default.
+- **Named owner:** **The creator**, as sole operator and the only party who can re-scope the smoke suite or re-provision its principal — the same owner `R-S4-2` names.
+- **Escalation route:** **`NEU-896`** at convergence, where a rollout executed without its only automated regression signal is a program-level acceptance rather than a defect this package can close.
+- **Mitigation:** `T0` is made a **first-class stage with its own entry condition** — *"one of `R-S4-2`'s three routes is chosen and recorded"* — rather than a prerequisite note, so the choice cannot be made by omission. Its exit condition requires a green cd-prod run under the chosen route. The two routes that preserve the signal (re-scope the suite; re-provision the smoke principal as a user-kind principal) are named alongside the one that does not, and the cost of the third is stated at `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §5 rather than left for the operator to infer. `T0` is also placed **first**, six stages before the earliest stage that breaks the suite, so the choice is made while all three routes are still open.
+- **Mitigation status:** **Open.** No route has been chosen — that is `OI-S7-1` — so no mitigation is yet in place; what exists is a decision point that has been made visible and given an owner. The residual, if the third route is chosen, is that stages `T6` through `T9` execute with `SIG-S16-4` limb (b) uninterpretable; that residual's owner is the creator and it escalates to `NEU-896`. Note that the signal's *delivery* is separately unconfirmed in every case (`R-S16-2`), so this entry concerns whether the signal is **interpretable**, not whether it is **routed**.
+
+---
+
+**SUB-7 register totals at revision 1:** three entries — **`R3` (Critical)**, **`R4` (High)** and
+`R-S7-1` (Medium). **Exactly two charter `R<n>` rows, correctly:** charter § Risks rows 3 and 4 are
+the only two of the fifteen naming OUT-3 and OUT-4 as their owning outcomes, per charter assumption
+48, and `92_risk-register.md:26`–`:27` pre-allocates both to SUB-7 by name. All three carry a
+severity, a mitigation, a named owner and an escalation route; `R3` and `R4` are partially mitigated
+with their residuals and residual owners named, and `R-S7-1` is open with its decision point
+identified.
+
+**Three hazards are deliberately not raised here, because each is already recorded exactly once
+elsewhere and this package carries one id per fact.** That boot-time migration cannot be deferred and
+that batching converts one long availability breach into several short ones is **`R-S6-2`**, which
+already names SUB-7 as one of its two owners — this sub-task discharges that ownership by fixing the
+batch boundary as a per-boot slice, by establishing that the **cadence between stages** is itself an
+`OBJ-8` variable (which `R-S6-2` did not state), and by forwarding batched-idempotent-resumable to
+SUB-13 as a hard obligation, rather than by opening a competing entry. That every alert route is
+unconfirmed, so a signal that fires reaches nobody, is **`R-S16-2`** — cited as the residual of `R3`
+rather than restated, even though this sub-task is the one that makes an unrouted signal load-bearing
+for an irreversible stage's entry condition. That the platform cannot guarantee exactly one concurrent
+boot-time migrator is **`R-S15-3`**; this sub-task adds ten restarts and therefore ten more
+opportunities for the overlap, and it corrects that entry's *premise* as `F-S7-6` — cd-prod is
+serialised, so the window is conditional on a health-poll failure — **without** re-raising its
+residual or opening a second entry.
+
+**One thing that would look like a risk and is filed as a finding instead.** That no stage can be
+executed at a chosen moment, and that three stages' only reversal is a deploy, is **`F-S7-5`**, not a
+risk entry. Both are determinate, presently-true properties of the platform read directly out of
+`.github/workflows/cd-prod.yml` — facts about how the deployment behaves, not exposures that might
+materialise. Their *consequence* is already carried as the mitigation and residual of `R4`, which is
+the entry a reader looking for the exposure should find.
+
+**And one that would look like a finding and is filed as a risk.** `R-S7-1` could be read as the mere
+observation that `R-S4-2` offers three routes. It is a risk because the exposure turns on an
+unmade choice with an owner, and because its cost is not visible from `R-S4-2` alone: `R-S4-2` prices
+the broken deploy gate, whereas this entry prices what the *rollout* loses by proceeding without the
+signal — a cost that exists only because this sub-task placed four more stages after the break.

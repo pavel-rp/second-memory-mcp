@@ -43,3 +43,4 @@ two**. Source and non-research paths (`src/…`, `drizzle/…`) are written **ba
 | `S8_consent-export-and-erasure.md` | SUB-8 (NEU-1002) | OUT-10, OUT-11 |
 | `S5_the-enforcement-point.md` | SUB-5 (NEU-997) | OUT-8 |
 | `S6_the-disposition-of-unowned-rows.md` | SUB-6 (NEU-1000) | OUT-2 |
+| `S7_the-rollout-sequence.md` | SUB-7 (NEU-1001) | OUT-3, OUT-4 |
