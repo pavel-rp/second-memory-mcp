@@ -853,6 +853,130 @@ claim `A-S6-1`, the single-principal premise ten of the fourteen dispositions re
 `src/` or `drizzle/` changes, no DDL is authored, and nothing is applied.
 
 **Authored by.** SUB-6 (NEU-1000).
+
+---
+
+### SUB-7
+
+## OUT-3 — Staged rollout: the ordered sequence by which isolation reaches production without breaking it
+
+**Outcome.** Four predecessors each hand forward a **partial** order over rollout stages and none
+owns the global order. This outcome composes them into **one total order of ten stages, `T0` …
+`T9`**, each carrying an entry condition, an exit condition, a measurable isolation signal, a health
+signal and a named owner. C010 §4.3's `I4`→`I5` consequence is honoured with margin: the
+principal-kind work is at `T4`, position 5 of 10, it is an **observe-only** stage that reveals the
+`sub`/`azp` defect without refusing anything, and it sits **before `T5`, the only irreversible stage
+in the sequence**. Each stage additionally carries a **deploy-independent disable path** — an
+operator-set environment variable on the off-repo compose stack, following the in-repository
+`CLASSIFIER_ENABLE` precedent — or an explicit named exception with a reason and an owner.
+
+**Success measure.** OUT-3 is done when: (1) one total order exists and is audited row-by-row against
+every partial order its predecessors hand forward, with the audit reported as a count; (2) the
+transport gate is not last and the position of the principal-kind work relative to the first
+irreversible stage is stated explicitly; (3) every stage carries all five required fields with zero
+omissions; (4) every stage carries a disable path with its control surface, operator, observability
+resolved against SUB-16's matrix and behaviour in each position, **or** a named exception with a
+reason and an owner, with **zero blanks**; (5) each stage's feasibility under auto-deploy and
+auto-migrate is assessed, and any stage that cannot be executed as written is reported as a finding
+with a named owner; and (6) both of `F-S5-12`'s causes are sequenced around **independently**, with
+the scenarios each actually breaks established by reading the suite rather than assumed.
+
+**Verified by.** `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §§0–13;
+`decision-records/DR-C11-S7-1_the-rollout-stage-order.md`;
+`decision-records/DR-C11-S7-2_the-deploy-independent-disable-path.md`;
+`traceability/S7_the-rollout-sequence.md`.
+
+**Measured result at revision 1.** **Six of six measure clauses MET.**
+
+1. **MET.** Twelve constraints (`K1` … `K12`) are enumerated with their sources at §2 and audited one by
+   one at §4. **Twelve of twelve satisfied**, reported as a table rather than asserted. **Two of the
+   twelve were added after an independent adversarial pass**, and the measure records that rather
+   than presenting the set as complete from the start: `K11` (SUB-2's identity change lands before
+   the first stage that reads a determined kind) was **missed entirely** by the first draft, which
+   presupposed a determined kind at three stages without staging the change that produces it; and
+   `K12` was split out of `K9` because `K9`'s cited source does not contain the irreversibility
+   clause that had been attributed to it.
+2. **MET.** The transport gate is at `T4` and `T6`, with three substantive stages after it. The
+   principal-kind work is at `T4`; the only irreversible stage is `T5`. The relationship is stated as
+   a positional fact, not as a reassurance.
+3. **MET.** Ten stages, five fields each, zero omissions (§6).
+4. **MET.** Six stages carry a real control; four carry a named exception with a reason and an owner
+   (`T0`, `T2` in part, `T5`, `T9`). **Zero blanks.** Two qualifications are registered rather than
+   buried — every "off" position costs a restart that re-runs the migrator (`F-S7-2`), and `T8`'s
+   "off" position is today's unconfined behaviour rather than a safe resting place.
+5. **MET.** §7 assesses all ten. The qualification that **no** stage can be executed at a chosen
+   moment is reported as `F-S7-5` rather than written around.
+6. **MET.** §5 sequences the two causes six and eight stages after `T0` respectively, and establishes
+   by reading the suite that **exactly two of its eight scenarios break, and both break twice** —
+   `init_agent_context` survives because `ContextTokenRepository` is deliberately unscoped
+   (`05_the-enforcement-point-that-confines-every-read-and-write.md:338`).
+
+**What this measure does not claim.** It does not claim any stage fits `OBJ-8` — two of the ten have
+unbounded duration because the row counts were never taken (`OI-S6-1`), and that conflict is
+`R-S6-2`'s, cited rather than re-raised. It does not claim any signal reaches anybody: every alert
+route is `[unconfirmed]` under `A-S16-1`, so every observability cell describes a computation, not a
+notification. It does not claim the disable paths exist — they are named with a cited precedent and
+built by SUB-13. It does not choose `T0`'s route (`OI-S7-1`). And it claims no implementation: zero
+files under `src/` or `drizzle/` change.
+
+**Authored by.** SUB-7 (NEU-1001).
+
+---
+
+## OUT-4 — Rollback: how each stage is reversed, and what is unreversible
+
+**Outcome.** Every one of the ten stages carries a rollback trigger, an action, a time bound, a named
+owner and an explicit **data-loss position** stating what cannot be recovered at all. **One stage —
+`T5`, the `context_tokens` purge — is named irreversible rather than given a nominal rollback.**
+Containment and full reversal are recorded **separately**: for every stage the disable position
+states which behaviour stops, which persisted state remains, and whether the next stage can still be
+entered from it. Time bounds are expressed in restarts and operator actions rather than seconds,
+because no duration on this platform has been measured and inventing one would be the failure mode
+`A-S16-1` exists to prevent.
+
+**Success measure.** OUT-4 is done when: (1) every stage carries a trigger, an action, a time bound,
+an owner and a data-loss position, **or** is named irreversible; (2) an audit confirms **no** rollback
+action depends on a capability the deployment is not established to have — an image registry, an IaC
+revert, a schema down-migration or a backup — with the backups question cited to its single record
+and no second record raised; (3) containment and reversal are exercised separately per stage, with
+the residual state and the next-stage-enterable answer both stated; (4) where a stage's only reversal
+is a deploy, that is recorded as the finding it is rather than written as a rollback; and (5) the
+availability cost of the sequence is stated against `OBJ-8` rather than left as an unpriced
+consequence.
+
+**Verified by.** `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §§7–10;
+`decision-records/DR-C11-S7-2_the-deploy-independent-disable-path.md`;
+`traceability/S7_the-rollout-sequence.md`.
+
+**Measured result at revision 1.** **Five of five measure clauses MET.**
+
+1. **MET.** Ten stages in the §9 tabletop. Nine carry a real reversal with all five fields; `T5` is
+   named irreversible and its data-loss position states that every `context_tokens` row is destroyed
+   and that the loss is *entailed by* `DR-C10-S8-2` rather than caused here — which bounds it without
+   softening it.
+2. **MET.** **Zero** rollback actions depend on any of the four absent capabilities. This is forced
+   rather than achieved: SUB-15's tabletop found four of six recovery rows resolve to a capability the
+   platform is not established to have, and `OBJ-13`/`OBJ-14` are unset under `F-S15-1`. The backups
+   fact is cited as **`OI-S1-8`** and **no second record is raised anywhere in this sub-task's
+   artifacts**.
+3. **MET.** §10.1 gives a per-stage containment table. **Three stages cannot be entered from their
+   predecessor's disable position** — `T5`, `T8`, `T9` — and each is explained as a designed property
+   rather than reported as a gap.
+4. **MET.** `T0`, `T3` and `T9` reverse only by shipping something through the pipeline; recorded as
+   part of `F-S7-5`.
+5. **MET.** §10.2 derives that the per-restart allowance is the daily budget divided by the day's
+   *total* restarts, so every stage landing on a given day tightens the allowance for every restart
+   that day — ≤ 13.1 s at baseline, ≤ 11.4 s with one stage, ≤ 5.2 s with all ten. The conclusion that
+   **at most one stage per day** keeps the allowance near the published figure is a derivation from
+   `OBJ-8`'s own arithmetic, independent of `R-S6-2`'s batching argument.
+
+**What this measure does not claim.** It does not claim any reversal has been exercised — none has,
+and no production credential exists to exercise one. It does not claim a numeric time bound for any
+stage; every bound is in restarts and operator actions. It does not set an RPO or RTO — `OBJ-13` and
+`OBJ-14` remain unset under SUB-15's blocking finding. It does not claim the sequence fits inside
+`OBJ-8`; it states what the budget allows and names the two stages whose duration is unbounded.
+
+**Authored by.** SUB-7 (NEU-1001).
 ### SUB-11
 
 *`NEU-1004`, covering `OUT-16`. One row. The success measure is authored here, not derived at

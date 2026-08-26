@@ -855,6 +855,79 @@ independently, so folding them together would hide which part of the chapter a r
 `A-S6-3` is about an **unbuilt artifact** and its refutation overturns a recorded exclusion in
 another sub-task's inventory. A single combined entry would have one owner; these have three
 different ones — the creator, SUB-7, and SUB-13 with the implementation charter.
+
+---
+
+### SUB-7
+
+## `A-S7-1` — Each rollout stage costs exactly one deploy and therefore exactly one container restart
+
+**Status:** `[unconfirmed]`
+
+**Stands in for:** An observation of how many deploys a schema-plus-code stage actually takes on this
+deployment, which would require executing one. No production credential exists (`F-S1-2`), and
+`OI-S15-1` records that restart duration on a `docker compose up -d --build` with a boot-time
+migration is itself unobserved.
+
+**Assumption:** Every one of the ten stages `T0` … `T9` is delivered by a single merge to `develop`,
+producing a single cd-prod run and a single container restart. The availability arithmetic at
+`07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §10.2 rests on this: it adds **ten**
+planned restarts to `OBJ-8`'s cadence denominator and derives the tightened per-restart allowance
+from that number.
+
+**Owner:** **SUB-13 (NEU-1006)**, which writes the migrations and therefore fixes how many deploys
+each stage actually takes, co-named **the creator** as the party who performs the merges.
+
+**Tolerance envelope:** The design tolerates a stage taking **more than one** restart. Every
+conclusion drawn from this assumption is directional rather than exact — the §10.2 finding is that
+adding restarts *tightens* the per-restart allowance and that compressing the rollout concentrates
+its cost, and both hold a fortiori if a stage takes two deploys instead of one. The envelope also
+tolerates two adjacent stages being merged together, which is what `T3` and `T9` already do
+internally: `T3` combines gate stage `A` with `S3`, and `T9` combines `S5`, gate stage `D` and the
+carrier's own tightening, precisely to spend one restart rather than three.
+
+**Invalidating outcome:** A stage that requires an **unbounded or indeterminate** number of restarts
+— specifically, the batched stages `T2` and `T7`, whose slice count is a function of row counts that
+were never taken (`OI-S6-1`). For those two the assumption is already known not to hold as a fixed
+number, which is why §10.2 names them as the two stages whose duration cannot be shown to fit
+`OBJ-8` and routes that conflict to `R-S6-2` rather than pricing it. If a *non-batched* stage turns
+out to need an indeterminate number of restarts, the ten-restart figure and every allowance derived
+from it must be re-derived.
+
+**Re-validation trigger:** SUB-13 publishes the migration set, at which point the number of deploys
+per stage becomes a property of a real artifact rather than an assumption — or `OI-S6-1` closes and
+the two batched stages acquire a bounded slice count.
+
+---
+
+**SUB-7 register totals at revision 1:** one stand-in, `A-S7-1`, `[unconfirmed]`, carrying all seven
+fields including the owner this register adds at position 1. One entry rather than several because
+this sub-task's other provisional reliances are already registered by their owners and are consumed
+by citation: that `S1` executes at or after the carrier lands is **`A-S6-2`** — which this sub-task
+**discharges** rather than restates, by placing the carrier at `T1` and the archive at `T2`.
+
+> **`A-S6-2`'s re-validation trigger has now fired, and the status change is routed rather than
+> assumed.** Its trigger is *"SUB-7 publishes its stage sequence"*, on which the entry *"either closes
+> as confirmed or fires its invalidating outcome"* (`95_stand-in-assumption-register.md:778`–`:779`).
+> This chapter is that publication, and the sequence satisfies it: carrier at `T1`, `S1` at `T2`. But
+> `A-S6-2`'s own `Status:` line still reads `[unconfirmed]`, and **this sub-task does not edit it** —
+> no sub-task rewrites another's entry under the append-only rule. **The status change is therefore
+> handed to SUB-14 (NEU-1007)** as an aggregation action, with SUB-6 (NEU-1000) as the entry's author.
+> Recording the hand-off here is the difference between a trigger that fired and a trigger that fired
+> and was noticed.
+
+That the
+operator's own direct inspection is the only observation channel a detection signal can reach is
+**`A-S16-1`**, which is why stage `T4`'s exit condition is written as a human read; and that the
+pre-cutover learning-domain population has exactly one human principal is **`A-S6-1`**, which ten of
+the fourteen dispositions rest on and which this sub-task inherits unchanged when it sequences the
+backfill at `T7`.
+
+**One assumption was considered and deliberately not filed here.** That the operator merges the
+stages in the published order is **not** a stand-in: nothing in the platform enforces the order
+(`F-S7-5`), so it is not an assumption the architecture provisionally rests on with a tolerance
+envelope — it is a residual of `R3`, recorded there with its owner, because an out-of-order merge is
+an exposure rather than a premise.
 ### SUB-11
 
 *`NEU-1004`, covering `OUT-16`. One entry, taking the sub-task-scoped `A-S<n>-<k>` form
