@@ -1529,3 +1529,232 @@ rather than amended, and its column name is taken verbatim precisely so that no 
 becomes a contradiction. `F-S13-2` is an **addition** to `OI-S5-1`, not a contradiction of it. **No
 amendment is routed to `NEU-895` by SUB-13.** The five id collisions disclosed above are naming
 collisions between two independent id spaces, which are not contradictions either.
+
+---
+
+### SUB-17
+
+> **Id-collision disclosure.** C010 defines no `F-S17-*` — its charter has no sub-task 17 — so **none
+> of the ids below collides**. Under the package-wide rule `F-S2-2` establishes, a bare `F-S17-<k>`
+> means this package's; the point is moot here and is stated so a reader does not have to check.
+
+**Every finding below is routed and none is repaired.** This sub-task has no amend authority
+(`98_audit-record.md` §1.1) and every owning sub-task has shipped, so each completes **round 1** of the
+convergence loop and converges no further. The reason is identical for all of them and is stated once:
+*the owning sub-task has shipped and this sub-task may not repair its content.* Each is therefore also
+a **named residual** on the completeness gate.
+
+#### `F-S17-1` — The `97_` gate is missing SUB-7's section, and the assembly's adjudication counts the gap as two where it is three
+
+- **Id:** `F-S17-1`
+- **Finding:** `97_package-completeness-gate.md` carries **eleven** `### SUB-<n>` sections — SUB-1, SUB-2, SUB-3, SUB-4, SUB-8, SUB-5, SUB-6, SUB-11, SUB-9, SUB-12, SUB-13. The package has **fourteen** producing sub-tasks (`00_method-and-provenance.md:11`–`:12`). Three are absent, not two: SUB-15 and SUB-16 wrote none **by recorded decision** (`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md` consequence 6), and **SUB-7 wrote none with no decision recorded anywhere**. `00_method-and-provenance.md:345`–`:347` states that *"SUB-17 inherits **149 rows across eleven `### SUB-<n>` sections**, and the knowledge that **the two missing sections** are a deliberate silence rather than a gap."* Eleven plus two is thirteen. The fourteenth is SUB-7.
+- **Evidence:** Section headings enumerated mechanically across all eight registers at `5f8e9cb`. `90_`, `91_`, `92_`, `93_`, `94_` and `95_` each carry **all fourteen** producing sub-tasks including SUB-7. `96_` carries twelve — SUB-3 and SUB-7 are absent, and **both are correct**: neither designed a spike, so neither had an entry to append (no `SPK-S3-*` or `SPK-S7-*` exists anywhere in the package). `97_` carries eleven. `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` contains **no occurrence** of `97_`, *"completeness gate"* or *"gate row"*, so the chapter does not record the omission either. The distinction matters and was tested rather than assumed: SUB-7's absence from `96_` is legitimate and its absence from `97_` is not, because `97_`'s own header states the shared-append convention — *"Each sub-task appends its own `### SUB-<n>` section"* (`97_package-completeness-gate.md:11`).
+- **Consequence:** SUB-7 covers **OUT-3 and OUT-4** — the rollout sequence and rollback, two of the eight List B questions and two Critical/High charter risks — and it is the only producing sub-task whose acceptance conditions were never asserted against the gate by their author. The gate cannot be answered on SUB-7's behalf: writing rows for it would be authoring another sub-task's register content, which is forbidden here for exactly the reason SUB-14 declined to write rows for SUB-15 and SUB-16 (`00_method-and-provenance.md:343`–`:345`). **So the package's completeness gate is structurally incomplete**, and `97_package-completeness-gate.md` § SUB-17 records it as the one `not met` row that no party remaining can fill.
+- **What is assumed rather than derived:** Nothing. The section counts are mechanical and the absence of a recorded decision is a negative established by searching the chapter, the assembly record and the decision records for one.
+- **Handed to:** **SUB-7 (NEU-1001)**, which owns `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md`, OUT-3 and OUT-4 and is the only party that may write its own gate rows. Co-named **SUB-14 (NEU-1007)** as the author of the adjudication that undercounts the gap, and **`NEU-896`** at convergence, since an unasserted acceptance surface on the rollout and rollback outcomes is a program-level exposure rather than a formatting defect.
+
+#### `F-S17-2` — `CAP-S1-3` is declared "defined nowhere" and void; it is defined in C010, about exactly the subject it is cited for
+
+- **Id:** `F-S17-2`
+- **Finding:** Three published statements declare the id undefined. `00_method-and-provenance.md:414`–`:416`: *"**`CAP-S1-3` is a phantom.** Four merged records rest the `qa-execution` no-op on it and it is **defined nowhere**… **Adjudication: the id is void**."* `README.md:170`: *"the id `CAP-S1-3`… **was never defined and is void**."* And `F-S11-5`, which originated the claim. **The id is defined.** `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:85` is `#### `CAP-S1-3` — `qa-execution:engine` is unconfigured, so no QA pass exists`, owner **`NEU-986` (`SUB-12 of C010`)** — the same subject, the same mechanism, the same conclusion the four C011 records cite it for.
+- **Evidence:** Read directly at `5f8e9cb`. C010's entry states *"This repository's capability registry resolves to **`git, linear`** only; no `qa-execution:engine` provider is registered. The automated QA-execution phase is a genuine **no-op** for this package."* The four citing C011 records are `97_package-completeness-gate.md:232` (`G-S5-20`), `:308` (SUB-6), `:421` (SUB-9) and `:515` (SUB-13). Established by intersecting C010's 142 defined residual ids against every mention in C011; `CAP-S1-3` is C010-only — C011 mints no such id, which is why it is absent from the 124-collision set and why a search confined to this package returns nothing.
+- **Consequence:** What is true is **narrower than what is published**, and the narrowing changes the remedy. Under the package's own bare-id rule — *"A bare id always means **this** package's own"* (`README.md:131`–`:136`) — a bare `CAP-S1-3` in a C011 file does not resolve to a C011 entry, and that much is correct. But *"defined nowhere"* and *"was never defined"* are false, in a package whose README establishes on the same page that **124 id strings are defined in both packages**. The four citing records are best read not as resting on a phantom but as citing **C010's cap without the required qualifier** — a form defect the README rule already governs, with a one-word repair (*C010's* `CAP-S1-3`), rather than a void id needing a package-level replacement. Declaring the id void also discards a real, owned, still-open C010 cap that this package genuinely touches; it is classified **consumed-from** in `98_audit-record.md` §3.2. The substantive position is unaffected: the registry is `git, linear`, no capability owns `qa-execution`, and no QA pass is claimed anywhere.
+- **What is assumed rather than derived:** Nothing. Whether the four authors intended C010's cap or believed in a C011 one is not established and is not claimed here; the finding is about what the published text asserts, which is checkable.
+- **Handed to:** **SUB-11 (NEU-1004)**, author of `F-S11-5`, which is the origin of the claim. Co-named **SUB-14 (NEU-1007)** as the author of the adjudication and of both restatements, and **`NEU-986`** as the actual owner of C010's `CAP-S1-3`, which is affected by being declared nonexistent.
+
+#### `F-S17-3` — `12_`'s "55 abbreviated references, counted mechanically" is 57, and was 57 when it was written
+
+- **Id:** `F-S17-3`
+- **Finding:** `97_package-completeness-gate.md:465`–`:467` states *"`12_threat-model-and-the-gates-that-authorize-implementation.md` contains **55** abbreviated references, **counted mechanically**: 4 × `04_…`, 29 × `05_…`, 3 × `08_…`, 6 × `09_…`, 6 × `11_…`, 1 × `12_…`, 6 × `16_…`."* Re-counted at `5f8e9cb`: **57**, and two families differ — **`11_…` occurs 7 times, not 6**, and **`12_…` occurs 2 times, not 1**. The stated breakdown sums correctly to 55, so the arithmetic is sound and the measurement is not.
+- **Evidence:** `grep -o` per prefix over `12_threat-model-and-the-gates-that-authorize-implementation.md`. **The file has exactly one commit in its history** — `9bd5fa8` — and is byte-identical to publication; the assembly pass did not touch it. So this is **not drift**: the count was wrong when it was written, and no later edit made it so.
+- **Consequence:** Small in magnitude and pointed in placement. The paragraph exists to establish that a `0 non-resolving` result over a file full of checker-invisible shorthand is *"true but not evidence"* unless the shorthand is counted by hand — and the hand count is wrong by two. It does not disturb the safety argument, which rests on two **structural** properties rather than on the total: that every prefix used is also cited in full in the same file, and that every cross-package citation is written in full. Both were re-checked for `12_threat-model-and-the-gates-that-authorize-implementation.md` and both hold. What fails is the figure offered as the evidence of mechanical care.
+- **What is assumed rather than derived:** Nothing. The count is reproducible with one command per prefix.
+- **Handed to:** **SUB-12 (NEU-1005)**, the row's author and the only party that may edit it.
+
+#### `F-S17-4` — The sentence certifying that the assembly's two files contain no `:42` token contains one
+
+- **Id:** `F-S17-4`
+- **Finding:** `00_method-and-provenance.md:232`–`:234` reads *"The two files this assembly authored contain **no** `:42` token at all, so they do not move either figure — this paragraph and its counterpart in `README.md` discuss line 42 without citing it."* **`00_method-and-provenance.md:233` contains the token `:42`**, inside the clause denying it. A mechanical grep for `:42` over the package returns **28** distinct files, of which `00_method-and-provenance.md` is one.
+- **Evidence:** `grep -n ":42\b"` over `00_method-and-provenance.md` returns exactly one hit, at `:233`, which is the sentence quoted. `README.md` returns **zero**, so that half of the claim holds.
+- **Consequence:** The *intent* is true and the *literal claim* is false, and only the literal claim is checkable. The neighbouring figure — *"a line-42 reference occurs 62 times across 27 of **the merged files**"* — is **correct**, precisely because it is scoped to the merged files and `00_method-and-provenance.md` is not one; 28 minus the assembly's own file is 27. So the published figure survives and the absence claim beside it does not. This is the defect class the same chapter diagnoses two sections earlier — *a figure measured over the package and quoted inside it is falsified by the act of quoting* — occurring in the paragraph written to apply it. Nothing downstream depends on the sentence.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** **SUB-14 (NEU-1007)**, the chapter's author.
+
+#### `F-S17-5` — `README.md` states the charter's only change outside `docs/` is the citation-gate entry; there are two, and the package discloses the second
+
+- **Id:** `F-S17-5`
+- **Finding:** `README.md:47` reads *"The single change outside `docs/` in the whole charter is one entry added to the citation checker's gated list."* **`.current-task` is a tracked file at the repository root and was modified by a merged C011 commit** — `3b1f089`, SUB-11's, which is its only content change in this charter. So the charter makes **two** changes outside `docs/`: `scripts/check-citation-paths.ts` (SUB-14) and `.current-task` (SUB-11).
+- **Evidence:** `git ls-files --error-unmatch .current-task` succeeds, so the file is tracked. `git show --name-only 3b1f089 -- . ':!docs/'` returns exactly `.current-task`; `git show --name-only 6d981bf -- . ':!docs/'` returns exactly `scripts/check-citation-paths.ts`. The file's content at `origin/develop` is `NEU-1004`, SUB-11's task id. **The package already discloses this**: `97_package-completeness-gate.md:329` (`G-S11-17`) records the change explicitly and calls it *"the only path in the change set outside `docs/`"* for that sub-task.
+- **Consequence:** A superseding README contradicts a merged gate row in the same package, and the gate row is the correct one. The claim is also the kind most likely to be repeated downstream, because it is the reassuring form of a scope statement. The substantive constraint — **zero changes under `src/` or `drizzle/`** — is unaffected and holds: verified across the whole charter, and `.current-task` is a one-line status breadcrumb written under the project's own `CLAUDE.md` § Status Breadcrumb convention, not a code or configuration change.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** **SUB-14 (NEU-1007)**, the README's author. Co-named **SUB-11 (NEU-1004)**, whose breadcrumb is the second change and whose own gate row already records it correctly.
+
+#### `F-S17-6` — The shorthand blind-spot paragraph states 23 and concludes on 32
+
+- **Id:** `F-S17-6`
+- **Finding:** `00_method-and-provenance.md:304`–`:312` measures *"**23** shorthand-exempt path-shaped tokens across 9 files"*, then discusses *"Of the 23…"*, and closes *"**None of the 32** masks a broken corpus citation, which is the claim that matters."* No figure of 32 is established anywhere in the item; 23 and 32 are digit-transposed.
+- **Evidence:** The passage as published at `5f8e9cb`.
+- **Consequence:** Cosmetic in effect and not in kind. The load-bearing claim — that none of the shorthand-exempt tokens masks a broken corpus citation — is independently confirmed by this audit's own entry-by-entry read of the `MISSING-target` bucket (`98_audit-record.md` §4.4), so the conclusion stands on evidence rather than on the sentence. But the sentence is the one a reader quotes, and it names a population that does not exist.
+- **What is assumed rather than derived:** That 32 is a transposition of 23 rather than a fourth, unstated measurement. No candidate for a population of 32 was found.
+- **Handed to:** **SUB-14 (NEU-1007)**.
+
+#### `F-S17-7` — The `46 − 3` re-label reached one of three chapters, and the residual is not disclosed
+
+- **Id:** `F-S17-7`
+- **Finding:** `00_method-and-provenance.md:204`–`:214` settles that the thirteen-row mapping in `11_the-client-compatibility-contract.md` §1.3 is the derivation of record and that *"`01_` §8's subtraction is retained and **re-labelled as a cross-check**"*. The re-label was applied at `01_production-evidence-and-the-access-audit.md:187`–`:193`, where it is complete and exemplary. **Two other chapters still present the bare subtraction as their own warrant**, with no cross-check label and no pointer to the mapping: `08_consent-and-what-a-learner-can-export-and-erase.md:601` and `16_attribution-and-detection.md:397`, each ending a re-derivation with *"46 − 3 = 43."*
+- **Evidence:** The three passages read at `5f8e9cb`.
+- **Consequence:** **The number is right everywhere and no chapter is wrong about the tool surface** — the *"never disagreed on the number"* half of the reconciliation holds without exception. What did not propagate is the **evidential status**: two chapters still offer arithmetic where the package has settled that arithmetic is not evidence, which is the precise distinction `11_the-client-compatibility-contract.md` §1.3 was written to draw. SUB-14 was **right not to edit them** — they are merged chapters and assembly holds no authority over another author's text — but §4.3 describes the re-label as though it were complete and does not name the two surviving sites, so a reader cannot tell that a residual exists.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** **SUB-8 (NEU-1002)** and **SUB-16 (NEU-999)**, the two chapters' authors, each of which may re-label its own line. Co-named **SUB-14 (NEU-1007)** for the undisclosed residual in §4.3.
+
+#### `F-S17-8` — The assembly chapter uses four shorthand prefixes whose full filenames appear nowhere in it
+
+- **Id:** `F-S17-8`
+- **Finding:** The safety property the package relies on for checker-invisible shorthand is that **every prefix used in a file is also cited at least once in full in the same file**, so a reader can resolve it locally even though the checker cannot. `00_method-and-provenance.md` uses the `01_` shorthand at `:206` and `:490` (a third at `:309` is a `../`-prefixed reference to another package's chapter and is excluded), `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` (`:375`, `:378`), `11_the-client-compatibility-contract.md` (`:207`) and `12_threat-model-and-the-gates-that-authorize-implementation.md` (`:620`). **None of the four full filenames occurs anywhere in that file.**
+- **Evidence:** `grep -c` for each of `01_production-evidence-and-the-access-audit.md`, `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md`, `11_the-client-compatibility-contract.md` and `12_threat-model-and-the-gates-that-authorize-implementation.md` over `00_method-and-provenance.md` returns **0** in all four cases. Two further instances outside the assembly chapter: `decision-records/DR-C11-S8-2_export-erasure-and-the-completion-deadline.md:61` (`11_the-client-compatibility-contract.md`) and `97_package-completeness-gate.md:185` (`10_…md`, which is C010's).
+- **Consequence:** Bounded but real, and worst where it occurs. These references are invisible to the armed gate by construction (`scripts/citation-paths/checker.ts:121`), so nothing will ever flag them; a cold reader of `00_method-and-provenance.md` must already know the package's filenames to follow them. The chapter affected is the one that **documents this exact blind spot** and is the package's stated entry point for how it was assembled. The property was never claimed package-wide — `12_threat-model-and-the-gates-that-authorize-implementation.md` claimed and holds it for itself — so this is an unmet convention rather than a broken claim, and no citation is broken: all four targets exist.
+- **What is assumed rather than derived:** That the property is the package's operative convention rather than one chapter's local discipline. It is stated as the safety argument in `97_package-completeness-gate.md:466`–`:469` and relied on there.
+- **Handed to:** **SUB-14 (NEU-1007)** for `00_method-and-provenance.md`; **SUB-8 (NEU-1002)** for `DR-C11-S8-2`; **SUB-8 (NEU-1002)** for `97_package-completeness-gate.md:185`, its own gate row.
+
+#### `F-S17-9` — The rows 10–12 defect is described as a transposition propagating from the charter; it is a 3-cycle, and the charter does not carry it
+
+- **Id:** `F-S17-9`
+- **Finding:** Three descriptive inaccuracies in an otherwise sound resolution. (i) `00_method-and-provenance.md:157` calls the defect *"a **transposition** of rows 10–12"* and `:489` *"un-transposed"*; the permutation exchanges three elements cyclically, not two. `F-S3-3` itself uses the accurate word, *"permutation"* (`91_findings-register.md:105`). (ii) `00_method-and-provenance.md:168` states *"**Four** artifacts downstream of the charter carry the permutation"*; **three** distinct artifacts do — the decomposition, the `NEU-1007` tracker description, and the index table — with four *occurrences*, because the decomposition carries it twice. (iii) The chain is sometimes shortened to *charter → decomposition → tracker → table*; **the charter does not carry the permutation at all**, and the package says so correctly at `00_method-and-provenance.md:167`–`:169` and `92_risk-register.md:46`.
+- **Evidence:** The charter's § Risks table at `01_charter.md:583`–`:597` gives rows 10, 11, 12 as legal determination (Medium, OUT-9), compatibility contract (High, OUT-16), lifecycle half (High, OUT-9). The decomposition carries the permuted order at `02_subtasks.md:134`–`:136` and again at `:2208`–`:2210`. **The substance of the resolution holds in full and is independently corroborated:** all eleven pre-assembly entries agree with charter position, and SUB-12 enumerated all fifteen owning outcomes directly from the charter at `92_risk-register.md:870` in the corrected order, without sight of the index table.
+- **Consequence:** None to the allocation, which is right; the ids are correct, nothing was renumbered, and `A-S11-1` is properly discharged rather than invalidated. The exposure is to a reader who takes *"transposition"* and *"four artifacts downstream"* as the record and looks for a two-element swap in four places, or who reads the compressed chain as evidence that the charter was itself wrong — which would put the defect one artifact upstream of where it is and make the charter's own table suspect.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** **SUB-14 (NEU-1007)**.
+
+#### `F-S17-10` — SUB-12's risk section announces four entries and contains five
+
+- **Id:** `F-S17-10`
+- **Finding:** `92_risk-register.md:870` closes its lead-in with *"**Four** sub-task-scoped entries follow."* Five follow: `R-S12-1` … `R-S12-5`. The section's own totals line at `:920` says *"**five entries**"* and is correct.
+- **Evidence:** Entry headings counted mechanically; the section carries five `## \`R-S12-<k>\`` entries.
+- **Consequence:** Minimal. The register total of 49 (now 53) is computed from the entries and is unaffected; the totals line is right and the lead-in is stale, most likely a fifth entry added after the paragraph was written. It is filed rather than absorbed because a reader auditing the register by its own announced counts meets a discrepancy with no note attached.
+- **What is assumed rather than derived:** The cause. Only the discrepancy is established.
+- **Handed to:** **SUB-12 (NEU-1005)**.
+
+#### `F-S17-11` — The band total is described as 407 headings in a chapter that states 149 of them are not headings
+
+- **Id:** `F-S17-11`
+- **Finding:** `00_method-and-provenance.md:476` reads *"That is why the band carries **407 headings** but 406 C011-minted ids."* The census table in the same chapter states the opposite explicitly at `:80`: *"**407 entries** … *(Entries, not headings: **149 of them are `97_` table rows rather than markdown headings**.)*"*
+- **Evidence:** The two passages. The parenthetical at `:80` was written to forestall precisely this reading, and `:476` then adopts it.
+- **Consequence:** The **arithmetic is right** — 407 entries, 406 minted ids, the difference being C010's `CAP-S5-1` disposition, which C011 records without minting. Only the noun is wrong, and it is wrong against the chapter's own correction. A reader who greps the band for 407 markdown headings finds 258.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** **SUB-14 (NEU-1007)**.
+
+#### `F-S17-12` — `SPK-S8-1`'s routing id is still wrong, correctly disclosed, and now unrepairable
+
+- **Id:** `F-S17-12`
+- **Finding:** `96_spike-register.md:507` — the `| **Routes to** |` row of `SPK-S8-1`'s entry table — reads *"…**SUB-12** (NEU-1004)…"*. SUB-12 is **NEU-1005**; NEU-1004 is SUB-11. Confirmed still present at `5f8e9cb`.
+- **Evidence:** The line as published. The disclosure is at `00_method-and-provenance.md:548`–`:557`, which names the entry, states it is *"left uncorrected on purpose"* because assembly's scope forbids editing a spike entry body, and routes it to **SUB-1 (NEU-993)** co-named SUB-8 (NEU-1002) and SUB-17.
+- **Consequence:** **The decision not to repair it was correct** and this audit endorses it: SUB-14's scope is explicit that it *"does not add, edit, re-word or re-scope a spike entry"*, which is also why three heading **markers** in the same file could be normalised and this one **content** id could not. The residual is that the routing has nowhere left to go — SUB-1 shipped at position 1 — so the id stays wrong. It is the eighth of the eight wrong `SUB-<n> (NEU-<m>)` pairings the package knowingly retains; the other seven are quotations that serve as `F-S12-8`'s own evidence and must not be repaired either.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** **SUB-1 (NEU-993)**, unchanged from SUB-14's routing, co-named **SUB-8 (NEU-1002)** as the entry's author. Recorded here as a **named residual** because both have shipped.
+
+#### `F-S17-13` — The declared `F-S3-3` / `A-S11-1` status divergence is confirmed open
+
+- **Id:** `F-S17-13`
+- **Finding:** `00_method-and-provenance.md:91`–`:105` declares a cross-register status divergence it created and could not reconcile: `F-S3-3` is resolved in `92_risk-register.md`'s correction note, but **its own body in `91_findings-register.md` is untouched and still reads live**, stating the open consequence *"a collision at `R10` or a hole at `R11`"*; and **`A-S11-1`'s entry in `95_stand-in-assumption-register.md` carries no discharge record** although the discharge is stated in `92_risk-register.md`. **Confirmed: both are still in that state at `5f8e9cb`.**
+- **Evidence:** `F-S3-3` at `91_findings-register.md:105`ff and `A-S11-1` in `95_stand-in-assumption-register.md` § SUB-11, read at this cutoff, against the resolution note at `92_risk-register.md:44`–`:58`.
+- **Consequence:** This is the one limb of the band-completeness check that is not clean: *"an id appearing in more than one register carries the same owner and status in each."* Two ids carry one status where the resolution is recorded and another in their home registers. **It was correctly declared rather than papered over**, and SUB-14 was right that reconciling it would have meant rewriting two other sub-tasks' entries. This audit meets a declared divergence rather than discovering one, which is what the declaration was for; it also cannot close it, for the same reason.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** **SUB-3 (NEU-995)** as `F-S3-3`'s author and **SUB-11 (NEU-1004)** as `A-S11-1`'s, unchanged from SUB-14's routing. Recorded as a **named residual** because both have shipped.
+
+#### `F-S17-14` — The citation checker mis-buckets hyphenated line ranges, and the gate cannot report it
+
+- **Id:** `F-S17-14`
+- **Finding:** `normalizeCandidate`'s line-reference stripper at `scripts/citation-paths/checker.ts:130` is `(:\d+(?:,\d+)*)+$`. It handles `:60`, `:60:4` and `:52,183` but **not a hyphenated range like `:8-9`**, so a `src/` citation written with a range never normalises to its file and lands in `MISSING-target` instead of the intended `repo-root-source` class. `MISSING-target` **can never fail the gate** — `isFailing` (`:342`–`:346`) tests only `inScope` and `staleNonClaims` — and is printed in **neither** the console nor the `--json` output, so the mis-bucketing is invisible in both modes.
+- **Evidence:** The three code sites read at `5f8e9cb`, plus an empirical check: `"foo.ts:8"` → `"foo.ts"`, `"foo.ts:8,9"` → `"foo.ts"`, `"foo.ts:8-9"` → unchanged. Re-derived over this package: **13 distinct `src/…:N-M` targets across 10 distinct files**, every one of which exists — SUB-14's figure reproduces exactly.
+- **Consequence:** **Nothing is broken today** — all thirteen targets resolve, verified individually as part of this audit's 103-of-103 codebase-path check. The exposure is prospective and silent: a *wrong* `src/` path written with a line range would be mis-bucketed, unreportable and un-failable, in a gate the package now relies on as CI enforcement. This is the third of the checker's three blind spots and the only one not previously carried as a finding.
+- **What is assumed rather than derived:** Nothing about the checker. Whether any future citation will exercise the gap is not predicted.
+- **Handed to:** **The creator, as sole maintainer**, as a change to a shared CI gate. **Deliberately not fixed here:** altering `normalizeCandidate` is a behaviour change to a gate covering four packages and needs its own test case in `tests/unit/scripts/citation-paths.test.ts`; this sub-task's scope forbids changing `src/`, and a shared-gate change carries the same argument. Co-named **`NEU-896`**, and **`NEU-992`** as the change that armed the gate.
+
+**The seven findings below come from the independent cold read** (`98_audit-record.md` §8) — a reader
+with no access to `_local/` or `docs/wf-plans/`, working only from the published package. Each was
+**re-verified against the file by this sub-task** before being filed; the cold read also produced
+findings that did not survive that check, and those are recorded as withdrawn in `98_audit-record.md`
+§8.2 rather than filed here.
+
+#### `F-S17-15` — Ten published places tell the reader the citation gate does not cover this package; the publication commit armed it
+
+- **Id:** `F-S17-15`
+- **Finding:** `CAP-S1-2` was discharged by the assembly commit — C011 is in the `GATED` list at `scripts/check-citation-paths.ts:23`. **Ten places in the published package still say it is not**, each phrased as a live condition rather than a historical one: `97_package-completeness-gate.md:87` (`G-S2-12`), `:126`, `:196` (`G-S8-12`), `:208`, `:231` (`G-S5-19`), `:330` (`G-S11-18`), `:496` (`G-S13-7`); `91_findings-register.md:572`; `traceability/S5_the-enforcement-point.md:71`; `traceability/S6_the-disposition-of-unowned-rows.md:57`. `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:660`–`:662` carries an eleventh in a different phrasing.
+- **Evidence:** The `GATED` array read at `5f8e9cb`; the ten sites enumerated by grep over the package. **Every one was true when written** — each predecessor authored under `CAP-S1-2` and said so correctly, several capping their own row on it. They were falsified **by the commit that discharged the cap**, which is the same commit that published the package.
+- **Consequence:** A reader meets a cap that is discharged and a gate described as absent that is armed and reporting `0 non-resolving`. The correct position is stated in `README.md:154`–`:156` and `00_method-and-provenance.md:275`–`:282`, so the package contains both answers. **`00_` §7.2's *"what was deliberately not changed"* list — which exists precisely to make unswept items visible — names none of these ten.** The omission is the finding; the ten sites themselves are append-only content that assembly had no authority to edit, and leaving them was correct. `97_package-completeness-gate.md` § SUB-17 `G-S17-10` records the supersession, which is the repair available to a register that may not be rewritten.
+- **What is assumed rather than derived:** Nothing. Whether an eleventh phrasing exists that neither grep shape catches is not claimed; ten are enumerated by line.
+- **Handed to:** **SUB-14 (NEU-1007)** for the undisclosed sweep in §7.2. The ten sites themselves stay with their authors — SUB-2, SUB-3, SUB-5, SUB-6, SUB-8, SUB-11, SUB-13 — none of whom may be asked to edit another's row.
+
+#### `F-S17-16` — Three `package.json` line citations are wrong by 19 lines, and one is the row its chapter calls most consequential
+
+- **Id:** `F-S17-16`
+- **Finding:** `12_threat-model-and-the-gates-that-authorize-implementation.md` and `96_spike-register.md` cite three `package.json` scripts at line numbers that hold different scripts:
+
+  | Cited as | Claimed to be | Line actually holds | Real line |
+  | --- | --- | --- | --- |
+  | `package.json:29` (`12_threat-model-and-the-gates-that-authorize-implementation.md:413`, `:494`, `:799`; `96_spike-register.md:938`) | `db:studio:prod` | `start:stdio:debug` | **`:48`** |
+  | `package.json:27` (`12_threat-model-and-the-gates-that-authorize-implementation.md:415`, `:714`; `91_findings-register.md:1289`) | `lint:corpus:seed` | `start:stdio` | **`:46`** |
+  | `package.json:23` (`12_threat-model-and-the-gates-that-authorize-implementation.md:414`, `:800`) | `db:migrate` | `build:clean` | **`:42`** |
+
+- **Evidence:** All six lines read directly at `5f8e9cb`. All three citations are off by exactly **19**, a uniform shift. **`package.json` was byte-identical at `9bd5fa8`, the commit that published `12_threat-model-and-the-gates-that-authorize-implementation.md`** — lines 23, 27 and 29 held `build:clean`, `start:stdio` and `start:stdio:debug` there too. **So these were wrong when written; this is not drift.** The package cites the same fact correctly elsewhere: `00_method-and-provenance.md:667` gives `package.json:48` for `db:studio:prod`, which is right.
+- **Consequence:** `12_threat-model-and-the-gates-that-authorize-implementation.md:491`–`:492` calls the `db:studio:prod` row *"the most consequential single row in this chapter's operator model"* and points at the wrong line three times. **The underlying codebase facts are all true** — `db:studio:prod` does ship a CRUD GUI against production credentials, `db:migrate` and `lint:corpus:seed` exist — and the operator threat model does not change. What fails is the evidence pointer, in the class this package has caught four times before: *a misattributed line number under the finding it is sole evidence for*. It is invisible to the armed gate, which resolves paths and never checks line content (`F-S17-17`).
+- **What is assumed rather than derived:** Nothing. The uniform offset of 19 is observed, not explained.
+- **Handed to:** **SUB-12 (NEU-1005)** for the six sites in `12_threat-model-and-the-gates-that-authorize-implementation.md`; **SUB-1 (NEU-993)** as the spike register's content owner for `96_spike-register.md:938`, co-named SUB-12 as the entry's author; **SUB-12 (NEU-1005)** for `91_findings-register.md:1289`.
+
+#### `F-S17-17` — A fourth checker blind spot: the gate validates paths and never line numbers, and the enumerated list of three is treated as closed
+
+- **Id:** `F-S17-17`
+- **Finding:** `00_method-and-provenance.md` §4.5 enumerates **three** checker blind spots and opens *"A clean summary is not evidence, so all three blind spots were tested."* There is a fourth, and it is the one that produced `F-S17-16`: **the checker resolves a citation's path and never checks that the cited line holds what the citing text says it holds.** `normalizeCandidate` (`scripts/citation-paths/checker.ts:130`) *strips* the line reference before resolution, so the line number is discarded rather than verified. A citation whose file exists but whose line has moved — or was never right — passes the gate silently.
+- **Evidence:** `checker.ts:130` strips `(:\d+(?:,\d+)*)+$` before the target is resolved. Demonstrated by four live instances the gate reports clean, created when `README.md` was **superseded wholesale** (`00_method-and-provenance.md` §7 row 8, −91/+169) with no inbound citation re-pointed: `09_proving-a-data-right-reaches-every-copy.md:683` cites `README.md:73` for the `R<n>` convention — `:73` is a reading-order table row; the convention is at `README.md:119`–`:120`. `91_findings-register.md:1081` cites `README.md:52`–`:59` as *"README's own band table"* — the band table is at `:98`–`:107` — and **quotes text from `README.md:61`–`:64` that no longer exists in the file at all**. `00_method-and-provenance.md:492` cites `README.md:14`–`:16` as the supersession authority; `:14` is the heading *"## What this package is"* and the authorising text is at `:8`–`:10`. That last one was **introduced by the assembly pass itself**, in the table recording the supersession.
+- **Consequence:** The package's stated evidence position is that *"a green run is not by itself proof"* and that the three named blind spots are what a reader must compensate for. A fourth, unnamed one means the compensation list is incomplete — and it is the blind spot with the widest reach, because every `file:line` citation in the package is exposed to it and the package is built almost entirely out of `file:line` citations. **Nothing here is a broken path**; all four targets exist and the gate is right that they resolve.
+- **What is assumed rather than derived:** No claim is made about how many further line-level defects exist. Five are established by line — the four above and `F-S17-16`'s three sites — and a full line-content sweep of the package was not performed.
+- **Handed to:** **SUB-14 (NEU-1007)** for §4.5's enumeration and for `00_method-and-provenance.md:492`; **SUB-9 (NEU-1003)** for `09_proving-a-data-right-reaches-every-copy.md:683`; **SUB-11 (NEU-1004)** for `91_findings-register.md:1081`. The checker change itself is **not** proposed: as with `F-S17-14`, altering it is a shared-gate behaviour change needing its own test case, and is co-named to **the creator, as sole maintainer**.
+
+#### `F-S17-18` — The fifth unconfined thing is cited to the wrong section, in the handover paragraph
+
+- **Id:** `F-S17-18`
+- **Finding:** `00_method-and-provenance.md:617`–`:621`, listing what C010's `A-28` re-check is handed, names *"five things the enforcement point does not confine"* and sources the fifth as *"from `12_threat-model-and-the-gates-that-authorize-implementation.md` **§7.4**, operator and direct `psql` access as a fifth, which is **not** one of the four named in **§6**."* **`12_threat-model-and-the-gates-that-authorize-implementation.md` §7.4 is *"Severity, honestly bounded"*** (`12_threat-model-and-the-gates-that-authorize-implementation.md:628`). The five are tabulated at **`12_threat-model-and-the-gates-that-authorize-implementation.md` §6**, whose heading is *"The **five** things the enforcement point does not confine, as threat paths"* (`:518`). The `§7.4` that does carry the fifth is **`05_the-enforcement-point-that-confines-every-read-and-write.md` §7.4**, which `12_threat-model-and-the-gates-that-authorize-implementation.md:522`–`:524` cites correctly as the origin.
+- **Evidence:** `12_threat-model-and-the-gates-that-authorize-implementation.md:518` (§6's heading and its five-row table), `:628` (§7.4's heading), `:520`–`:526` (which states the attribution correctly: *"`05_…` §6 contains exactly four sub-sections… and the operator / `psql` path is named separately at §7.4"*, meaning `05_`'s). Read at `5f8e9cb`.
+- **Consequence:** **The substance is right and is the corrected version** — there are five, the fifth is operator/`psql`, and it is not one of the four in `05_` §6. SUB-9 established that correction (`09_proving-a-data-right-reaches-every-copy.md:626`–`:633`) and SUB-12 confirmed it independently. What is wrong is the pointer: the assembly paragraph collapses `05_` §7.4 into `12_` §7.4 and reads `§6` as naming four when `12_`'s §6 names five. A reader following the citation to check the handover lands on a severity discussion. This matters more than a stray reference because it sits in the paragraph that states **what another package's re-validation trigger is handed**.
+- **What is assumed rather than derived:** **One reading, and it is registered rather than asserted.** The `§7.4` half is derived — `12_…md` §7.4 is demonstrably *"Severity, honestly bounded"*. The sentence's second clause, *"not one of the four named in §6"*, is **not** faulted here: read as `05_the-enforcement-point-that-confines-every-read-and-write.md` §6 it is **correct**, because that section does contain exactly four sub-sections, and `12_…md:520`–`:524` says so. An earlier revision of this finding faulted both clauses; only the first is defective, and the bare `§6` is ambiguous rather than wrong.
+- **Handed to:** **SUB-14 (NEU-1007)**.
+
+#### `F-S17-19` — The bare-id rule is stated in three incompatible forms, and its live-instance count is scoped narrower than the violations
+
+- **Id:** `F-S17-19`
+- **Finding:** Three published statements of one rule disagree. `README.md:131`–`:136`: *"**A bare id always means *this* package's own.** A C010 id is always written qualified… This holds for **every** family: `OUT-<n>`, `F-`, `R-`, `OI-`, `CAP-`, `A-`, `SPK-`, `G-`."* Against that: `00_method-and-provenance.md:474`–`:476` and `05_the-enforcement-point-that-confines-every-read-and-write.md:153`–`:156` state that a bare **`CAP-S5-1`** anywhere in this package means **C010's** — the exact opposite, deliberately, because C011 declines to mint one. And `02_identity-the-learner-key-and-principal-kind.md:223` is a section heading, *"## 8. Disposition of `OI-S5-2` — closed"*, bare and meaning C010's, while `05_the-enforcement-point-that-confines-every-read-and-write.md:1141`–`:1143` states that a bare `OI-S5-2` means this package's own.
+- **Evidence:** The four passages read at `5f8e9cb`. `00_method-and-provenance.md:468`–`:472` records the live-instance count as *"**Three** places cite a bare `OI-S8-1` meaning C010's"* and leaves them as historically correct. The rule's exceptions are real and defensible individually — `CAP-S5-1` genuinely has no C011 counterpart, so a bare use is unambiguous in fact — but the README states the rule with **no exception clause**, so a reader applying it as written resolves `CAP-S5-1` and `OI-S5-2` to the wrong package.
+- **Consequence:** The rule is the package's single mechanism for disambiguating **124** id strings defined in both packages, and it is the last thing established before publication. Stated three ways, it cannot be applied mechanically. The exceptions are not defects and should not be removed — `CAP-S5-1`'s is load-bearing — but they are not in the rule, and `00_` §6, headed *"The C010 id collision disclosure, **complete**"*, enumerates three live instances against a rule whose exceptions it states elsewhere in the same chapter.
+- **What is assumed rather than derived:** The total number of bare cross-package uses is **not** asserted here. The cold read reported 40+ over three ids; this audit verified the four statements of the rule and did not complete an independent sweep, so no count is filed.
+- **Handed to:** **SUB-14 (NEU-1007)**, which authored the README rule and §6, co-named **SUB-5 (NEU-997)** and **SUB-2 (NEU-996)** for the two chapter-level statements.
+
+#### `F-S17-20` — A legend that claims to be checkably exhaustive sums to 22 over a 26-row table
+
+- **Id:** `F-S17-20`
+- **Finding:** `12_threat-model-and-the-gates-that-authorize-implementation.md:772`–`:773` reads *"**Counts over the column, so the legend is checkably exhaustive:** `H` 6 · `H+S` 1 · `—` 10 · `— (static)` 4 · `— (unsettable)` 1 = **22**."* The table it summarises carries **26** gate rows. The stated sub-counts are internally consistent (6+1+10+4+1 = 22) and do not cover the column.
+- **Evidence:** `grep -cE '^\| \`GATE-S12-[0-9]+\` \|'` returns **26**, reproducing the chapter's own repeatedly-stated 26-gate figure (`G-S12-7`, `G-S12-10`, `98_audit-record.md` §7). The legend is four short.
+- **Consequence:** Bounded — the 26-gate count itself is correct everywhere else and no gate is missing from the table. What fails is a sentence that explicitly offers itself as an exhaustiveness check, which is the one kind of sentence a reader is entitled to take at face value. Four rows carry a `Transport` value the legend does not account for.
+- **What is assumed rather than derived:** Which four rows are unaccounted for is not established here; only that the legend's total is 22 and the table's is 26.
+- **Handed to:** **SUB-12 (NEU-1005)**.
+
+#### `F-S17-21` — The two packages' register **file numbers** collide, and nothing discloses it
+
+- **Id:** `F-S17-21`
+- **Finding:** `00_method-and-provenance.md` §6 is headed *"The C010 id collision disclosure, **complete**"* and covers **entry ids**. The two packages' **register filenames** also collide, with different meanings, and no note anywhere records it. C011's `90_` is the outcome register; C010's `90_` is its open-items-and-provisional register. C011's `92_` is risks; C010's `92_` is spikes. C011's `93_` is open items; C010's `93_` is stand-in assumptions.
+- **Evidence:** C011's band is `90_outcome-register.md` … `97_package-completeness-gate.md`; C010's is its `01_`/`02_` registers plus `../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md`, `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md`, its `92_` spike register, `../C010-system-and-repository-architecture/93_stand-in-assumption-register.md` and `../C010-system-and-repository-architecture/94_package-completeness-gate.md`. The package cites C010's files by full relative path throughout, so **no citation is wrong** — this audit's own 103-of-103 path check and the armed gate both confirm it.
+- **Consequence:** Prospective rather than live. The hazard is the `NN_…md` shorthand: `97_package-completeness-gate.md:185` writes a two-digit `10_` shorthand meaning **C010's** republished authority matrix, in a package where `10_` denotes a chapter that does not exist. A reader who has internalised C011's band and meets a two-digit `90_` or `93_` shorthand in a cross-package sentence resolves it to the wrong register, and the checker cannot see the shorthand at all (`scripts/citation-paths/checker.ts:121`). `00_` §6's *"complete"* is complete over ids and is silent on this.
+- **What is assumed rather than derived:** No instance of a reader-visible mis-resolution beyond `97_package-completeness-gate.md:185` is claimed; the finding is that the collision is undisclosed, not that it has already misled.
+- **Handed to:** **SUB-14 (NEU-1007)**, which owns the disclosure and the README's id conventions.
+
+---
+
+**SUB-17 register totals at revision 1: twenty-one findings, `F-S17-1` … `F-S17-21`.** Every one names
+its owning sub-task; **none is repaired here**, and none is closed by having been routed. Because every
+predecessor has shipped, all twenty-one complete round 1 and are carried as **named residuals** in
+`94_caps-and-incomplete-scope.md` § SUB-17 with a single shared non-convergence reason.
+
+**No amendment is routed to `NEU-895` by SUB-17.** None of the twenty-one contradicts a C010 decision;
+`F-S17-2` concerns a C010 cap this package mis-describes, which is a defect in C011's text rather than
+a disagreement with C010's record, and `F-S17-21` is a filename collision between two independent
+naming spaces, which is not a contradiction either. The one amendment this package routes —
+`DR-C11-S12-2` — is SUB-12's, and `R5` records its receipt.

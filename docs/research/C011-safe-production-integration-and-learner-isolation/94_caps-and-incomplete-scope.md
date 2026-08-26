@@ -501,3 +501,58 @@ It is narrower and it bites differently: `F-S1-2` is about **evidence not gather
 about **an artifact not exercised**. A package could have had complete production evidence and still
 publish an unexecuted migration; the two limits are independent, and this one would survive
 `F-S1-2`'s closure entirely.
+
+---
+
+### SUB-17
+
+> **Id-collision disclosure.** C010 defines no `CAP-S17-*` — its charter has no sub-task 17 — so the
+> id below does not collide.
+
+#### `CAP-S17-1` — Every finding this audit raised is routed and none can be re-audited, because the loop's premise is false at the terminal position
+
+- **Id:** `CAP-S17-1`
+- **Cap:** All **twenty-one** findings this audit raised (`91_findings-register.md` § SUB-17) are routed to their owning sub-tasks and **none is repaired, and none is re-audited**. The charter's convergence loop is *route → the owning sub-task re-opens and repairs → this sub-task re-runs that audit*, bounded at two rounds. **Every one of the twenty-one terminated at round 1.**
+- **Why it is capped:** The loop presumes re-openable predecessors, and at position 16 there are none — all fifteen have shipped and merged. This sub-task holds **no amend authority**: the decomposition's out-of-scope clause reserves repair to the owning sub-task, and assembly's amend authority was SUB-14's alone and is spent. So a finding cannot be repaired here and cannot be re-audited elsewhere. **The reason is identical for all twenty-one and is not restated per finding.** This is a property of the charter's own sequencing, not a shortfall in the audit: an audit at a terminal position can route a finding or repair it, and the charter forbids the second.
+- **What it leaves unsupported:** A reader must **not** infer that the package is free of the defects below because they are named. Each is live at this cutoff. Nor may a reader infer that the routing achieved anything beyond naming an owner: **a routed finding is not a closed finding**, and none of these is closed. In particular, `97_package-completeness-gate.md` § SUB-17 `G-S17-16` — the absent SUB-7 gate section — is a gate item **no remaining party may fill**, and `G-S17-21` records the loop itself as unmet.
+- **The twenty-one, each with its owner:**
+
+| Finding | Subject | Owner |
+| --- | --- | --- |
+| `F-S17-1` | `97_` missing SUB-7's section; the gap counted as two, not three | SUB-7 (NEU-1001), co-named SUB-14, `NEU-896` |
+| `F-S17-2` | `CAP-S1-3` declared "defined nowhere"; it is C010's, about that subject | SUB-11 (NEU-1004), co-named SUB-14, `NEU-986` |
+| `F-S17-3` | `12_threat-model-and-the-gates-that-authorize-implementation.md`'s "55 abbreviated references, counted mechanically" is 57 | SUB-12 (NEU-1005) |
+| `F-S17-4` | The sentence denying a `:42` token contains one | SUB-14 (NEU-1007) |
+| `F-S17-5` | "The single change outside `docs/`" is two | SUB-14 (NEU-1007), co-named SUB-11 |
+| `F-S17-6` | "23" shorthand tokens, concluded on "the 32" | SUB-14 (NEU-1007) |
+| `F-S17-7` | The `46 − 3` re-label reached one of three chapters; residual undisclosed | SUB-8 (NEU-1002), SUB-16 (NEU-999), co-named SUB-14 |
+| `F-S17-8` | Four shorthand prefixes with no full form in the assembly chapter | SUB-14 (NEU-1007), SUB-8 (NEU-1002) |
+| `F-S17-9` | 3-cycle described as a transposition; "four artifacts"; chain begins at the decomposition | SUB-14 (NEU-1007) |
+| `F-S17-10` | SUB-12's risk lead-in announces four entries; five follow | SUB-12 (NEU-1005) |
+| `F-S17-11` | "407 headings" against the chapter's own "entries, not headings" | SUB-14 (NEU-1007) |
+| `F-S17-12` | `SPK-S8-1`'s routing id still wrong — correctly disclosed, correctly not repaired | SUB-1 (NEU-993), co-named SUB-8 (NEU-1002) |
+| `F-S17-13` | `F-S3-3` / `A-S11-1` status divergence — declared by SUB-14, confirmed open | SUB-3 (NEU-995), SUB-11 (NEU-1004) |
+| `F-S17-14` | Checker mis-buckets hyphenated ranges; report-not-fix | the creator as sole maintainer, co-named `NEU-896`, `NEU-992` |
+| `F-S17-15` | Ten places say the gate is not armed; the publication commit armed it | SUB-14 (NEU-1007) for the undisclosed sweep |
+| `F-S17-16` | Three `package.json` line citations wrong by 19, wrong when written | SUB-12 (NEU-1005), SUB-1 (NEU-993) |
+| `F-S17-17` | A fourth checker blind spot: paths validated, line content never | SUB-14 (NEU-1007), SUB-9 (NEU-1003), SUB-11 (NEU-1004) |
+| `F-S17-18` | The fifth unconfined thing cited to the wrong section, in the handover paragraph | SUB-14 (NEU-1007) |
+| `F-S17-19` | The bare-id rule stated three incompatible ways | SUB-14 (NEU-1007), co-named SUB-5, SUB-2 |
+| `F-S17-20` | A legend claiming exhaustiveness sums to 22 over 26 rows | SUB-12 (NEU-1005) |
+| `F-S17-21` | The two packages' register **filenames** collide; undisclosed | SUB-14 (NEU-1007) |
+
+- **Owner:** **`NEU-896`** as the convergence gate — the only party positioned to re-open a merged sub-task or to accept the package with these outstanding. Co-named, per finding, the owners in the table above.
+- **What would lift it:** Each owning sub-task re-opening under its own id, repairing its own content, and SUB-17's affected audit being re-run against the repaired content — the loop the charter specifies, executed at a position where its premise holds. **Two are cheap and structural:** `F-S17-1` needs SUB-7 to write its own gate rows, and `F-S17-16` needs three line numbers changed. **Two must not be "fixed" at all** and would be lifted only by being re-read and confirmed: `F-S17-12`, where repair destroys a disclosed deliberate residual, and the wrong C010 filename at `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:654`–`:658`, which is its chapter's own evidence.
+
+**One cap rather than twenty-one.** The charter asks that each outstanding finding be *"enumerated as a
+named residual cap with an owner"*. They are enumerated above with their owners. They are carried as
+one cap because they share **one** non-convergence reason exactly — the loop's premise is false at this
+position — and twenty-one caps repeating one sentence would obscure that the cause is single and
+structural rather than twenty-one separate judgements.
+
+---
+
+**SUB-17 register totals at revision 1:** one cap, `CAP-S17-1`, with a named owner, an enumerated
+twenty-one-item residual and an observable lifting condition. **No cap is recorded as lifted, and
+`CAP-S5-1` is not minted here** — a bare `CAP-S5-1` in this package means C010's, per
+`94_caps-and-incomplete-scope.md` § SUB-5 and `00_method-and-provenance.md:474`–`:476`.
