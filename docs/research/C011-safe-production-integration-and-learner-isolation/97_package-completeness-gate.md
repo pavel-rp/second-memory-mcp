@@ -257,6 +257,55 @@ landing condition on applied work. And nothing about the fourteen other Census-B
 `fails-confinement` categories, each of which needs its own enumerated access-path set before its
 verdict can move.
 
+---
+
+### SUB-6
+
+| # | Item | Disposition | Evidence / cap |
+| --- | --- | --- | --- |
+| `G-S6-1` | Every table in `src/infrastructure/db/schema.ts` and both raw-SQL log tables carries a stated disposition; zero unaddressed | **met** | `06_the-disposition-of-every-unowned-row.md` §3 — 14 rows. Inventory re-counted from the files at §1.1, not inherited |
+| `G-S6-2` | Each disposition carries a per-table justification rather than a uniform rule | **met** | §3's justification column; the evidence-based partition in `decision-records/DR-C11-S6-1_the-migration-disposition-scheme.md`. Three tables take a different disposition from their apparent neighbours for stated structural reasons — rows 3, 9 and 12 |
+| `G-S6-3` | A table for which no disposition can be justified is reported as a finding with a named owner | **met** | Checked against all 14; **none found**; recorded as *checked and not filed* at §3, on SUB-5's precedent rather than filed as an empty entry |
+| `G-S6-4` | Cross-checked against C010's 45-category state inventory, unmatched reported in both directions | **met** | §8 — 0 unmatched both ways, reconciled by 14 + 2 + 1 = 17. Method stated; both zeros inherit C010's own six falsifiers |
+| `G-S6-5` | The backfill target subject is confirmed against a real production token with recorded evidence | **not met** | §5.2. **No credential exists.** Procedure V1–V7 published and made a hard entry condition on the backfill stage; `SPK-S6-1`. No target value is proposed anywhere |
+| `G-S6-6` | Per-disposition row counts are reported as counts taken from production | **not met** | §6.4. `Q1`–`Q5` published, **not executed**; `SPK-S6-2`. **No cell reads `0`** |
+| `G-S6-7` | The query set includes an explicit probe for each named dirty-data pathology, per table | **met with cap** | §6.2 — twelve probes across all five classes: **8 carry executable SQL, 4 are structural foreclosures** with nothing to run. **The cap is the literal "per table" reading:** §6.3 resolves every pathology for every table to probed / foreclosed / not-probed and names the **seven** tables in the third state, of which `operation_event_log` is the consequential one. Registered as `F-S6-6`, owner SUB-13 (NEU-1006). Publication is the condition; execution is `G-S6-6` |
+| `G-S6-8` | A pathology class with no writable probe is reported as a finding | **met** | `F-S6-2` — mis-ownership is undetectable by aggregate, because no column distinguishes principals |
+| `G-S6-9` | Each pathology found is reproduced in the synthetic dataset; the dry-run claims every row or surfaces it as a finding | **not met** | §7.1, §7.4. The dataset was not generated — three of its five inputs are the unexecuted aggregates — so no unclaimed-row count exists. `OI-S6-2` |
+| `G-S6-10` | A generation record ties every synthetic distribution to its aggregate; a no-copied-rows audit confirms no row was copied out of production; the dataset is recorded as excluded from the sixth copy class citing SUB-3's derivation test at position 3 | **met** | §7.1 (five inputs enumerated exhaustively) and §7.2 (input-closure argument with its falsifier stated); `decision-records/DR-C11-S6-3_aggregate-then-generate-and-the-exclusion-evidence.md`. No owner, retention bound or destruction condition is set |
+| `G-S6-11` | Each migration stage states what is lost on reversal and what cannot be recovered at all | **met** | §9.2 — five stages; four fully reversible, S2 the only irreversible one, and its loss entailed by `DR-C10-S8-2` rather than caused here |
+| `G-S6-12` | The unprobed-pathology residual is recorded in the risk register with an owner, a pre-flight probe re-run and an abort condition | **met** | `R9` in `92_risk-register.md`, with severity, mitigation, named owner and escalation to `NEU-896` |
+
+**SUB-6 rows: 12. Met 8; met with cap 1; not met 3; not applicable 0.**
+
+**SUB-6 uses the sub-task-scoped `G-S6-<k>` form**, following SUB-2's `G-S2-*`, SUB-4's `G-S4-*`,
+SUB-5's `G-S5-*` and SUB-8's `G-S8-*` rather than SUB-1's and SUB-3's continuation of the bare global
+`G-<n>` sequence. Two conventions are live in this register and the divergence is stated rather than
+silently chosen, exactly as SUB-4 and SUB-5 each stated their own. The reason is the collision
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md` names: `G-<n>` is a bare global
+sequence, and two sub-tasks computing "the next free number" against the same register arrive at the
+same integer. `G-S6-<k>` cannot collide — which matters more than usual here, because a sibling
+sub-task is in flight against this same register concurrently.
+
+**The three `not met` rows are one failure, and it is not deferred or disguised.** `G-S6-5`,
+`G-S6-6` and `G-S6-9` all fail because **no production credential exists in this environment**, and
+they fail in a chain: without a credential the aggregates cannot run, without the aggregates the
+dataset cannot be generated, and without the dataset the dry-run cannot report. Each is recorded as
+its own row rather than folded into one, because they close at different moments — a credential alone
+closes `G-S6-5` and `G-S6-6`, but `G-S6-9` needs the generation and the run as well. Every one names
+its spike or open item and its owner. **None is restated to match what was achievable**, which is the
+failure mode SUB-5 recorded against its own `G-S5-6`.
+
+**What SUB-6 does not assert here.** Nothing about how many unowned rows exist — no count, no
+population size, no probe result, and `observed-in-production` used zero times. Nothing about whether
+the target subject is correct; only that the backfill cannot proceed without confirming it. Nothing
+about what a data right does to the pre-cutover population — that is SUB-9's under `F-S8-2`, which
+remains blocking and whose owner is unchanged. Nothing about whether `A-S6-1`, the single-principal
+premise ten dispositions rest on, is true; `F-S6-2` records that no aggregate can settle it. Nothing
+about applied behaviour: no file under `src/` or `drizzle/` changes, no DDL is authored, no migration
+is executed, and no test is written. And **no QA pass** — the `qa-execution:engine` surface is
+unconfigured, so the automated QA phase is a genuine Core Article 8 no-op, carried at package level
+as `CAP-S1-3`.
 ### SUB-11
 
 | # | Item | Disposition | Evidence / cap |
@@ -275,7 +324,7 @@ verdict can move.
 | `G-S11-12` | `F-S4-4`'s unpriced cost is priced, in units re-derived from the tree. | **met** | §6 — seven pipeline layers with their mount sites and conditionals; four Express-typed factories over 480 lines, stated as *file totals* rather than passed off as body totals; three inline blocks; the five-line STDIO limb; `createPrmHandler` excluded with a reason. §6.2 names the **option A / option B** fork that actually sizes the work; §6.3 tabulates three delivery tiers against all seven of SUB-4's paths. **No effort estimate is asserted**, and §6 says so. |
 | `G-S11-13` | OUT-16's outcome-register row is authored here with its resolving evidence **and** its success measure. | **met** | `90_outcome-register.md` § SUB-11 — a seven-limb measure with its measured result (7/7 met) and four explicit non-claims. Authored here, in the shape SUB-14 aggregates without authoring. |
 | `G-S11-14` | The charter § Risks row the charter owns to OUT-16 is authored here with severity, mitigation, named owner and escalation route; every further residual exposure carries an entry with the same four fields. | **met** | `92_risk-register.md` § SUB-11 — **`R11`** (High) plus `R-S11-1` (Medium) and `R-S11-2` (Medium). Each carries all four fields; each non-mitigated status names its residual and that residual's owner. |
-| `G-S11-15` | The `R<n>` id is computed **from the charter alone**, and the `F-S3-3` allocation conflict is cited rather than silently re-allocated. | **met** | §10 — the OUT-16 row is at charter § Risks position **11**, cross-checked against six already-authored ids (`R1`, `R8`, `R10`, `R12`, `R13`, `R14`), all six of which agree with charter position rather than with the forward-allocation table at `92_risk-register.md:33`–`:35`. `R11` was unclaimed; `R10` would have collided with SUB-3. **`F-S3-3` is cited and explicitly left to SUB-14 to resolve.** The untestable premise is registered as `A-S11-1`. |
+| `G-S11-15` | The `R<n>` id is computed **from the charter alone**, and the `F-S3-3` allocation conflict is cited rather than silently re-allocated. | **met** | §10 — the OUT-16 row is at charter § Risks position **11**, cross-checked against seven already-authored ids (`R1`, `R8`, `R9`, `R10`, `R12`, `R13`, `R14`), all seven of which agree with charter position rather than with the forward-allocation table at `92_risk-register.md:33`–`:35`. `R11` was unclaimed; `R10` would have collided with SUB-3. **`F-S3-3` is cited and explicitly left to SUB-14 to resolve.** The untestable premise is registered as `A-S11-1`. |
 | `G-S11-16` | C010 decisions are consumed with the source cited, and any contradiction routes an amendment to `NEU-895` rather than being resolved here. | **met** | §11 — a six-row consistency table. **The check ran and returned empty; no amendment routed.** The two candidates did not fire: the re-count agrees with `F-S5-3`, and `F-S11-2`'s breach is measured against `DR-C10-S8-1`'s `R8-4` **rule** rather than disputing a C010 record, so it routes to `NEU-896`. §6's pricing is an **addition** to `CC-S8-3`, as `F-S4-4` already established. |
 | `G-S11-17` | No file under `src/`, `drizzle/`, `tests/` or any deployment configuration is modified. | **met** | §13 — `git diff --name-only origin/develop` lists files under this package directory, `docs/GLOSSARY.md`, **and `.current-task`** (a one-line status breadcrumb at the repository root, written per `CLAUDE.md` § Status Breadcrumb; it is the only path in the change set outside `docs/` and the only line carrying a deletion). **Zero** under `src/`, **zero** under `drizzle/`, **zero** under `tests/`, zero deployment configuration. No test file is written; the four probes of §4.1 are specified and none is implemented. |
 | `G-S11-18` | Every relative citation this sub-task writes resolves, the register appends remove zero lines, and the `…md` shorthand invisible to the checker is grepped for explicitly. | **met with cap** | `node_modules/.bin/tsx scripts/check-citation-paths.ts` run locally at this cutoff: C011 reports **0 non-resolving**. `git diff --numstat` reports a deletions count of **0** on all eight register files, re-checked after **every** edit pass. Every path reference in this sub-task's files is now written as a full filename. **The grep found two real shorthand references and both were repaired**, which is the point of running it: one in the chapter (a `12_…md` reference to C010's compatibility chapter, replaced with the full path) and one in `F-S11-1`'s Evidence line (a `_local/…/02_subtasks.md` reference, likewise). `scripts/citation-paths/checker.ts:121` discards any candidate containing `…` **before it is counted**, so both would have been silently exempted and the green result would have been true but not evidence (`F-S5-7`, `G-S5-19`). The remaining `…` occurrences in this sub-task's files are prose or are the shorthand being **discussed as a term**, not path citations. **Capped by `CAP-S1-2`** (owner SUB-14): C011 is not in the checker's `GATED` list (`scripts/check-citation-paths.ts:20`–`:21`), so CI does not enforce it and the local run is the only gate. |

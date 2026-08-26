@@ -140,7 +140,7 @@ about the extraction, and it is only visible once the cost is decomposed into ti
    (with `F-S3-3`) rather than one, and none of them can be resolved by a sub-task that finds them.
 
 8. **The chapter claims no QA pass and no executed spike**, and says so in the same place it reports
-   its evidence posture, so a reader cannot mistake twenty-one designed spikes for twenty-one
+   its evidence posture, so a reader cannot mistake twenty-three designed spikes for twenty-three
    answers.
 
 ---

@@ -42,4 +42,5 @@ two**. Source and non-research paths (`src/…`, `drizzle/…`) are written **ba
 | `S16_attribution-and-detection.md` | SUB-16 (NEU-999) | OUT-15 |
 | `S8_consent-export-and-erasure.md` | SUB-8 (NEU-1002) | OUT-10, OUT-11 |
 | `S5_the-enforcement-point.md` | SUB-5 (NEU-997) | OUT-8 |
+| `S6_the-disposition-of-unowned-rows.md` | SUB-6 (NEU-1000) | OUT-2 |
 | `S11_the-client-compatibility-contract.md` | SUB-11 (NEU-1004) | OUT-16 |

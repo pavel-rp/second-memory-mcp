@@ -695,6 +695,166 @@ never duplicated.
 
 ---
 
+### SUB-6
+
+## `A-S6-1` — The pre-cutover learning-domain population has exactly one human principal
+
+**Status:** `[unconfirmed]`
+
+**Stands in for:** A per-row attribution of the ten population-A tables. No such attribution exists
+or can be constructed: zero ownership columns exist anywhere
+(`06_the-disposition-of-every-unowned-row.md` §1.2), and no durable structure ever held a
+session-to-subject binding (`16_attribution-and-detection.md:279`–`:283`).
+
+**Assumption:** *"Every human-authored row in `learning_topics`, `learning_chunks`,
+`learning_sessions`, `session_chunks`, `session_questions`, `session_question_chunks`,
+`session_question_attempts`, `session_question_attempt_revisions`, `notes` and
+`infrastructure.linter_validation_corpus` was written by a single human principal — the creator.
+Unverified: the charter's own standing `n = 1` evidence label (`R13`) says no multi-learner evidence
+exists anywhere upstream, and no query available against this schema can confirm or refute it."*
+
+**Owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the
+only party who knows whether any second human ever authenticated against it. This cannot be
+delegated to a later sub-task, because the knowledge is not in the database.
+
+**Tolerance envelope:** The assumption tolerates any number of **non-human** principals having
+written rows elsewhere in the database, because **no population-A table is written by the
+`client_credentials` smoke principal**: that principal mints a `context_tokens` row (disposition
+`purge`) and generates rows in both log tables (disposition `archive`), none of which is in
+population A. It is the *population-A membership* that carries the assumption, not any claim that the
+smoke principal writes to only one table — it writes to three. It tolerates the human
+principal having authenticated through more than one client, more than one session or more than one
+device, because the learner key is the OIDC `sub` and `azp` is never a learner key (SUB-2), so
+multiple clients still resolve to one key. It tolerates rows written by the `'agent'` author value
+in `notes`, because a note the agent wrote about the operator's chunk is still the operator's data.
+**It does not tolerate a second human `sub`** having authored any row in any of the ten tables.
+
+**Invalidating outcome:** **Evidence that a second human principal wrote any pre-cutover row in a
+population-A table.** Reaching this outcome does not weaken the disposition — it **inverts** it.
+Backfilling to a single subject would then commingle two people's data under one identity, which is
+worse than the unowned status quo and is the exact opposite of what this package exists to deliver.
+`DR-C11-S6-1` would need re-deriving rather than amending, and the ten tables would fall back to a
+disposition in the shape of population C's, because they would have become non-attributable in the
+same way.
+
+**Re-validation trigger:** Three events, any of which fires it. **The creator states the answer** —
+the direct route, and the only one that closes it affirmatively. **The target-subject verification
+of `SPK-S6-1` runs** and the production IdP returns more than one distinct human `sub`, or an
+audit-log inspection under OUT-18 shows more than one — the observable falsifier. And **immediately
+before the backfill stage executes**, where V7 already requires re-running the verification: this
+assumption is re-checked at the same moment, because a premise that was true when the chapter was
+written and false when the migration runs would fail silently and irreversibly.
+
+---
+
+## `A-S6-2` — Stage S1 executes at or after the instant the attribution carrier lands
+
+**Status:** `[unconfirmed]`
+
+**Stands in for:** A sequencing decision this sub-task does not own. The stage order is SUB-7's
+(NEU-1001) under OUT-3, and is not authored at position 8.
+
+**Assumption:** *"The archive stage S1 runs at or after the moment the attribution carrier of
+`DR-C11-S16-1` lands and begins being written. Unverified: the stage sequence does not exist yet."*
+
+**Owner:** **SUB-7 (NEU-1001)**, which authors the stage sequence and is the only party that can
+place S1 relative to the carrier.
+
+**Tolerance envelope:** The assumption tolerates any gap between the two events, in either
+magnitude — S1 may run in the same deploy as the carrier, or many deploys later. A later S1 simply
+means the archived population is larger. It tolerates S1 being split into batches across several
+boots, which `R-S6-2` requires anyway, provided the **first** batch begins no earlier than the
+carrier. It tolerates the carrier landing and S1 never running at all: the population is then closed
+but not relocated, which loses the archive's benefit without creating a new exposure.
+
+**Invalidating outcome:** **S1 executes before the carrier lands.** The live log tables would then
+begin re-accumulating unowned rows the moment the archive completed, so
+`06_the-disposition-of-every-unowned-row.md` §4.2's claim that "nothing unowned remains in the
+confined surface" would be false; `F-S6-3`'s five-week window would have no defined start; and the
+archive would hold a population that is *not* the whole pre-cutover set, which is the one property
+`DR-C11-S6-2` exists to deliver. The decision would need re-deriving against a two-population
+archive rather than amending.
+
+**Re-validation trigger:** **SUB-7 publishes its stage sequence.** On that event, S1's position is
+read against the carrier's, and this entry either closes as confirmed or fires its invalidating
+outcome. Additionally: **any change to `DR-C11-S16-1`'s carrier that alters when it begins being
+written**, since the anchor is the write, not the schema change.
+
+---
+
+## `A-S6-3` — The dry-run generator, when built, takes exactly the five inputs enumerated at §7.1
+
+**Status:** `[unconfirmed]`
+
+**Stands in for:** Inspection of a generator that does not exist. The no-copied-rows audit at
+`06_the-disposition-of-every-unowned-row.md` §7.2 is a closure argument over an **enumerated input
+set**, and no artifact exists whose actual inputs could be inspected instead.
+
+**Assumption:** *"A future implementer builds the dry-run generator taking only `G-IN-1` … `G-IN-5`
+— schema text, per-table counts, per-pathology counts, timestamp extents, and a locally seeded PRNG
+— and adds no sixth input. Unverified: the generator has not been written."*
+
+**Owner:** **SUB-13 (NEU-1006)** under OUT-19, as the party that specifies what an implementer
+executes; jointly **the implementation charter `NEU-896` hands the work to**, as the party that
+actually writes it.
+
+**Tolerance envelope:** The assumption tolerates any implementation language, any PRNG, any seed, and
+any distribution shape fitted to the aggregates. It tolerates additional inputs that are **scalar or
+schema-derived** — a row-count multiplier, a target dataset size, a fixed date offset — because none
+of those has row type and the closure argument survives them unchanged. It tolerates the generator
+never being built at all, in which case the exclusion stands unexercised rather than falsified.
+
+**Invalidating outcome:** **Any generator input that is row-valued** — a `SELECT *`, a `LIMIT`
+sample, a `DISTINCT` over a content column, or any extract of real values "for realism". The closure
+argument fails at exactly that point, the derivation test admits the dataset to the sixth copy class,
+and the exclusion SUB-3 recorded at position 3 is overturned by this sub-task's own evidence — which
+is precisely the event
+`decision-records/DR-C11-S3-3_package-own-copies-and-the-derivation-test.md:103`–`:105` names.
+
+**Re-validation trigger:** **The generator is written**, at which point its actual input set is read
+against the five and this entry closes or fires. Additionally: **SUB-13 publishes its migration
+plan**, if that plan specifies the generator's inputs — the enumeration is then checkable against a
+specification rather than against code.
+
+---
+
+**SUB-6 register totals at revision 1:** three entries, `A-S6-1`, `A-S6-2` and `A-S6-3`, all
+`[unconfirmed]`, each carrying a named owner, a tolerance envelope, an invalidating outcome and at
+least one observable re-validation trigger, with no blank field. **Zero charter-continued `A-<n>` entries**, correctly: this stand-in is not a
+stand-in for one of the charter's numbered assumptions, so it takes the sub-task-scoped form per
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`.
+
+**`A-S6-1` is the most load-bearing stand-in this package has filed, and it is stated as such.** Ten of
+the fourteen dispositions rest on it. A reader who rejects it must reject population A's disposition
+with it, and the chapter says so at §2.2 rather than leaving the dependency to be inferred. It is
+filed here rather than absorbed into the chapter's prose precisely because a premise this
+consequential going unlisted is the defect class that voids a chapter's central derivation.
+
+**Its unfalsifiability is a separate record, and deliberately so.** That **no aggregate probe can
+settle this assumption** — because no column distinguishes principals — is `F-S6-2`, a finding, not
+part of this entry. The distinction matters: this entry records *what the design assumes*, and the
+finding records *why the probe set structurally cannot reach it*. One id per fact, and these are two
+facts.
+
+**`A-28` is not restated here**, on the same rule SUB-5 applied. C010's stand-in bounds this
+outcome's disposition set; the envelope check is performed at
+`06_the-disposition-of-every-unowned-row.md` §12 and the entry is cited from its single owning
+record at `../C010-system-and-repository-architecture/93_stand-in-assumption-register.md:104`–`:115`,
+never duplicated. One thing is noted in passing rather than filed: `A-28`'s re-validation trigger is
+this package's publication, so this chapter is part of the event that fires it.
+
+**`A-S3-1` is not restated here either.** SUB-3's stand-in for the reading of `OI-S5-1` — whether
+`NEU-850`'s *"every core table"* covers the two raw-SQL log tables — is cited, not re-raised, and
+this sub-task takes no reading of its own. The `archive` disposition is correct under both readings,
+so nothing here rests on which one holds.
+
+**Why three entries and not one.** The three are load-bearing in different places and fail
+independently, so folding them together would hide which part of the chapter a refutation reaches.
+`A-S6-1` is about the **data** and its refutation breaks ten dispositions. `A-S6-2` is about the
+**sequence** and its refutation breaks one stage's benefit while leaving every disposition intact.
+`A-S6-3` is about an **unbuilt artifact** and its refutation overturns a recorded exclusion in
+another sub-task's inventory. A single combined entry would have one owner; these have three
+different ones — the creator, SUB-7, and SUB-13 with the implementation charter.
 ### SUB-11
 
 *`NEU-1004`, covering `OUT-16`. One entry, taking the sub-task-scoped `A-S<n>-<k>` form
@@ -710,7 +870,7 @@ assumption, so the `A-<n>` form would be wrong.*
 - **Tolerance envelope:** The assumption tolerates the table being **edited** — rows reworded, severities adjusted, mitigations extended — without invalidating anything, because the rule keys on position alone. It tolerates rows being **appended** after position 15. What it does **not** tolerate is a **reordering, insertion or deletion at or before position 11**, any of which would move the OUT-16 row and make `R11` name a different risk than the one authored under it.
 - **Invalidating outcome:** SUB-14 establishes that the two readings differ — that is, that `F-S3-3`'s discrepancy is explained by the charter having moved rather than by the forward-allocation table at `92_risk-register.md:33`–`:35` having been written wrong. In that case `R11`'s **id** is wrong while its **content** stays correct, and the remedy is a renumber SUB-14 performs, not a rewrite this sub-task owes.
 - **Re-validation trigger:** **SUB-14's aggregation pass.** It is the first moment at which one party holds every authored `R<n>` entry at once and can check the set against the charter for collisions and holes. The check is cheap and mechanical: fifteen rows, fifteen ids, no duplicates and no gaps.
-- **Why it is a stand-in rather than a finding:** Because nothing has been checked and refuted. `F-S3-3` is the finding — it records that two sources disagree at rows 10–12 as read at their respective cutoffs, and it explicitly declines to assert that SUB-1 erred. This entry records the one thing the design here **rests on** and cannot verify: `_local/` is gitignored and unversioned, so the two readings genuinely cannot be diffed. **Six independent cross-checks were run and all six agree** — `R1`, `R8`, `R10`, `R12`, `R13` and `R14`, each already authored, each matching charter position rather than the allocation table (`11_the-client-compatibility-contract.md` §10) — which is strong corroboration and is **not** the same as confirmation.
+- **Why it is a stand-in rather than a finding:** Because nothing has been checked and refuted. `F-S3-3` is the finding — it records that two sources disagree at rows 10–12 as read at their respective cutoffs, and it explicitly declines to assert that SUB-1 erred. This entry records the one thing the design here **rests on** and cannot verify: `_local/` is gitignored and unversioned, so the two readings genuinely cannot be diffed. **Seven independent cross-checks were run and all seven agree** — `R1`, `R8`, `R9`, `R10`, `R12`, `R13` and `R14`, each already authored, each matching charter position rather than the allocation table (`11_the-client-compatibility-contract.md` §10) — which is strong corroboration and is **not** the same as confirmation.
 
 ## `A-S11-2` — That the production `client_credentials` token carries no `sub`, so the CD smoke principal resolves to kind `client`
 

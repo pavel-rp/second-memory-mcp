@@ -206,13 +206,55 @@ and co-owner are unchanged.
 
 ---
 
+### SUB-6
+
+**Three limits are classified as not-caps, with their real registers named, so the reconciliation is
+not left guessing.**
+
+- **The unexecuted aggregate query set** is a **spike and two open items, not a cap** — `SPK-S6-2`,
+  `OI-S6-1`, `OI-S6-2`. A cap is for a limit no available party settles. This one has an available
+  party (the creator, as sole operator and sole holder of a production credential), an observable
+  resolving event (the queries run), and a complete specification waiting on nothing but execution.
+  Filing it as a cap would say no party can close it, which is false.
+- **The unperformed target-subject verification** is a **spike, not a cap** — `SPK-S6-1`. Same
+  reasoning, and additionally the design does not rest on its result: the backfill stage carries
+  V1–V7 as a hard **entry condition**, so an unverified target cannot reach production. What is
+  missing is an observation, not a decision.
+- **The `qa-execution:engine` no-op.** The automated QA phase is a genuine Core Article 8 no-op for
+  this sub-task as for every other in the package: the capability registry resolves to `git, linear`,
+  no QA execution provider is registered, **no QA pass exists and none is claimed**. **`CAP-S1-3`
+  already carries this at package level**, and a per-sub-task duplicate would make one package-wide
+  condition look like several independent ones — the same disposition SUB-5 and `SUB-6 of C010` each
+  recorded for the identical situation.
+
+**One inherited cap is touched only by citation.** `CAP-S1-2` — that C011 is absent from the citation
+checker's `GATED` list at `scripts/check-citation-paths.ts:21`, so CI will not fail on a broken C011
+citation — bears directly on this sub-task, whose chapter carries a large number of `file:line`
+claims. It is **not re-filed**: its owner is SUB-14 (NEU-1007) and it is already recorded once. This
+sub-task's response is procedural rather than registrable — the citation checker was run locally, and
+the `…md` ellipsis shorthand, which the checker discards at `scripts/citation-paths/checker.ts:121`
+and therefore cannot gate, was grepped for explicitly so that a green result is evidence rather than a
+vacuous pass.
+
+---
+
+**SUB-6 register totals at revision 1:** **zero new caps filed.** Three limits are classified as
+not-caps with their real registers named, and one inherited cap (`CAP-S1-2`) is cited rather than
+re-filed, with its owner unchanged. **No cap is recorded as lifted.**
+
+**Why this sub-task files no cap, stated rather than left as an absence.** Every limit SUB-6 hit is a
+missing *observation*, and every one of them has a named party who could take it and an event that
+would close it. None is a limit on what this package can decide — the dispositions in
+`06_the-disposition-of-every-unowned-row.md` §3 are settled, and not one of them turns on a row count
+or a probe result. A cap filed here would mis-describe the situation as unresolvable when it is
+merely unobserved, and would give SUB-17's audit a permanent limit where there is a closable one.
 ### SUB-11
 
 #### `CAP-S11-1` — The compatibility contract is written for a client population of unknown size and unknown composition, and no existing client's behaviour was observed
 
 - **Id:** `CAP-S11-1`
 - **Cap:** `11_the-client-compatibility-contract.md` may be read as establishing what **would** happen to a client of each described shape. It may **not** be read as establishing that any such client exists, how many do, or what any of them actually does today. Every path classification in §6.3, every probe in §4.1 and every scenario verdict in §7 is a derivation from repository facts, not an observation of a client.
-- **Why it is capped:** **No production credential exists in this environment.** `SMOKE_PROD_BASE_URL`, `SMOKE_PROD_CLIENT_ID`, `SMOKE_PROD_CLIENT_SECRET`, `DATABASE_URL`, the `AUTH_*` set and the `VPS_*` set are all unset, so the production deployment cannot be reached, no token can be minted, and no client can be enumerated. This is not particular to this sub-task: across the package **twenty-one spikes are designed and zero have been executed** once this sub-task's own `SPK-S11-1` is counted — twenty before it (`96_spike-register.md`, re-enumerated by section heading at `11_the-client-compatibility-contract.md` §12) — and the same absence produces `CAP-S1-1`'s standing position. The one exception a reader might expect — that the CD smoke suite is itself a known client — is real and is used (§7 walks it scenario by scenario), but it is read from `tests/smoke/smoke.test.ts` and `.github/workflows/cd-prod.yml`, not observed running.
+- **Why it is capped:** **No production credential exists in this environment.** `SMOKE_PROD_BASE_URL`, `SMOKE_PROD_CLIENT_ID`, `SMOKE_PROD_CLIENT_SECRET`, `DATABASE_URL`, the `AUTH_*` set and the `VPS_*` set are all unset, so the production deployment cannot be reached, no token can be minted, and no client can be enumerated. This is not particular to this sub-task: across the published package **twenty-three spikes are designed and zero have been executed** — twenty at this sub-task's cutoff, plus its own `SPK-S11-1`, plus SUB-6's two, which landed between that cutoff and the merge (`96_spike-register.md`, re-enumerated by section heading, with all three figures and the reason for stating three at `11_the-client-compatibility-contract.md` §12) — and the same absence produces `CAP-S1-1`'s standing position. The one exception a reader might expect — that the CD smoke suite is itself a known client — is real and is used (§7 walks it scenario by scenario), but it is read from `tests/smoke/smoke.test.ts` and `.github/workflows/cd-prod.yml`, not observed running.
 - **What it leaves unsupported:** Four claims this chapter does **not** make. That the STDIO edge is reachable by anyone in production — C010's question, `A-S4-2` / `SPK-S4-1`. That path 4 (`TRANSPORT` unset) is the largest class **by installation count** rather than by construction — §6.3 calls it the largest class because it is what happens when nobody chooses, which is a property of the default, not a census. That the migration cost of `CH-1` is bounded — it scales with a population nobody has counted. And that the DP rubric of `F-S11-2` has ever inconvenienced a real self-hoster; it is a breach of a charter constraint, observed in the schema, with no observed victim.
 - **Owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who can reach it; **`NEU-896`** at convergence, as the recipient of a package-level evidence gap no sub-task can close from inside the repository.
 - **What would lift it:** Execution of **`SPK-S11-1`** — enumerate the clients that have actually authenticated against the deployment, by transport and by principal kind — with its result recorded against this cap. Partial lift is available and worth stating: executing `SPK-S4-1` alone (is the STDIO edge reachable, and to whom) would close the reachability limb without closing the population limb. **Nothing lifts it from the repository**, which is why it is a cap and not an open item.

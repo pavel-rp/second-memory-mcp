@@ -647,8 +647,9 @@ The bound is stated positively rather than left to inference.
 
 **And the honest ceiling on the whole document.** **No existing client's behaviour was observed.**
 No production credential exists in this environment — `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and
-`VPS_*` are all unset. Across the package, **twenty-one spikes are designed and zero have been
-executed** once this sub-task's own entry is counted (§12 shows the enumeration). The client
+`VPS_*` are all unset. Across the package, **twenty-three spikes are designed and zero have been
+executed** in the published set — twenty at this chapter's cutoff, plus `SPK-S11-1`, plus SUB-6's
+two, with the enumeration and the reason for three figures at §12. The client
 population this contract is written for has **unknown size and unknown composition** — including the
 smoke run of §7, which is established from `cd-prod.yml` and `smoke.test.ts` rather than observed
 running. Recorded as `CAP-S11-1`, with `SPK-S11-1` as the bounded experiment that would close it.
@@ -747,13 +748,14 @@ The rule is stated identically in two places — `README.md` § Id conventions a
 it to an independent read of the charter's fifteen rows at this cutoff puts the OUT-16 row at
 **position 11**.
 
-**The derivation is cross-checked against six ids already claimed**, every one of which agrees with
+**The derivation is cross-checked against seven ids already claimed**, every one of which agrees with
 charter position rather than with the allocation table:
 
 | Claimed id | Author | Charter row content at that position | Agrees? |
 | --- | --- | --- | --- |
 | `R1` | SUB-5 | row 1 — mechanism ships, cross-learner exposure remains (Critical, OUT-8) | yes |
 | `R8` | SUB-1 | row 8 — production access incident or capture leak (High, OUT-18) | yes |
+| `R9` | SUB-6 | row 9 — unprobed dirty-data pathology survives the dry-run (High, OUT-2) | yes |
 | `R10` | SUB-3 | row 10 — legal determination asserted (Medium, OUT-9) | yes |
 | `R12` | SUB-3 | row 12 — greenfield lifecycle half (High, OUT-9) | yes |
 | `R13` | SUB-1 | row 13 — `n = 1` evidence (Medium, OUT-18) | yes |
@@ -807,16 +809,27 @@ denotes different facts in the two packages.
 ## 12. Evidence posture and register integrity
 
 **No spike in this package has been executed.** Enumerated directly from `96_spike-register.md`'s own
-section headings at this cutoff: SUB-1 nine (`SPK-S1-1` … `SPK-S1-9`), SUB-15 four, SUB-2 three,
-SUB-4 two, SUB-16 one, SUB-8 one, SUB-5 zero — **twenty before this sub-task**, and **twenty-one
-designed, zero executed** once `SPK-S11-1` is counted. Both figures are stated because they answer
-different questions, and every other statement of the total in this sub-task's own output uses
-**twenty-one**.
+section headings, twice — once at this chapter's cutoff and once after the merge that published it,
+because the register moved in between and a single number would have to be wrong at one of the two
+moments:
 
-The figure is stated here because it was wrong repeatedly in this package: `F-S4-6` records a
-cumulative total of "twelve" that omitted SUB-15's four, and the correction was then computed on
-different bases by three authors (sixteen, seventeen, eighteen). **It is re-derived here by
-enumeration, not carried from `F-S4-6` or from SUB-8's note.**
+| Moment | Composition | Total | Executed |
+| --- | --- | --- | --- |
+| At cutoff `35f92ba` | SUB-1 nine (`SPK-S1-1` … `SPK-S1-9`), SUB-15 four, SUB-2 three, SUB-4 two, SUB-16 one, SUB-8 one, SUB-5 zero | **20** | 0 |
+| At cutoff, plus this sub-task | the above plus `SPK-S11-1` | **21** | 0 |
+| In the published package | the above plus SUB-6's `SPK-S6-1` and `SPK-S6-2`, which landed on `develop` between this chapter's cutoff and its merge | **23** | 0 |
+
+**A reader counting the register in the published package will get 23**, and that is the figure to
+cite for the package. 20 and 21 are stated because they are what this chapter's own derivation saw,
+and silently publishing 23 as though it had been derived here would be the inherited-count error in
+miniature.
+
+The figure is stated this carefully because it has been wrong repeatedly in this package: `F-S4-6`
+records a cumulative total of "twelve" that omitted SUB-15's four, and the correction was then
+computed on different bases by three authors (sixteen, seventeen, eighteen). **Every figure above is
+re-derived by enumeration, not carried from `F-S4-6`, from SUB-8's note, or from any other chapter's
+claim about the register.** Reconciling the register's own closing notes across authors remains
+**SUB-14's** under OUT-20; nothing here edits one.
 
 **The tracker ids this package uses for SUB-11 and SUB-12 are inconsistent, and every hand-forward
 addressed to this sub-task is misaddressed.** Three ids are used for two sub-tasks across merged
