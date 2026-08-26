@@ -903,7 +903,7 @@ that defines the rule.
 | Register | Ids |
 | --- | --- |
 | Outcomes (`90_outcome-register.md`) | OUT-17's row |
-| Findings (`91_findings-register.md`) | `F-S12-1` … `F-S12-7` |
+| Findings (`91_findings-register.md`) | `F-S12-1` … `F-S12-8` |
 | Risks (`92_risk-register.md`) | `R-S12-1` … `R-S12-4`. **No charter `R<n>` row** — see below |
 | Open items (`93_open-items-and-provisional-register.md`) | `OI-S12-1` |
 | Caps (`94_caps-and-incomplete-scope.md`) | `CAP-S12-1` |
@@ -986,6 +986,7 @@ Every occurrence of the second is written `SUB-12 of C010` or `NEU-986`.
 | `F-S12-4` | `TRUNCATE … CASCADE` behind a caller-asserted, memoization-sensitive guard | **The creator**, as sole operator; the implementation charter |
 | **`F-S12-5`, `F-S12-6`** | The two gaps with **no measurable control**, named as blocking findings with owners | **`NEU-896`**; **SUB-17** (NEU-1008), which audits that blocking findings were not quietly accepted |
 | `F-S12-7` | A package-hygiene defect observed in passing: `docs/GLOSSARY.md`'s `write-path closure` row carries the *"four greps"* phrasing its own defining chapter explicitly repudiates. **Reported, not fixed** — the row is another sub-task's | **SUB-14** (NEU-1007) under OUT-20, the only party permitted to touch another sub-task's file; co-named **SUB-9** (NEU-1003) as the row's author |
+| `F-S12-8` | Three merged records route work to a sub-task by the **wrong tracker id** — including the record that hands *this* sub-task its `SIG-S16-3` gate. Sub-task numbers are right; the parenthesised ids are not, which is why it survived reading. **Reported, not fixed**; the obligations are honoured here regardless | **SUB-14** (NEU-1007) under OUT-20; co-named **SUB-16** (NEU-999) and **SUB-4** (NEU-996) as the authors |
 | `DR-C11-S12-2` | **The amendment to `DR-C10-S5-1`** — trigger 3, two failure modes, in the form the inherited-universe risk record consumes | **`NEU-895`** (owner of the record), co-named **`NEU-896`**; **SUB-17** (NEU-1008) as the named recipient within this package |
 | `R-S12-1` … `R-S12-4` | Residual exposures with severity, mitigation, owner and escalation route | **SUB-14** (aggregation, authors none); **SUB-17** (gate) |
 | §9's two counts | The bidirectional cross-check, both directions closing | **SUB-17**; **SUB-14** |

@@ -1154,10 +1154,11 @@ not restated as a codebase fact anywhere in `09_…md`, and `42` appears nowhere
 
 ### SUB-12
 
-Seven findings. **Two are blocking** (`F-S12-5`, `F-S12-6`) under OUT-17's rule that a critical gap
-without a measurable control is recorded as a blocking finding rather than accepted. The seventh
-(`F-S12-7`) is a package-hygiene defect observed in passing and **reported rather than fixed**, on
-the precedent SUB-5 set with `F-S5-13`.
+Eight findings. **Two are blocking** (`F-S12-5`, `F-S12-6`) under OUT-17's rule that a critical gap
+without a measurable control is recorded as a blocking finding rather than accepted. The last two
+(`F-S12-7`, `F-S12-8`) are package-hygiene defects observed in passing and **reported rather than
+fixed**, on the precedent SUB-5 set with `F-S5-13` — both live in other sub-tasks' artifacts, which
+this package does not rewrite.
 
 #### `F-S12-1` — An unconfined aggregate consumed as a **control input** lets one learner change the controls applied to another
 
@@ -1292,6 +1293,39 @@ the precedent SUB-5 set with `F-S5-13`.
   `F-S5-13`. Co-named **SUB-9** (NEU-1003) as the row's author.
 - **Resolving event.** The row's final clause is brought into line with `09_…md:169`–`:172`, or the
   citation is repointed.
+
+#### `F-S12-8` — Three merged records route work to a sub-task by the **wrong tracker id**
+
+- **Finding.** The authoritative mapping is `02_subtasks.md:199`–`:214`: **SUB-9 → NEU-1003, SUB-11 →
+  NEU-1004, SUB-12 → NEU-1005.** Three merged records disagree, in two independent directions:
+
+  | Location | Says | Should say |
+  | --- | --- | --- |
+  | `16_attribution-and-detection.md:449` | *"**SUB-12** (NEU-1004) as a measurable gate"* | SUB-12 is **NEU-1005** |
+  | `16_attribution-and-detection.md:450` | *"**SUB-12** (NEU-1004) threat model and gate register"* | SUB-12 is **NEU-1005** |
+  | `decision-records/DR-C11-S16-3_the-stalled-propagation-signal-contract.md:158` | *"**SUB-12 (NEU-1004)** receives a gate it can measure"* | SUB-12 is **NEU-1005** |
+  | `04_the-stdio-identity-gate-and-the-bound-context-token.md:735` | *"To **SUB-11 (NEU-1003)**, OUT-16"* | SUB-11 is **NEU-1004**; NEU-1003 is SUB-9 |
+
+- **Why it is material rather than cosmetic.** These are **routing statements** — the sentences by
+  which one sub-task hands an obligation to another. `DR-C11-S16-3:158` is the record that hands
+  *this* sub-task its `SIG-S16-3` gate, and it names a tracker id belonging to a different sub-task.
+  A reader or an automation routing by tracker id would deliver the gate to SUB-11 and the
+  compatibility consequence to SUB-9. The **sub-task numbers are correct in every case**; only the
+  parenthesised tracker ids are wrong, which is exactly what makes the defect survive a read — the
+  sentence is right and its identifier is not.
+- **The package's own records disagree with the erroneous ones**, which is how this was caught:
+  `traceability/README.md:47` and `decision-records/README.md:77` both correctly give SUB-11 as
+  NEU-1004, and `05_the-enforcement-point-that-confines-every-read-and-write.md:717`, `:1402` and
+  `:1411` all correctly give SUB-12 as NEU-1005.
+- **Reported, not fixed.** All four locations are other sub-tasks' artifacts and this package does not
+  rewrite them. **The obligations themselves are honoured here regardless of the id** — `SIG-S16-3` is
+  taken up as `GATE-S12-22` and the four signals are consumed in §8 — because the sub-task number is
+  unambiguous and this chapter routes on that.
+- **Severity:** medium — higher than `F-S12-7` because a wrong routing identifier can misdeliver work,
+  whereas a stale glossary clause only misleads a reader. **Owner:** **SUB-14** (NEU-1007) under
+  OUT-20, the party permitted to touch another sub-task's file; co-named **SUB-16** (NEU-999) and
+  **SUB-4** (NEU-996) as the authors.
+- **Resolving event.** The four parenthesised ids are corrected against `02_subtasks.md:199`–`:214`.
 
 **Two findings this sub-task deliberately does *not* raise.** That the boot migrator runs unguarded
 is **`R-S15-3`**, and that the archive sweep breaches `OBJ-8` is **`R-S6-2`**; both are cited by
