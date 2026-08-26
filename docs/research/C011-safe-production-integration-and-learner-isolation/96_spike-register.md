@@ -695,6 +695,69 @@ owning "every entry in this register outright", but SUB-2, SUB-4, SUB-8, SUB-15 
 appended their own entries, and this section follows that established practice. The note is left for
 **SUB-14 (NEU-1007)**, which owns how the register reconciles with the band; no predecessor's text is
 edited here.
+### SUB-11
+
+## `SPK-S11-1` — Which MCP clients have actually authenticated against the production deployment, by transport and by principal kind?
+
+| Field | Value |
+| --- | --- |
+| **Id** | `SPK-S11-1` |
+| **Sub-task** | SUB-11 (NEU-1004) |
+| **Question** | Over a bounded recent window, which distinct MCP clients have authenticated against the production deployment — and for each, **which transport** it arrived on and **which principal kind** its token resolves to under SUB-2's rule (`sub` present → `user`; `sub` absent with `azp` present → `client`)? It has a wrong answer in both directions and the directions cost differently. If the population is **HTTP-only and `user`-kind apart from the CD smoke principal**, then `CH-1`'s STDIO break has no live victims, path 4 of `11_the-client-compatibility-contract.md` §6.3 is large only by construction, and the migration cost of the gate is close to zero. If **any STDIO client exists**, or **any additional `client`-kind principal** holds learner rows, then the break has a named population, the enforcement point's clause-3 refusal has more subjects than the smoke run, and the rollout acquires a communication obligation nothing in the package currently sizes. |
+| **Why reading could not settle it** | The repository establishes the **shape** of every path and none of their **occupancy**. `src/config/resolve-transport-config.ts:35` shows STDIO is the default mode; it cannot show whether any process was launched in it. `src/transport/jwt-middleware.ts` shows how a token is admitted; it cannot show which tokens arrived. The one artifact that would carry the answer — `infrastructure.mcp_request_log` — is a **production table**, and whether it is even written is itself unresolved (`OI-S16-1` / `SPK-S16-1`: is the audit writer mounted at all). This is the occupancy half of the same unreadability `CAP-S1-1` states package-wide, narrowed to one question this outcome specifically needs. **It is not answered by closing `SPK-S4-1`**, which asks whether the STDIO edge is *reachable* — a property of the deployment's shape — where this asks whether anyone *used* it. |
+| **Exit condition** | For a stated window, a count of distinct authenticated principals broken down by transport and by principal kind, **with no principal identifier and no token material transcribed** — counts and kinds only. Where the audit writer turns out to be unmounted and no such count can be produced, **that** is the recorded result, and it resolves the spike as *unanswerable by this method* rather than leaving it open. The statement is appended here. |
+| **Method** | **Read-only.** Either one question to the operator, or a single read-only `SELECT` against `infrastructure.mcp_request_log` aggregating to counts by transport and principal kind over a bounded window. **No mutation of any kind**: no tool call, no `init_agent_context` (which would mint a `context_tokens` row and add to the very population being counted), no token minted, no write to any table. **No identifier is read, transcribed or appended** — the query returns counts, never `sub` values, which are learner keys under `DR-C11-S2-1` and are precisely what a redaction audit exists to catch. A weaker route is **declined**: inferring occupancy from the deploy pipeline's own smoke traffic would measure this package's own instrumentation and nothing else. |
+| **Quarantine path** | Not applicable — nothing was executed. Nothing landed under `src/`, `tests/` or `drizzle/`, and nothing was merged as product code. This sub-task changed **zero** files under `src/` and **zero** under `drizzle/`, checked mechanically with `git diff --name-only origin/develop` before every commit. No scratch tree was created, so `LD-S3-31`'s sixth copy class gains **no member** from this sub-task and its membership stays at zero. |
+| **Date** | 2026-08-25 — the date execution was determined to be **impossible**. No production credential of any kind was present in the authoring environment: `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and `VPS_*` are all unset, re-probed at this cutoff, and the operator was not reachable from it. |
+| **Result** | **Not executed.** No observation of any kind was taken. **No client count is asserted anywhere in this sub-task**, in either direction — `11_the-client-compatibility-contract.md` §6.3 classifies paths without claiming any is occupied, and §8 states the population's size and composition as unknown. In particular, path 4 is called *"the largest class"* strictly because it is what happens when nobody chooses — a property of the default at `src/config/resolve-transport-config.ts:35` — and **not** because any census supports it. |
+| **Confidence** | **`none`** — there is no result to hold a confidence in. What would raise it: executing the question once. Nothing available in the repository can raise it, because occupancy is definitionally state outside the repository. |
+| **Expiry** | **2027-02-25** — six months from the design date, or **immediately upon the STDIO transport gaining a gate, upon any change to `src/config/resolve-transport-config.ts`'s default, or upon the CD smoke principal being re-provisioned**, whichever is sooner. |
+| **Expiry rationale** | Six months is not a claim that the client population is stable for six months; it is the outer bound at which an unexecuted design should be re-read against a codebase and a deployment that will both have moved — the deployment auto-deploys from `develop` at a measured ≥3.29 restarts/day (`15_operational-objectives-for-the-real-platform.md` §2.2, `C-17`). **The dangerous stale direction is the reassuring one:** a recorded *"no STDIO clients"* would license SUB-7 to sequence `CH-1` as low-risk and a reader to treat `CAP-S11-1` as effectively lifted, and a single new self-hosted installation would silently falsify both without any repository change. The three event clauses are what protect against that, not the date — and the first of them fires precisely when the answer stops being measurable in the old terms. |
+| **Routes to** | `94_caps-and-incomplete-scope.md` § `CAP-S11-1`, which carries the unobserved-population limit with its named owner and its lifting condition. It bounds `11_the-client-compatibility-contract.md` §6.3's path classification and §8's negative guarantee, and is consumed by **SUB-7** (`NEU-1001`) under OUT-3, whose stage sequencing depends on the size of the broken class, and by **SUB-12** (`NEU-1005`) under OUT-17, whose threat model ranges over the same paths. |
+
+---
+
+**SUB-11 register totals at revision 1:** one spike, `SPK-S11-1`, **designed and not executed**,
+carrying a stated question, a stated exit condition, a read-only method with an explicitly declined
+weaker route, a mandatory expiry with its rationale, and a route to an owned cap.
+
+**One of one corresponds to a cap rather than to an open item**, and the departure from the usual
+rule is deliberate. SUB-1's convention routes a spike to the open item it would close; this spike's
+question cannot be closed by any party inside the package or by any work in the repository, which is
+the definition of a cap rather than an open item. Its two open items (`OI-S11-1`, `OI-S11-2`) are
+correspondingly **not** spiked, because each is settled by work — a test written, a design decision
+taken — and not by observation.
+
+**Cumulative, re-derived by enumerating this register's own section headings — and stated at two
+moments, because the register moved between this sub-task's cutoff and its merge.**
+
+- **At cutoff `35f92ba`, plus this sub-task: twenty-one designed, zero executed** — nine
+  (`SPK-S1-1` … `SPK-S1-9`), four (`SPK-S15-1` … `SPK-S15-4`), three (`SPK-S2-1` … `SPK-S2-3`), one
+  (`SPK-S16-1`), two (`SPK-S4-1`, `SPK-S4-2`), one (`SPK-S8-1`) and **one (`SPK-S11-1`)**. SUB-5
+  filed zero and is counted at zero.
+- **In the merged register: twenty-three designed, zero executed** — the above plus **SUB-6's two**
+  (`SPK-S6-1`, `SPK-S6-2`), which landed on `develop` after this sub-task's cutoff and before its
+  merge. **A reader counting the register gets 23**, and that is the figure to cite for the package.
+
+**Both are stated deliberately.** Publishing only 21 would leave a figure a reader can falsify by
+counting; publishing only 23 would present as re-derived here a number this sub-task's own
+enumeration never saw. **Neither is carried forward by adding to a predecessor's note** — which is
+the method `F-S4-6` prescribes after this same total was reported as twelve, sixteen, seventeen,
+eighteen and twenty by five authors on four different bases, and the reason a cumulative figure in
+this register is worth re-deriving rather than incrementing. No predecessor's text is edited; this
+register is append-only, and reconciling the running notes across authors stays routed to **SUB-14
+(NEU-1007)** under OUT-20.
+
+**The `observed-in-production` evidence label has still been used zero times anywhere in this
+package**, and this sub-task adds a spike and no observation. `R13` carries the `n = 1` evidence
+risk and is cited rather than restated; `CAP-S11-1` caps what this sub-task's own contract may be
+read to mean in consequence.
+
+**Zero second records:** `SPK-S4-1` (is the STDIO edge reachable) and `SPK-S16-1` (is the audit
+writer mounted) are cited from their single owning records rather than re-designed here, even though
+all three questions would be settled by reaching the same operator. The overlap is recorded so that
+whoever reaches them knows **four** production facts can be settled in one conversation — the two
+above, `SPK-S8-1`'s provider question, and this one.
 
 ---
 

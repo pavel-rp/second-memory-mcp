@@ -855,6 +855,56 @@ independently, so folding them together would hide which part of the chapter a r
 `A-S6-3` is about an **unbuilt artifact** and its refutation overturns a recorded exclusion in
 another sub-task's inventory. A single combined entry would have one owner; these have three
 different ones — the creator, SUB-7, and SUB-13 with the implementation charter.
+### SUB-11
+
+*`NEU-1004`, covering `OUT-16`. One entry, taking the sub-task-scoped `A-S<n>-<k>` form
+`DR-C11-S15-3` fixes. **It is not charter-continued**: it stands in for no numbered charter
+assumption, so the `A-<n>` form would be wrong.*
+
+## `A-S11-1` — That the charter's § Risks table has not been reordered between SUB-3's read and this one
+
+- **Status:** `[unconfirmed]`, and **unconfirmable from inside this package**
+- **Stands in for:** A diff between two readings of the charter's § Risks table — SUB-3's, at cutoff `86fb38a`, and this sub-task's, at `35f92ba`. No such diff can be taken.
+- **Assumption:** The fifteen rows of the charter's § Risks table sit in the same order now as when SUB-3 read them, so a row position computed here is the same row position SUB-3 computed against. **This is what `R11` rests on.** The rule fixed in `README.md` § Id conventions and at `92_risk-register.md:17` is that `R<n>` is the row's position in that table; this sub-task read the table at its own cutoff, found the OUT-16 row at position **11**, and authored `R11` on that basis (`11_the-client-compatibility-contract.md` §10).
+- **Owner:** **SUB-14 (`NEU-1007`)** under OUT-20, which aggregates the risk register, owns the reconciliation `F-S3-3` routes to it, and is the only party that may touch another sub-task's entries. **Not this sub-task**, which states a position and its derivation and resolves nothing.
+- **Tolerance envelope:** The assumption tolerates the table being **edited** — rows reworded, severities adjusted, mitigations extended — without invalidating anything, because the rule keys on position alone. It tolerates rows being **appended** after position 15. What it does **not** tolerate is a **reordering, insertion or deletion at or before position 11**, any of which would move the OUT-16 row and make `R11` name a different risk than the one authored under it.
+- **Invalidating outcome:** SUB-14 establishes that the two readings differ — that is, that `F-S3-3`'s discrepancy is explained by the charter having moved rather than by the forward-allocation table at `92_risk-register.md:33`–`:35` having been written wrong. In that case `R11`'s **id** is wrong while its **content** stays correct, and the remedy is a renumber SUB-14 performs, not a rewrite this sub-task owes.
+- **Re-validation trigger:** **SUB-14's aggregation pass.** It is the first moment at which one party holds every authored `R<n>` entry at once and can check the set against the charter for collisions and holes. The check is cheap and mechanical: fifteen rows, fifteen ids, no duplicates and no gaps.
+- **Why it is a stand-in rather than a finding:** Because nothing has been checked and refuted. `F-S3-3` is the finding — it records that two sources disagree at rows 10–12 as read at their respective cutoffs, and it explicitly declines to assert that SUB-1 erred. This entry records the one thing the design here **rests on** and cannot verify: `_local/` is gitignored and unversioned, so the two readings genuinely cannot be diffed. **Seven independent cross-checks were run and all seven agree** — `R1`, `R8`, `R9`, `R10`, `R12`, `R13` and `R14`, each already authored, each matching charter position rather than the allocation table (`11_the-client-compatibility-contract.md` §10) — which is strong corroboration and is **not** the same as confirmation.
+
+## `A-S11-2` — That the production `client_credentials` token carries no `sub`, so the CD smoke principal resolves to kind `client`
+
+- **Status:** `[unconfirmed]`, and **unconfirmable from this environment**
+- **Stands in for:** An observation of a real production `client_credentials` token's claim set. None exists. `SPK-S1-1` is the spike designed to take it — **not executed, confidence `none`** — and no production credential is available here (`SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*`, `VPS_*` all unset).
+- **Assumption:** A `client_credentials` grant from the production Rauthy IdP yields a token with **no `sub`**. Under `DR-C11-S2-2` the principal kind then resolves to `client`, the learner key is `NULL`, and `DR-C11-S5-1` clause 3 refuses every row-owning operation for it. **This is what the whole of `11_the-client-compatibility-contract.md` §7 rests on**, and it is the belief `src/transport/jwt-middleware.ts:116` records in a code comment.
+- **Owner:** **The creator, as sole maintainer and sole operator** — the only party who can mint a token against the production IdP; `OI-S1-1` is the owning open item and `SPK-S1-1` the owning spike, both **cited from their single owning records rather than re-raised here**.
+- **Tolerance envelope:** The assumption tolerates anything that leaves the token `sub`-less — a Rauthy version change, a client re-provisioning, a scope change. It does **not** tolerate the token acquiring a `sub` by any route. **It is deliberately not load-bearing outside §7 and one row of §6.3:** `CH-1` … `CH-5` and `CH-7` are stated over principal *kinds* rather than over any particular principal, so they hold on both branches. Only §7's scenario walk, `CH-6`'s "which existing clients break" clause, and §6.3's row 6 depend on it.
+- **Invalidating outcome:** The token carries a `sub`. Then the smoke principal is kind `user`, clause 3 does not fire, **§7's walk inverts to 8 of 8 passing**, `CH-6` breaks no existing client this package knows of, and §6.3 row 6 is wrong. The complementary hazard is already registered as SUB-2's **`R-S2-2`** — that the smoke principal silently *becomes* a learner owning production rows — so the invalidating branch is not unowned; it lands on an existing entry rather than needing a new one.
+- **Re-validation trigger:** **Execution of `SPK-S1-1`**, or equivalently one run of §4.1's `P3` probe (authenticate with `client_credentials`, call a row-owning tool, observe whether the result is a refusal). Either settles it in one action. It also fires on any Rauthy upgrade or smoke-client re-provisioning, which is `R-S2-2`'s own trigger.
+- **Why it is a stand-in rather than a finding:** Because nothing has been checked and refuted — the branch is chosen, not established. **SUB-4 kept both branches live** (`92_risk-register.md:279`: *"Both are live because `OI-S1-1` / `SPK-S1-1` are open and no token has been observed"*) and this sub-task narrows to one in order to state a compatibility obligation at all. Recording that narrowing as a stand-in, rather than letting §7 read as observed fact, is the whole point of the entry.
+
+---
+
+**SUB-11 register totals at revision 1:** two entries, `A-S11-1` and `A-S11-2`, both `[unconfirmed]`,
+each with a named owner, a stated tolerance envelope, a named invalidating outcome and a
+re-validation trigger that is a scheduled or single-action event rather than a hope.
+
+**`A-S11-2` was added at revision 1 after an adversarial pass**, which found §7's premise stated as
+flat fact with no evidence label while two sibling records (`R-S2-2`, `SPK-S1-1`) carry it as an
+explicitly unobserved belief. The chapter now labels it at the point of use and this entry carries
+it. The defect is recorded here rather than silently repaired, because *"an unlisted assumption that
+voids a central derivation"* is precisely the class this register exists to catch, and a package
+whose stand-in register only ever shows the assumptions its authors noticed unaided is not evidence
+of much.
+
+**Nothing else in this sub-task is registered as a stand-in, and each exclusion has a reason.** The
+three surface figures were **re-derived**, not assumed, so 46 / 43 / 3 is an observation at a stated
+cutoff. The unobserved client population is a **cap** (`CAP-S11-1`), because the chapter rests on no
+assumption about its size — it states the size is unknown and makes no claim that needs it. The
+`F-S4-4` pricing rests on a *rollout shape* (that `CH-5`–`CH-7` might ship while `CH-1` is cut),
+which is named inside `F-S11-4` as the branch being priced rather than assumed away, and whose
+complement needs no entry. `A-28` is not restated: it is C010's, it bounds SUB-5's enforcement point
+rather than this contract, and it is cited from its single owning record where relevant.
 
 ---
 

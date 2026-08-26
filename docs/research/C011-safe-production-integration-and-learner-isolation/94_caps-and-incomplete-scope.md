@@ -248,6 +248,37 @@ would close it. None is a limit on what this package can decide — the disposit
 `06_the-disposition-of-every-unowned-row.md` §3 are settled, and not one of them turns on a row count
 or a probe result. A cap filed here would mis-describe the situation as unresolvable when it is
 merely unobserved, and would give SUB-17's audit a permanent limit where there is a closable one.
+### SUB-11
+
+#### `CAP-S11-1` — The compatibility contract is written for a client population of unknown size and unknown composition, and no existing client's behaviour was observed
+
+- **Id:** `CAP-S11-1`
+- **Cap:** `11_the-client-compatibility-contract.md` may be read as establishing what **would** happen to a client of each described shape. It may **not** be read as establishing that any such client exists, how many do, or what any of them actually does today. Every path classification in §6.3, every probe in §4.1 and every scenario verdict in §7 is a derivation from repository facts, not an observation of a client.
+- **Why it is capped:** **No production credential exists in this environment.** `SMOKE_PROD_BASE_URL`, `SMOKE_PROD_CLIENT_ID`, `SMOKE_PROD_CLIENT_SECRET`, `DATABASE_URL`, the `AUTH_*` set and the `VPS_*` set are all unset, so the production deployment cannot be reached, no token can be minted, and no client can be enumerated. This is not particular to this sub-task: across the published package **twenty-three spikes are designed and zero have been executed** — twenty at this sub-task's cutoff, plus its own `SPK-S11-1`, plus SUB-6's two, which landed between that cutoff and the merge (`96_spike-register.md`, re-enumerated by section heading, with all three figures and the reason for stating three at `11_the-client-compatibility-contract.md` §12) — and the same absence produces `CAP-S1-1`'s standing position. The one exception a reader might expect — that the CD smoke suite is itself a known client — is real and is used (§7 walks it scenario by scenario), but it is read from `tests/smoke/smoke.test.ts` and `.github/workflows/cd-prod.yml`, not observed running.
+- **What it leaves unsupported:** Four claims this chapter does **not** make. That the STDIO edge is reachable by anyone in production — C010's question, `A-S4-2` / `SPK-S4-1`. That path 4 (`TRANSPORT` unset) is the largest class **by installation count** rather than by construction — §6.3 calls it the largest class because it is what happens when nobody chooses, which is a property of the default, not a census. That the migration cost of `CH-1` is bounded — it scales with a population nobody has counted. And that the DP rubric of `F-S11-2` has ever inconvenienced a real self-hoster; it is a breach of a charter constraint, observed in the schema, with no observed victim.
+- **Owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who can reach it; **`NEU-896`** at convergence, as the recipient of a package-level evidence gap no sub-task can close from inside the repository.
+- **What would lift it:** Execution of **`SPK-S11-1`** — enumerate the clients that have actually authenticated against the deployment, by transport and by principal kind — with its result recorded against this cap. Partial lift is available and worth stating: executing `SPK-S4-1` alone (is the STDIO edge reachable, and to whom) would close the reachability limb without closing the population limb. **Nothing lifts it from the repository**, which is why it is a cap and not an open item.
+
+---
+
+**SUB-11 register totals at revision 1:** **one new cap**, `CAP-S11-1`. **No cap is recorded as
+lifted**, and no other sub-task's cap has its owner or condition altered here.
+
+**Two limits are deliberately classified as not-caps, with their real registers named.** The
+**absence of an automated set-equality check** between the empty-schema tools and `EXCLUDED_TOOLS`
+is an **open item** (`OI-S11-1`), not a cap: a cap bounds what a document may be read to establish,
+and this bounds nothing the chapter claims — the exempt set is observed at a stated cutoff and
+reported as observed. The **`qa-execution:engine` no-op** is not filed here either, and the reason
+needs one sentence more than the customary one. The automated QA phase is a genuine Core Article 8
+no-op for this sub-task as for every other: the capability registry resolves to `git, linear`, no
+provider owns the `qa-execution` surface, **no QA pass exists and none is claimed**. A per-sub-task
+duplicate would make one package-wide condition look like several independent ones, which is the
+disposition SUB-5 recorded and which this sub-task follows. **But the record SUB-5 declined in favour
+of — `CAP-S1-3` — does not exist in this register**, so the no-op is presently carried at package
+level by `README.md` § *"Verification note — `qa-execution:engine` is unconfigured"* alone, as prose
+rather than as a cap. That is registered as **`F-S11-5`** and routed to SUB-14; **this sub-task
+still declines to file a duplicate**, because filing one would resolve an assembly-level gap by
+minting a per-sub-task record, which is the opposite of what the gap needs.
 
 ---
 
