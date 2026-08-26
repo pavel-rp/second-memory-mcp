@@ -642,3 +642,57 @@ gap **`R-S15-3`** already records. Each is consumed by citation and none is re-r
 **Zero dispositions of another package's items are recorded here.** This sub-task consumes C010's
 §4.3 sequencing consequence as a binding constraint and honours it (`07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §4);
 it takes no reading of any C010 residual id and closes none.
+### SUB-11
+
+#### `OI-S11-1` — Nothing keeps the gate's exclusion set and the empty-schema tool set in agreement, so the exempt figure of 3 is true at a cutoff rather than enforced
+
+- **Id:** `OI-S11-1`
+- **Item:** The exempt set is derivable two independent ways — the three tools declaring `z.object({}).shape` (`src/server/server-info-tools.ts:13`, `server-context-tools.ts:21`, `server-workflow-tools.ts:15`) and the three names hard-coded in `EXCLUDED_TOOLS` (`src/transport/context-token-middleware.ts:5`–`:9`). At cutoff `35f92ba` they name the same three tools, and `11_the-client-compatibility-contract.md` §1.2 reports that agreement as evidence. **What is open is that nothing in the repository enforces it.** A fourth empty-schema tool would not add itself to `EXCLUDED_TOOLS`, and a name removed from `EXCLUDED_TOOLS` would not gain a schema. The two can diverge in either direction, and the directions are not symmetric: a tool in `EXCLUDED_TOOLS` without an empty schema is **ungated but declares an argument nobody checks**, while an empty-schema tool absent from `EXCLUDED_TOOLS` is **gated on a token its schema does not accept** — which is a hard failure for every caller of it. Neither is detectable by a tool-manifest diff.
+- **Status:** open
+- **Source:** `11_the-client-compatibility-contract.md` §1.2 and §4.2; the six repository locations cited above, read at `35f92ba`.
+- **Consumer:** **SUB-13 (`NEU-1006`)** under OUT-19, which authors the DDL and the runbook's verification steps and is the nearest scheduled party positioned to add a set-equality assertion; **SUB-12 (`NEU-1005`)** under OUT-17, for which an exemption that can drift silently is a threat-model input rather than a fixed boundary.
+- **Owner:** **SUB-13 (`NEU-1006`)** for the assertion; **the implementation charter `NEU-896` hands the work to**, for the re-check at the landing cutoff.
+- **Resolving event:** A test or lint rule asserting that the set of registered tools declaring an empty input schema equals `EXCLUDED_TOOLS` lands on `origin/develop`. **This package cannot produce it** — it would be a `tests/` or `src/`-adjacent change, out of scope by constraint — so the item is opened rather than closed, which is the correct outcome and not a shortfall.
+- **Why not a stand-in:** Because nothing is being assumed. The current state is **observed** at a stated cutoff and reported as observed; what is missing is a mechanism, not a fact. A stand-in would imply this chapter had guessed the exempt set, and it did not.
+
+#### `OI-S11-2` — If the gate extraction wraps handlers rather than the server, the compatibility contract acquires a detection obligation it does not otherwise have
+
+- **Id:** `OI-S11-2`
+- **Item:** `11_the-client-compatibility-contract.md` §6.2 establishes that a transport-neutral gate must interpose between *"a `tools/call` arrives"* and *"the registered handler runs"*, and that the MCP SDK offers no documented hook at that layer — `createMcpServer` returns a bare `McpServer` whose tools are attached by 46 individual `registerTool` calls (`src/transport/create-server.ts:17`–`:23`). The extraction can therefore land in one of two places: **option A**, one adapter wrapping the server or the message stream, touching `src/transport/` only; or **option B**, a decorator applied at each registration site, touching all 46 across 16 modules. **What is open is which.** It is not decidable here, because it depends on the SDK's actual interposition surface at the version the implementation charter builds against, and this package designs rather than implements.
+- **Status:** open
+- **Source:** `11_the-client-compatibility-contract.md` §6.2, and `91_findings-register.md` § `F-S4-4` for the underlying fact that no seam exists.
+- **Consumer:** **`SUB-10 of C010 (NEU-984)`**, co-named **`NEU-896`**, as `CC-S8-3`'s owner — the fork is the thing that sizes the work it owns; **SUB-13 (`NEU-1006`)** under OUT-19, which inherits the verification step if option B is taken; **SUB-7 (`NEU-1001`)** under OUT-3, because a 46-site change and a one-site change stage differently.
+- **Owner:** **`SUB-10 of C010 (NEU-984)`**, co-named **`NEU-896`**.
+- **Resolving event:** The extraction's design is settled — either an interposition adapter lands in `src/transport/`, or a decorator lands at the registration sites. On option B the item resolves **with a consequent obligation**: an assertion that the wrapped-handler set equals the non-exempt registered set, because a forgotten decorator on one of 46 sites yields a tool that is registered, believed gated, and ungated — a failure §1.3's schema mapping cannot catch, since that mapping checks *declarations*, not *wrapping*.
+- **Why not a stand-in:** Because no branch is assumed. The chapter prices **both** and states the consequence of each; nothing downstream of it depends on which is chosen, so there is no assumption to register a tolerance envelope against.
+
+#### `OI-S11-3` — The core-change clause this package measures DP-specificity against resolves to no file, and this sub-task is its only citer
+
+- **Id:** `OI-S11-3`
+- **Item:** The constraint *"core changes must be reusable, backward-compatible, non-DP-specific and fail safely"* reaches this sub-task as **`C005 charter :61`** — via `01_charter.md` § Constraints and this sub-task's tracker description. **The reference names no file, and no C005 charter exists in this repository**: nothing under `docs/research/` and nothing in `_local/` carries one, and **no other C011 chapter cites C005 at all**. It is additionally invisible to the citation gate, which discards any candidate beginning with `:` (`scripts/citation-paths/checker.ts:122`), so a green checker run says nothing about it. What is open is where the clause is actually written, and therefore whether the wording this package measures against is the wording that was ratified.
+- **Status:** open
+- **Source:** `11_the-client-compatibility-contract.md` §9; `_local/C011__resolve-safe-production-integration-and-learner-isolation/01_charter.md` § Constraints (gitignored); `scripts/citation-paths/checker.ts:122`.
+- **Consumer:** **SUB-17 (`NEU-1008`)** under OUT-20, whose citation audit requires every codebase and upstream claim to resolve to a real path or carry a version and date — this one does neither; **SUB-14 (`NEU-1007`)**, which assembles the package a cold reader receives and for which an unresolvable authority is a house-style defect.
+- **Owner:** **`NEU-896`** at convergence, as the party holding the cross-package charter set and the only one positioned to say where C005 lives; **SUB-14 (`NEU-1007`)** for the package-side disposition — cite it resolvably, restate the clause with a real source, or record it as an inherited-by-charter standard.
+- **Resolving event:** A resolvable citation for the clause lands — a path plus a line, or a named document with a date — or the package records explicitly that the standard is inherited on the charter's authority and is not independently verifiable from the repository.
+- **Why not a stand-in:** Because nothing here rests on the clause's *wording* being one thing rather than another. `F-S11-2`'s substance — that four dynamic-programming criterion keys are required fields in core tool schemas — is an observation about `src/` that holds under any phrasing of a non-DP-specificity rule. What is missing is a verifiable **authority**, not a load-bearing **belief**, so this is an open item and not an assumption with a tolerance envelope.
+
+---
+
+**SUB-11 register totals at revision 1:** three open items, `OI-S11-1`, `OI-S11-2` and `OI-S11-3`,
+all open at this revision. Each carries a named owner and an observable resolving event, neither
+blank. **Zero dispositions of another package's items are recorded here.** **Zero second records:**
+C010's `OI-S8-1` — that `context_tokens` names no principal — is cited from its single owning record
+inside `11_the-client-compatibility-contract.md` §2 rather than re-raised; `OI-S3-1`
+(controller/processor and lawful basis) is cited in §8's escape table on the same rule; and
+**`OI-S1-1`** — whether a production `client_credentials` token carries a `sub` — is cited from its
+single owning record in §7.1 and carried as the stand-in `A-S11-2`, **not** re-raised as a fourth
+open item here.
+
+**Zero of three correspond to a spike entry**, and the reason is uniform: none is settled by an
+experiment against production. `OI-S11-1` needs a test written, `OI-S11-2` needs a design decision
+taken, and `OI-S11-3` needs a document located — all settled by work rather than by observation. The
+two questions this sub-task *does* need production to answer are registered elsewhere: whether any
+existing client exists at all is **`SPK-S11-1`**, with `CAP-S11-1` as its standing cap; and whether
+the smoke principal's token carries a `sub` is **`SPK-S1-1`**, cited rather than re-designed, with
+`A-S11-2` carrying the assumption this chapter makes in its absence.
