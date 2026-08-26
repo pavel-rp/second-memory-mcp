@@ -7,8 +7,9 @@
 ## Decision
 
 **Clause 1 — the claim.** Every copy of learner-derived data this deployment creates comes to rest
-in one of the six enumerated copy classes, or in one of the **two named exceptions** of clause 5 —
-the outbound egress to external providers (5a) and the process's own stderr log sink (5b).
+in one of the six enumerated copy classes, or in one of the **three named exceptions** of clause 5 —
+the outbound egress to external providers (5a), the process's own stderr log sink (5b), and the
+STDIO host's application state (5c).
 
 **Clause 2 — the argument is over write paths, not over stores.** Enumerating stores and asserting
 the list is complete is unfalsifiable: a store nobody thought of is invisible to a survey of stores
@@ -19,11 +20,12 @@ it, and the write set is bounded by the source tree.
 
 | # | Write channel | How enumerated | Result | Lands in |
 | --- | --- | --- | --- | --- |
-| `W-1` | Database writes | `.insert(` / `.update(` / `.delete(` across `src/` | 14 files; the learner-data writers are the row-owning Drizzle adapters plus the two log transports | Classes 1, 4, 5 |
+| `W-1a` | Database writes via the query builder | `.insert(` / `.update(` / `.delete(` across `src/` | 14 files; the learner-data writers are the row-owning Drizzle adapters | Class 1 |
+| `W-1b` | Database writes via **raw SQL** | `INSERT INTO` across `src/` | **The two log transports** — `src/transport/pg-audit-transport.ts:117`, `src/transport/pg-event-transport.ts:109`. The `W-1a` grep does **not** reach them | Classes 4, 5 |
 | `W-2` | Filesystem writes | `writeFile` / `appendFile` / `createWriteStream` / `writeFileSync` / `mkdir` across `src/` | **Zero matches** | — (no class needed) |
-| `W-3` | Outbound network | `fetch(` / `axios` / `http.request` / `new OpenAI` / `createClient` across `src/` | **Three call sites; two carry learner content** | **Egress exception**, clause 5a |
+| `W-3` | Outbound network | `fetch(` / `axios` / `http.request` / `new OpenAI` / `new Ollama` / `createRemoteJWKSet` / `createClient` across `src/` | **Five call sites; three carry learner content** | **Egress exception**, clause 5a |
 | `W-4` | Process-local memory | SUB-3's inventory, consumed as recorded | 10 structures (`LD-S3-18` … `LD-S3-27`) | Class 1 (volatile) |
-| `W-5` | The MCP response itself | The protocol's own return path | Reaches the client device | Class 2 |
+| `W-5` | The MCP response itself | The protocol's own return path | The client device — a **browser** under HTTP, an **MCP host application** under STDIO | Class 2 under HTTP; **outside every class under STDIO** — clause 5c |
 | `W-6` | Database backup process | Outside `src/` by construction — a platform arrangement, not a code path | Existence unestablished | Class 3, cited to `OI-S1-8` |
 | `W-7` | This package's own capture activity | SUB-1's terms, consumed as recorded | Zero members | Class 6 (`LD-S3-31`) |
 | `W-8` | **Process stderr** — the pino logger's own sink | `src/shared/logger.ts:65` (`pino.destination(2)`); the redact config's own scope statement at `:25`–`:26` | **Carries learner content**, and the redaction is credentials-only | **Log-sink exception**, clause 5b |
@@ -31,39 +33,60 @@ it, and the write set is bounded by the source tree.
 **Clause 4 — the argument.**
 
 > **Claim.** No copy of learner-derived data created by this deployment rests outside the six
-> classes and the **two** named exceptions of clause 5.
+> classes and the **three** named exceptions of clause 5.
 >
-> **Argument.** A copy exists at a location only if some write placed it there. `W-1` … `W-8`
-> enumerate every channel by which a byte can leave the process: persistence, disk, network, memory,
-> protocol response, platform backup, this package's own activity, and **the process's own standard
-> streams**. A byte that is none of these has not left the process. `W-2` is empty **by
-> measurement**. `W-1`, `W-4`, `W-5`, `W-6` and `W-7` each terminate in an enumerated class. `W-3`
-> and `W-8` terminate outside all six and are **named as exceptions rather than absorbed**. ∎
+> **Argument.** A copy exists at a location only if some write placed it there. `W-1a` … `W-8`
+> enumerate every channel by which a byte can leave the process: persistence (by query builder and
+> by raw SQL), disk, network, memory, protocol response, platform backup, this package's own
+> activity, and **the process's own standard streams**. A byte that is none of these has not left
+> the process. `W-2` is empty **by measurement**. `W-1a`, `W-1b`, `W-4`, `W-6` and `W-7` each
+> terminate in an enumerated class, as does `W-5` under HTTP. `W-3`, `W-8` and `W-5`-under-STDIO
+> terminate outside all six and are **named as exceptions rather than absorbed**. ∎
 
-**On the eighth channel, and why the first draft of this record did not have one.** An earlier
-revision of this argument asserted `W-1` … `W-7` and the sentence *"there is no eighth channel"*.
-That was wrong, and it was wrong in the most dangerous available way: the missing channel carries
-learner free text, and the enumeration that missed it had already been checked by four greps and
-returned green. `W-2`'s grep looked for `writeFile`, `appendFile`, `createWriteStream`,
-`writeFileSync` and `mkdir` — **none of which a logger writing to a file descriptor calls.** The
-defect is recorded here rather than quietly repaired, because the fact that a green four-grep check
-missed an entire egress channel is the most useful thing this record can tell a later reader about
-how much a green check is worth.
+**What this enumeration got wrong three times before it held.** Each correction is published, because
+each is evidence about how much a green check is worth.
+
+1. **`W-8` was absent.** The first draft asserted seven channels and *"there is no eighth channel"*,
+   backed by four greps that all returned green. The greps searched for `writeFile`, `appendFile`,
+   `createWriteStream`, `writeFileSync` and `mkdir` — **none of which a logger writing to a file
+   descriptor calls** — so a channel carrying unredacted learner free text sat outside a check that
+   reported clean. Found on self-review.
+2. **`W-1` was one row and needed two.** It claimed the two log transports were among the 14 files
+   its grep matched. They are not: both write by **raw SQL string**, which `.insert(` never matches.
+   The two writers classes 4 and 5 exist for were outside the enumeration. Found on independent
+   adversarial review.
+3. **`W-3` said "exactly three" call sites and there are five.** `new OpenAI` matches
+   `new OpenAIEmbeddings` but not `new OllamaEmbeddings` — a second embedding provider carrying the
+   same chunk text. `createRemoteJWKSet` was likewise unenumerated. Found on independent adversarial
+   review.
+
+**All three are one defect:** a grep written from a mental list of APIs, whose green result was read
+as a property of the *system* rather than of the *pattern*. That is why clause 6 refuses to state the
+falsifier as a fixed number of greps.
 
 **Clause 5a — the named egress exception, stated as a finding and not as a footnote.** `W-3` resolves
-to exactly three outbound call sites at this cutoff:
+to **five** outbound call sites at this cutoff, **three** carrying learner content:
 
 | Call site | What it sends | Learner content? |
 | --- | --- | --- |
 | `src/adapters/langchain/embedding-adapter.ts:89` — `new OpenAIEmbeddings({` | Chunk text, for embedding | **Yes** |
+| `src/adapters/langchain/embedding-adapter.ts:118` — `new OllamaEmbeddings({` | **The same chunk text**, when `provider === 'ollama'` (`:71`–`:72`) | **Yes** |
 | `src/adapters/langchain/content-classifier-adapter.ts:199` — `new ChatOpenAI({`, invoked at `:145` | Classifier prompts over learner content | **Yes** |
 | `src/transport/jwt-middleware.ts:15` — `fetch(discoveryUrl, …)` | The IdP discovery document request | No |
+| `src/transport/jwt-middleware.ts:2` — `createRemoteJWKSet` | The JWKS URI fetch | No |
 
-The first two create a copy of learner-derived data **in a third party's systems**, outside every
-class the matrix defines and outside any mechanism this package can bind. This is `F-S5-2`'s content
-egress reaching the propagation matrix from the other side. It is registered as **`F-S9-1`** with a
-named owner, exactly as OUT-12 requires of "any copy the unowned-copy audit surfaces that no class
-claims."
+The three learner-content sites create a copy **in a third party's systems**, outside every class the
+matrix defines and outside any mechanism this package can bind. This is `F-S5-2`'s content egress
+reaching the propagation matrix from the other side. Registered as **`F-S9-1`**, exactly as OUT-12
+requires of "any copy the unowned-copy audit surfaces that no class claims."
+
+**The Ollama branch changes the shape of the question rather than only the count.** Its destination
+is operator-configurable — `baseUrl: this.config.ollamaBaseUrl` from `OLLAMA_BASE_URL`
+(`src/config/resolve-embedding-config.ts:34`), defaulting to `http://localhost:11434`
+(`src/domain/config/embedding-defaults.ts:11`). So *whether learner content leaves the deployment at
+all* depends on a runtime environment variable, and the self-hosted default would keep it inside.
+Which branch production runs is **not establishable from the repository**, and is what `SPK-S9-1`
+asks.
 
 **Clause 5b — the named log-sink exception.** `W-8` is the pino logger's stderr sink. Three facts
 fix it, all from the same file:
@@ -85,9 +108,24 @@ database, outside every port, and outside all six classes. Its consequence is th
 of `R2` in the package: **an erasure that correctly clears both log tables leaves the same content in
 the container's log files.** Registered as **`F-S9-5`** with a named owner.
 
+**And on STDIO the sink is not a mirror but the sole destination.** The event and audit DB-transports
+are wired at exactly one site, inside `startHttpTransport` — `src/transport/http.ts:179` and `:181`.
+The STDIO branch (`src/transport/main.ts:55`–`:58`) calls neither, so `eventPinoLogger` is `null` for
+the process lifetime and `logEvent` takes its fallback arm with the full `data` payload attached
+(`src/shared/logger.ts:247`–`:251`). Under STDIO the whole operational-event stream goes to stderr
+**instead of** the database, and no audit rows are written at all.
+
+**Clause 5c — the named STDIO-host exception.** `W-5` routes the MCP response to the client device,
+which clause 3 assigns to class 2. Class 2 is defined by charter assumption 42, consumed as given, as
+browser-side state — local storage, session storage, cookies and cache. Under STDIO
+(`src/transport/main.ts:57`) the peer is a desktop or CLI MCP host, and the response comes to rest in
+that host's own transcript or cache, which class 2's definition **excludes by its own words**. This
+record does **not** widen class 2 to cover it: widening a class the charter defined is the "redefined
+silently" move assumption 42 forbids. It is named, and carried in `F-S9-4`.
+
 **Clause 6 — the falsifier.** The claim is false if anyone exhibits **a write of learner-derived
-data whose destination is none of the six classes, is not one of clause 5a's two named egress call
-sites, and is not clause 5b's stderr sink.** The falsification procedure is the enumeration itself,
+data whose destination is none of the six classes, none of clause 5a's three learner-content egress
+call sites, not clause 5b's stderr sink, and not clause 5c's STDIO host state.** The falsification procedure is the enumeration itself,
 re-run — mechanical, no production access required. **It is deliberately not stated as a fixed
 number of greps.** An earlier revision said "four greps", and four greps is precisely what missed
 `W-8`: a channel reached through a file descriptor matches none of the write-call names a grep for
@@ -102,7 +140,7 @@ two are different questions and are not merged here.
 
 **Why a closure argument at all.** No production credential exists in this environment
 (`SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and `VPS_*` all unset, verified 2026-08-26), and the
-package has executed **zero of twenty-two** designed spikes, with the evidence label
+package has executed **zero** of its designed spikes — twenty-two at this record's cutoff, twenty-four on the branch that ships it (`F-S9-2`) — with the evidence label
 `observed-in-production` used **zero** times anywhere in it. A propagation proof demonstrated
 against a real copy is therefore unavailable, and the charter forbids the alternative that would
 have made it available. What remains is either an argument or a deferred spike; this record gives
@@ -144,7 +182,7 @@ self-certification also produces. This one found something, named it, and routed
 | # | Alternative | Why it lost |
 | --- | --- | --- |
 | 1 | **Enumerate stores and assert completeness** | Unfalsifiable in exactly the way the charter warns against: a store nobody thought of is invisible to a survey of stores people thought of. Produces a green result indistinguishable from a false self-certification. |
-| 2 | **Demonstrate propagation against a real copy** | No production credential exists. Zero of twenty-two spikes have executed. This is the alternative the environment forecloses, not one that was declined on preference. |
+| 2 | **Demonstrate propagation against a real copy** | No production credential exists. Zero designed spikes have executed. This is the alternative the environment forecloses, not one that was declined on preference. |
 | 3 | **Defer the whole proof to a spike, publishing no argument** | Leaves OUT-12's central claim unmade at position 11, and blocks SUB-12, which consumes it. A deferred spike is registered (`SPK-S9-1`) *in addition to* the argument, not instead of it. |
 | 4 | **Absorb the egress copies into class 1** ("MCP-owned state") on the grounds that the MCP tier initiated the call | Plainly false: the copy rests in a third party's systems, which the MCP tier neither owns nor can reach. Absorbing it would make "no unowned copy" true by relabelling — the exact paper completion `R2` names. |
 | 5 | **Treat egress as out of scope because `F-S5-2` already routed it to SUB-8** | `F-S5-2` routed the *confinement* consequence. The *propagation* consequence — that a data right cannot reach the egressed copy — is OUT-12's and has no other home. Reporting it here creates no second record of `F-S5-2`; it is a distinct finding with a distinct consequence. |
@@ -177,7 +215,7 @@ self-certification also produces. This one found something, named it, and routed
 | Learner content egresses via the classifier adapter | `src/adapters/langchain/content-classifier-adapter.ts:199`, invoked at `:145` |
 | The third outbound call carries no learner content | `src/transport/jwt-middleware.ts:15` |
 | The Tier-2 aggregate escapes the enforcement point | `../05_the-enforcement-point-that-confines-every-read-and-write.md:605`–`:611` |
-| Four things escape the enforcement point, each named with its route | `../05_the-enforcement-point-that-confines-every-read-and-write.md:544`–`:546` |
+| Four things escape the enforcement point, each named with its route | `../05_the-enforcement-point-that-confines-every-read-and-write.md:546`–`:547` |
 | Operator and `psql` paths are outside every port | `../05_the-enforcement-point-that-confines-every-read-and-write.md:719`–`:722` |
 | An aggregate is confined iff the predicate applies before aggregation | `../05_the-enforcement-point-that-confines-every-read-and-write.md:591`–`:593` |
 | SUB-6's input-closure argument and its ∎ | `../06_the-disposition-of-every-unowned-row.md:579`–`:585` |
@@ -185,8 +223,14 @@ self-certification also produces. This one found something, named it, and routed
 | The empirical diff was rejected as self-defeating | `../06_the-disposition-of-every-unowned-row.md:573`–`:577` |
 | SUB-3's ten in-memory structures | `../03_learner-data-inventory-and-classification.md:134`–`:142` |
 | Backups are unestablished; single record | `../93_open-items-and-provisional-register.md:117`–`:132` |
-| The sixth class has zero members | `../01_production-evidence-and-the-access-audit.md:128` |
+| The sixth class has zero members | `../01_production-evidence-and-the-access-audit.md:154` |
 | The pino logger writes to file descriptor 2 in MCP mode | `src/shared/logger.ts:65` |
+| `logEvent` falls back to the stderr logger when no DB event logger is set | `src/shared/logger.ts:247`–`:251` |
+| The DB transports are wired only inside `startHttpTransport` | `src/transport/http.ts:179`, `:181` |
+| The STDIO branch wires neither | `src/transport/main.ts:55`–`:58` |
+| The two log transports write by raw SQL, not the query builder | `src/transport/pg-audit-transport.ts:117`; `src/transport/pg-event-transport.ts:109` |
+| A second embedding provider carries the same chunk text | `src/adapters/langchain/embedding-adapter.ts:118`, selected at `:71`–`:72` |
+| Its destination is operator-configurable | `src/config/resolve-embedding-config.ts:34`; `src/domain/config/embedding-defaults.ts:11` |
 | The redact config spans every sink, stderr included | `src/shared/logger.ts:25`–`:26` |
 | The redaction is a credentials-only path list | `src/shared/logger.ts:39`–`:54` |
 | Learner `response` text is intentionally not redacted | `src/shared/logger.ts:35`–`:36` |

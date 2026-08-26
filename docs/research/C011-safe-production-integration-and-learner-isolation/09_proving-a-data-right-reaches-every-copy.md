@@ -33,9 +33,9 @@ most misreadable seam in the package, and `R-S6-1` exists because SUB-6 saw that
 
 | Sub-task | What it decided | What it left | 
 | --- | --- | --- |
-| **SUB-8** (position 10) | What an erasure request *means* per category, and that `unreachable` is a real disposition value rather than a rounding error (`08_consent-and-what-a-learner-can-export-and-erase.md:398`) | **What to do about the unreachable population.** It refused to narrow the duty to fit the mechanism: *"The duty covers both populations; only the mechanism reaches one"* (`:470`–`:472`) |
+| **SUB-8** (position 10) | What an erasure request *means* per category, and that `unreachable` is a real disposition value rather than a rounding error (`08_consent-and-what-a-learner-can-export-and-erase.md:389`–`:390`; the enum row itself is `:398`) | **What to do about the unreachable population.** It refused to narrow the duty to fit the mechanism: *"The duty covers both populations; only the mechanism reaches one"* (`:470`–`:472`) |
 | **SUB-5** (position 5) | Where confinement is enforced, and that the same pre-cutover rows become invisible to everyone once it lands (`05_the-enforcement-point-that-confines-every-read-and-write.md:616`–`:641`) | The disposition of the population, explicitly out of scope there |
-| **SUB-6** (position 8) | **Where the rows live** — `archive`, moved intact to a closed store outside the confined surface, deleting nothing (`06_the-disposition-of-every-unowned-row.md:175`) | **What a data right does to them.** It states all three options survive (`:311`–`:313`) and that `F-S8-2` is *"neither discharged nor re-raised here"* (`:337`–`:341`) |
+| **SUB-6** (position 8) | **Where the rows live** — `archive`, moved intact to a closed store outside the confined surface, deleting nothing (`06_the-disposition-of-every-unowned-row.md:175`) | **What a data right does to them.** It states all three options survive (`:311`–`:313`) and that `F-S8-2` is *"not discharged here"*, remains blocking, and is neither re-raised nor re-dispositioned (`:337`–`:339`) |
 | **SUB-9** (this chapter, position 11) | **What a data right does to them** — `DR-C11-S9-1` | The execution, which this package applies nowhere |
 
 **SUB-6 decided where the rows live; this chapter decides what a data right does to them.** They are
@@ -54,7 +54,7 @@ something mechanical to range over.
 | **C1** | **MCP-owned state** | Every store the MCP core writes: the ten `public` tables, the two `infrastructure` tables defined in `src/infrastructure/db/schema.ts`, and the ten process-local in-memory structures | `LD-S3-1` … `LD-S3-15`, `LD-S3-18` … `LD-S3-27` |
 | **C2** | **Web-owned state** — browser-side only, under `M-A` | Local storage, session storage, cookies and cache **on the learner's own device**. See §3.1 | none — no server-side member exists |
 | **C3** | **Backups** | Any copy produced by a platform-level backup arrangement for the production database. Existence unestablished | none inventoried; the fact is `OI-S1-8` |
-| **C4** | **Operational logs** | `infrastructure.operation_event_log`, defined in raw SQL under `drizzle/`, behind no port | `LD-S3-17` |
+| **C4** | **Operational logs** | `infrastructure.operation_event_log`, defined in raw SQL under `drizzle/`, **behind no port that `NEU-850`'s `OUT-2` reaches** — SUB-5's qualifier, kept: `Tier2BlockingStatsRepository` (`src/ports/tier2-blocking-stats-repository.ts`) *is* a port over this table, but an aggregate one with no ownership key | `LD-S3-17` |
 | **C5** | **Audit logs** | `infrastructure.mcp_request_log`, defined in raw SQL under `drizzle/`, behind no port | `LD-S3-16` |
 | **C6** | **The package's own captured production evidence** | This package's captures of real learner-derived production data. **Zero members; terms exist anyway** | `LD-S3-31` |
 
@@ -81,8 +81,8 @@ is a grant `NEU-896` converges and is not pre-empted here.
 ### 4.1 Why an argument
 
 **No production credential exists.** `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and `VPS_*` are all
-unset, verified 2026-08-26 in this environment. Across the package, **zero of twenty-two designed
-spikes have executed** and the evidence label `observed-in-production` has been applied **zero**
+unset, verified 2026-08-26 in this environment. Across the package, **zero designed
+spikes have executed** — twenty-four at this branch's HEAD, twenty-two at cutoff `ee0a750` (`F-S9-2`) — and the evidence label `observed-in-production` has been applied **zero**
 times. Propagation cannot be demonstrated against a real copy, and the alternative that would make
 it demonstrable — extracting real rows — is not authorized.
 
@@ -105,46 +105,65 @@ Enumerated statically at cutoff `ee0a750`:
 
 | # | Write channel | Method | Result | Lands in |
 | --- | --- | --- | --- | --- |
-| `W-1` | Database writes | grep `.insert(` / `.update(` / `.delete(` over `src/` | 14 files; learner-data writers are the row-owning Drizzle adapters and the two log transports | C1, C4, C5 |
+| `W-1a` | Database writes via the query builder | grep `.insert(` / `.update(` / `.delete(` over `src/` | 14 files; the learner-data writers are the row-owning Drizzle adapters | C1 |
+| `W-1b` | Database writes via **raw SQL** | grep `INSERT INTO` over `src/` | **The two log transports**, which the `W-1a` grep does **not** reach — `src/transport/pg-audit-transport.ts:117`, `src/transport/pg-event-transport.ts:109` | C4, C5 |
 | `W-2` | Filesystem writes | grep `writeFile` / `appendFile` / `createWriteStream` / `writeFileSync` / `mkdir` over `src/` | **Zero matches** | — |
-| `W-3` | Outbound network | grep `fetch(` / `axios` / `http.request` / `new OpenAI` / `createClient` over `src/` | **Three call sites; two carry learner content** | **Egress exception, §4.4** |
+| `W-3` | Outbound network | grep `fetch(` / `axios` / `http.request` / `new OpenAI` / `new Ollama` / `createRemoteJWKSet` / `createClient` over `src/` | **Five call sites; three carry learner content** | **Egress exception, §4.4** |
 | `W-4` | Process-local memory | SUB-3's inventory, read as recorded | Ten structures | C1 |
-| `W-5` | The MCP response | The protocol's own return path | The client device | C2 |
+| `W-5` | The MCP response | The protocol's own return path | The client device — **browser under HTTP, an MCP host application under STDIO** | C2 under HTTP; **outside every class under STDIO** — §4.6 |
 | `W-6` | Platform backup | Outside `src/` by construction | Existence unestablished | C3 (`OI-S1-8`) |
 | `W-7` | This package's captures | SUB-1's terms, read as recorded | Zero members | C6 |
 | `W-8` | **Process stderr** | The pino logger's own sink — `src/shared/logger.ts:65` | **Carries learner free text**; redaction is credentials-only | **Log-sink exception, §4.5** |
 
 > **Claim.** No copy of learner-derived data created by this deployment rests outside the six
-> classes and the **two** named exceptions.
+> classes and the **three** named exceptions of §4.4, §4.5 and §4.6.
 >
-> **Argument.** A copy exists at a location only if some write placed it there. `W-1` … `W-8`
-> enumerate every channel by which a byte can leave the process: persistence, disk, network, memory,
-> protocol response, platform backup, this package's own activity, and **the process's own standard
-> streams**. A byte that is none of these has not left the process. `W-2` is empty **by
-> measurement**. `W-1`, `W-4`, `W-5`, `W-6` and `W-7` each terminate in an enumerated class. `W-3`
-> and `W-8` terminate outside all six and are **named as exceptions rather than absorbed**. ∎
+> **Argument.** A copy exists at a location only if some write placed it there. `W-1a` … `W-8`
+> enumerate every channel by which a byte can leave the process: persistence (by query builder and
+> by raw SQL), disk, network, memory, protocol response, platform backup, this package's own
+> activity, and **the process's own standard streams**. A byte that is none of these has not left
+> the process. `W-2` is empty **by measurement**. `W-1a`, `W-1b`, `W-4`, `W-6` and `W-7` each
+> terminate in an enumerated class, as does `W-5` under HTTP. `W-3`, `W-8` and `W-5`-under-STDIO
+> terminate outside all six and are **named as exceptions rather than absorbed**. ∎
 
-The completeness claim rests on `W-1` … `W-8` partitioning process egress, which is a property of
+The completeness claim rests on `W-1a` … `W-8` partitioning process egress, which is a property of
 the runtime rather than of this chapter's diligence. `W-2`'s zero is the measurement carrying the
 most weight among the rows that resolve into a class: the deployment writes **no** learner data to
-disk *through a filesystem API*, which removes an entire family of copies — temp files, on-disk
-exports — that a store survey could only have reasoned about speculatively.
+disk *through a filesystem API*, which removes temp files and on-disk exports — a family a store
+survey could only have reasoned about speculatively. **It removes nothing about log files**, which
+is `W-8`.
 
-**`W-8` was missing from the first draft of this section, and saying so is load-bearing.** That
-draft asserted `W-1` … `W-7` and the sentence *"there is no eighth channel"*, having checked the
-enumeration with four greps that all came back green. The greps looked for `writeFile`,
-`appendFile`, `createWriteStream`, `writeFileSync` and `mkdir` — **none of which a logger writing to
-a file descriptor calls** — so an entire egress channel carrying learner free text sat outside a
-check that reported clean. It was found by re-attacking the partition rather than by re-running the
-greps. This chapter reports it rather than repairing it silently, because a green mechanical check
-that missed a whole channel is exactly the evidence a reader needs about how much this chapter's
-other green checks are worth.
+### 4.2.1 What this enumeration got wrong the first three times, and why that is published
+
+This section is the most-corrected artifact in this sub-task, and the corrections are recorded
+rather than smoothed away, because each one is evidence about how much a green check is worth.
+
+1. **`W-8` was absent.** The first draft asserted seven channels and the sentence *"there is no
+   eighth channel"*, backed by four greps that all returned green. The greps searched for
+   `writeFile`, `appendFile`, `createWriteStream`, `writeFileSync` and `mkdir` — **none of which a
+   logger writing to a file descriptor calls** — so an entire channel carrying unredacted learner
+   free text sat outside a check that reported clean. Found on self-review (§4.5).
+2. **`W-1` was one row and should have been two.** It claimed the two log transports were among the
+   14 files its grep matched. They are not: both write by **raw SQL string**
+   (`src/transport/pg-audit-transport.ts:117`, `src/transport/pg-event-transport.ts:109`), which
+   `.insert(` never matches. The two writers that C4 and C5 exist for were outside the enumeration
+   whose exhaustiveness the argument rests on. Found on independent adversarial review.
+3. **`W-3` said "exactly three" outbound call sites and there are five.** The grep pattern
+   `new OpenAI` matches `new OpenAIEmbeddings` but **not** `new OllamaEmbeddings` — a second
+   embedding provider carrying the same chunk text (§4.4). `createRemoteJWKSet` was likewise
+   unenumerated. Found on independent adversarial review.
+
+**The common shape of all three is one defect, not three:** a grep written from a mental list of
+APIs, whose green result was then read as a property of the *system* rather than a property of the
+*pattern*. That is the package's most-repeated failure class, and this section reproduced it three
+times before the enumeration held. A reader should weight §4.3's falsifier accordingly — it is
+stated as a procedure precisely because the greps are not the method.
 
 ### 4.3 The falsifier, stated
 
 > **The claim is false if anyone exhibits a write of learner-derived data whose destination is
-> neither one of the six classes, nor one of §4.4's two named egress call sites, nor §4.5's stderr
-> sink.**
+> none of the six classes, none of §4.4's three learner-content egress call sites, not §4.5's
+> stderr sink, and not §4.6's STDIO host state.**
 
 The falsification procedure is the enumeration re-run — mechanical, no production access, any
 reader. **It is deliberately not stated as a fixed number of greps.** "Four greps" is what the first
@@ -154,17 +173,29 @@ rows, not the method.
 
 ### 4.4 What the argument found: the egress copies no class claims
 
-`W-3` resolves to exactly three outbound call sites at this cutoff:
+`W-3` resolves to **five** outbound call sites at this cutoff, of which **three** carry learner
+content:
 
 | Call site | What it sends | Learner content? |
 | --- | --- | --- |
 | `src/adapters/langchain/embedding-adapter.ts:89` — `new OpenAIEmbeddings({` | Chunk text, for embedding | **Yes** |
+| `src/adapters/langchain/embedding-adapter.ts:118` — `new OllamaEmbeddings({` | **The same chunk text**, when `provider === 'ollama'` (`:71`–`:72`) | **Yes** |
 | `src/adapters/langchain/content-classifier-adapter.ts:199` — `new ChatOpenAI({`, invoked at `:145` | Classifier prompts over learner content | **Yes** |
 | `src/transport/jwt-middleware.ts:15` — `fetch(discoveryUrl, …)` | IdP discovery document | No |
+| `src/transport/jwt-middleware.ts:2` — `createRemoteJWKSet` | The JWKS URI fetch | No |
 
-The first two place a copy of learner-derived data **in a third party's systems** — outside every
-class the matrix defines, and outside any mechanism this package can bind. SUB-5 named the
-confinement half of this as `F-S5-2`; the propagation half has no other home and is reported here.
+**The Ollama branch is the more interesting of the two learner-content embedding paths**, and the
+first draft of this chapter missed it because its grep pattern was `new OpenAI`. Its destination is
+**operator-configurable to any host**: `baseUrl: this.config.ollamaBaseUrl`, resolved from
+`OLLAMA_BASE_URL` at `src/config/resolve-embedding-config.ts:34` with a default of
+`http://localhost:11434` (`src/domain/config/embedding-defaults.ts:11`). So the *same* copy class
+question — does learner content leave the deployment — has an answer that depends on a runtime
+environment variable, and a self-hosted default that would keep it inside. **Which branch production
+actually runs is not establishable from the repository**, and is exactly what `SPK-S9-1` asks.
+
+The three learner-content sites place a copy **outside every class the matrix defines** and outside
+any mechanism this package can bind. SUB-5 named the confinement half of this as `F-S5-2`; the
+propagation half has no other home and is reported here.
 
 **This is filed as `F-S9-1` with a named owner**, exactly as OUT-12 requires of *"any copy the
 unowned-copy audit surfaces that no class claims"*. It is reported, not absorbed into prose, and the
@@ -185,12 +216,28 @@ matrix's completeness claim in §7 is bounded by it explicitly.
    states outright: *"**Learner `response` text is intentionally NOT redacted** — it is useful
    diagnostic data"* (`:35`–`:36`).
 
-**The consequence is the sharpest instance of `R2` in this package.** The learner free text that C4
-and C5 hold has a copy on stderr, which in this deployment is captured by the container runtime and
-written to the host. So **an erasure that correctly clears both log tables — including the bulk
-disposal of §6 — leaves the same content in the container's log files**, outside the database,
-outside every port, and outside all six classes. The mechanism this chapter spends §6 and §7
-designing is, for this copy, entirely bypassed.
+**And on STDIO the sink is not a mirror — it is the only destination.** The event and audit
+DB-transports are wired at **exactly one site**, inside `startHttpTransport`:
+`src/transport/http.ts:179` (`createAuditPinoLogger`) and `:181` (`setEventLogger`). The STDIO
+branch — `src/transport/main.ts:55`–`:58` — calls **neither**. So under STDIO `eventPinoLogger` is
+`null` for the process lifetime and `logEvent` takes its fallback arm,
+`pinoLogger.info(entry, …)` with the full `data` payload attached
+(`src/shared/logger.ts:247`–`:251`). Two consequences:
+
+- **The entire operational-event stream — C4's content — goes to stderr instead of the database.**
+- **No audit rows are written at all**, so C5 is empty on that transport.
+
+That payload carries learner-authored text: `src/orchestration/chunk-workflows.ts:161`–`:162` and
+`src/orchestration/topic-workflows.ts:585`–`:586` both record that *"Rationales may quote
+user-supplied chunk content verbatim, so an unbounded persisted value would store unbounded PII"* —
+they **cap** the value, they do not remove the content.
+
+**The consequence is the sharpest instance of `R2` in this package.** On HTTP the learner free text
+that C4 and C5 hold has a **duplicate** on stderr; on STDIO stderr is the **sole** copy and the
+tables the matrix acts on are empty. Either way, **an erasure that correctly clears both log tables
+— including the bulk disposal of §6 — leaves the content in the host's log files**, outside the
+database, outside every port, and outside all six classes. The mechanism this chapter spends §6 and
+§7 designing is, for this copy, entirely bypassed. On STDIO it acts on nothing at all.
 
 It carries no propagation action here because none is available to this package: log-driver
 retention is a deployment arrangement outside the repository, exactly as backups are. **Filed as
@@ -199,6 +246,27 @@ retention is a deployment arrangement outside the repository, exactly as backups
 Note what this does *not* change: it is not a seventh copy class. A class is a thing the matrix
 assigns actions to, and this is a location the matrix explicitly cannot reach — the same shape as
 §4.4's egress. Admitting it as a class would imply an action exists.
+
+### 4.6 What the argument found third: the STDIO client is not a browser, and C2 says "browser"
+
+`W-5` routes the MCP response to the client's device, and §3 assigns that to **C2**. C2 is defined —
+by charter assumption 42, consumed as given — as *"local storage, session storage, cookies and
+cache"*, and §3.1 narrows it explicitly to **browser-side** state.
+
+Under STDIO the client is not a browser. `src/transport/main.ts:57` constructs a
+`StdioServerTransport`, and the peer is a desktop or CLI MCP host. The response comes to rest in
+that host's own application state — a conversation transcript, a local cache, a log — which C2's
+definition **excludes by its own words**. So `W-5` has a destination that no class covers, and the
+inherited `web-owned state` wording is the reason: it was written for a web tier and cannot stretch
+to a desktop MCP host without being redefined, which this sub-task may not do.
+
+**This is the third named exception**, and it is registered as part of `F-S9-4` rather than as a new
+finding, because it is the same fact `F-S9-4` already reports from the other side: for classes the
+deployment cannot reach, a propagation action is an *instruction*, and an instruction to an MCP host
+this package has never enumerated is weaker still. **This chapter does not silently widen C2 to
+cover it** — widening a class the charter defined is exactly the "redefined silently" move
+assumption 42 forbids. It is named, bounded, and left to `NEU-896`, which converges the client
+surface.
 
 ## 5. The membership test, applied per candidate and written down
 
@@ -354,12 +422,17 @@ The mechanism is designed here and **handed** to the owners of `CAP-S3-3` (C010)
 (C010); it is not absorbed. Both are owned by `NEU-986` (`SUB-12 of C010`), co-named `NEU-896`
 (`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:499`–`:500`).
 
-| Table | Retention window | Deletion owner | Floor, and where it comes from |
-| --- | --- | --- | --- |
-| `infrastructure.mcp_request_log` | 90 days | The creator, as sole maintainer and sole operator | No code-derived floor; 90 days is a stand-in (`A-S9-1`) |
-| `infrastructure.operation_event_log` | 90 days | The creator, as sole maintainer and sole operator | **Hard floor of 5 weeks, fixed by code** — see below |
+**The retention window is SUB-8's and is consumed, not set here.** SUB-8 audited both tables' windows
+against the four-field rule at position 10 and both passed (`08_…md:490`–`:491`). This sub-task owns
+the **deletion mechanism**, not the window; setting a different number would silently override a
+merged, audited position of a predecessor this chapter lists as a dependency.
 
-`CAP-S7-1` (C010) is owned by this package outright — its `Owner:` line names `NEU-893` as *"the
+| Table | Retention window | Source | Deletion owner | Floor, and where it comes from |
+| --- | --- | --- | --- | --- |
+| `infrastructure.mcp_request_log` | **30 days** | SUB-8 exception #4 (`08_…md:490`), enforced by `scripts/retention-cleanup.sql:5`–`:6` | The creator, as sole maintainer and sole operator | **A code-derived floor exists and the window meets it:** none of this table's readers is a windowed aggregate |
+| `infrastructure.operation_event_log` | **30 days** | SUB-8 exception #5 (`08_…md:491`), *"set here as a position"*; **no mechanism implements it** | The creator, as sole maintainer and sole operator | **Hard floor of 5 weeks (35 days), fixed by code** — and **30 days is below it**. See `F-S9-6` |
+
+`CAP-S7-1` (C010) names this package **first** among three owners — its `Owner:` line names `NEU-893` as *"the
 only party positioned to assign a retention-and-deletion owner"*
 (`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:283`). Its stated
 lifting condition (`:284`) is a named deletion owner on `SC-S3-16` and `SC-S3-17` with a retention
@@ -374,7 +447,12 @@ no party has yet done**."*
 
 1. **A retention window of ≥ 5 weeks leaves the gate input entirely intact**, because the gate's own
    query never reads a row older than that. The window's lower bound is therefore not a policy
-   preference — it is a code fact. 90 days sits comfortably above it.
+   preference — it is a code fact. **SUB-8's merged window of 30 days is below it**, by five days.
+   That conflict is real, it is between two merged positions rather than an error in either, and it
+   is reported as **`F-S9-6`** rather than resolved by quietly picking a larger number. Supplying
+   the gate-input statement `CAP-S7-1` asked for is precisely what made it visible: nobody had
+   compared the retention window to the gate's query before, which is why `:284` records the
+   statement as never made.
 2. **The bulk deletion of §6.2 cannot affect the gate at all**, on a second and independent ground:
    it operates on the archive, and the gate queries the live table.
 3. **The gate's input is not learner content.** It reads `data->>'field'` on classifier telemetry
@@ -405,8 +483,15 @@ chapter states.
 Every cell carries a propagation action, a completion deadline, a permitted retention exception, a
 learner-visible result and an auditable proof.
 
-**Deadline convention.** Every `30 days` below is `A-S8-1`'s value, consumed by citation, not set
-here. It is *"not observed, not calibrated, and not a legal determination"*
+**Two different thirty-days appear below and they are not the same quantity.** In the **Deadline**
+column, `30 days` is `A-S8-1`'s **request-completion deadline** — how long the propagation has to
+finish. In the **Permitted retention exception** column, `30 days` is SUB-8's **retention window** on
+the two log tables (`08_…md:490`–`:491`) — how long a row lives absent any request. Both are
+consumed by citation and neither is set here; they coincide numerically by accident, not by
+derivation.
+
+**Deadline convention.** Every `30 days` in the Deadline column is `A-S8-1`'s value, consumed by
+citation, not set here. It is *"not observed, not calibrated, and not a legal determination"*
 (`95_stand-in-assumption-register.md:567`–`:575`). **Proof convention.** Every "proof" cell is one
 `propagation_proof` row conforming to `DR-C11-S9-3`; the emit-zero rule means every class emits one
 on every request, including the classes with nothing to do.
@@ -415,11 +500,11 @@ on every request, including the classes with nothing to do.
 
 | Class | Propagation action | Deadline | Permitted retention exception | Learner-visible result | Auditable proof |
 | --- | --- | --- | --- | --- | --- |
-| **C1** MCP-owned | `delete` / `cascade` / `de-identify` per SUB-8's per-category dispositions (`08_…md` §8.1). In-memory structures are evicted on the same request | 30 days | `LD-S8-1`, the consent record: `de-identify` after 24 months, never `delete` on request (`08_…md:487`) | Per-category counts of rows deleted | `copy_class = C1`, `action = deleted`, `rows_affected = n` |
+| **C1** MCP-owned | `delete` / `cascade` / `de-identify` per SUB-8's per-category dispositions (`08_…md` §8.1). **`LD-S3-25`, the in-memory batch buffers, is `unreachable` and is not deleted** — SUB-8 records it as *"outside every table and reachable by no `DELETE` whatsoever"* (`08_…md:426`); it drains on its own flush interval instead | 30 days; `LD-S3-25` bounded at ≤ 5 s by its flush default | **Three** of SUB-8's five, all inside C1: **#1** `LD-S8-1`, the consent record, `de-identify` after 24 months (`08_…md:487`); **#2** `LD-S3-11`, the grade-revision trail, retained indefinitely **only in de-identified form** (`:488`); **#3** `LD-S3-25`, ≤ 5 s, the tightest bound in the table (`:489`) | Per-category counts of rows deleted, **and the explicit statement that `LD-S3-25` was not deleted because no `DELETE` reaches it** | `copy_class = C1`, `action = deleted`, `rows_affected = n`. **The proof must not report `deleted` for `LD-S3-25`** — doing so would be `DR-C11-S9-3` negative clause 3, treating absence-of-error as completion |
 | **C2** Web-owned (browser-side) | **Instruct-and-confirm**: the response directs the client to clear local storage, session storage, cookies and cache for the origin. The server cannot reach the device | 30 days | None | A statement of what the device was instructed to clear, and that the instruction was issued | `copy_class = C2`, `action = deleted`, `rows_affected = 0` with the instruction recorded — **the count is of server-side rows, of which there are none by `M-A`** |
 | **C3** Backups | **Not determinable at this cutoff.** Owner: the creator, as sole maintainer and sole operator, carried from `OI-S1-8` (`93_open-items-and-provisional-register.md:124`). Date: the resolving event at `:125` | 30 days from the point the class is resolved | **Reserved, unspecified** — a backup retention exception is the standard shape, but its bound cannot be written before the backups fact is established | That a backup class exists whose contents are unestablished, with the named owner | `copy_class = C3`, `action = not-applicable`, `rows_affected = 0`, **flagged unresolved** |
-| **C4** Operational logs | Post-cutover rows: `delete` by `learner_key`. **Pre-cutover rows: `delete` in bulk at archive close** (§6) | 30 days for post-cutover; archive close for pre-cutover | Retained ≤ 90 days for operations, floor 5 weeks fixed by the Tier-2 gate (§6.6) | Two counts, stated separately: rows deleted by key, and the pre-cutover population's disposal status | Two rows are **not** emitted — one `copy_class = C4` row carrying the by-key count; the bulk disposal is a dated operation, not a per-request one |
-| **C5** Audit logs | Post-cutover rows: `delete` by `learner_key`. **Pre-cutover rows: `delete` in bulk at archive close** (§6) | 30 days for post-cutover; archive close for pre-cutover | Retained ≤ 90 days | As C4 | `copy_class = C5`, `action = deleted`, `rows_affected = n` |
+| **C4** Operational logs | Post-cutover rows: `delete` by `learner_key`. **Pre-cutover rows: `delete` in bulk at archive close** (§6) | 30 days for post-cutover; archive close for pre-cutover | **30 days**, SUB-8 exception #5 (`08_…md:491`), consumed not set — and **below** the 5-week gate floor §6.6 derives, reported as `F-S9-6` | Two counts, stated separately: rows deleted by key, and the pre-cutover population's disposal status | Two rows are **not** emitted — one `copy_class = C4` row carrying the by-key count; the bulk disposal is a dated operation, not a per-request one |
+| **C5** Audit logs | Post-cutover rows: `delete` by `learner_key`. **Pre-cutover rows: `delete` in bulk at archive close** (§6) | 30 days for post-cutover; archive close for pre-cutover | **30 days**, SUB-8 exception #4 (`08_…md:490`), enforced by `scripts/retention-cleanup.sql:5`–`:6` | As C4 | `copy_class = C5`, `action = deleted`, `rows_affected = n` |
 | **C6** Package's own captures | **Destroy on schedule**, with manual operator deletion available in the pre-publication window. Reasoning in §7.4 | Publication of C011, which is ≤ any request deadline | None. The class's own retention bound is stricter than any exception would be | That the class has zero members, or that the capture was destroyed at its quarantine path | `copy_class = C6`, `action = not-applicable`, `rows_affected = 0` at zero membership |
 
 ### 7.2 Export
@@ -440,7 +525,7 @@ on every request, including the classes with nothing to do.
 | **C1** MCP-owned | Processing switch takes effect on the next request; already-collected copies purged within **7 days** (`A-S8-1`) | 7 days | `LD-S8-1`: a new row is written recording the withdrawal; the record is never updated in place and never deleted on withdrawal (`08_…md:297`) | Which purposes stopped, and when | `action = deleted`, `rows_affected = n` |
 | **C2** Web-owned (browser-side) | Instruct-and-confirm, as §7.1 | 7 days | None | As §7.1 | `action = deleted`, `rows_affected = 0` server-side |
 | **C3** Backups | **Not determinable at this cutoff**, owner and date carried from `OI-S1-8` | 7 days from resolution | Reserved, unspecified | As §7.1 | `action = not-applicable`, **flagged unresolved** |
-| **C4** / **C5** Logs | Withdrawal stops the *collection*, it does not retroactively unwrite a log row. Already-written rows follow the erasure path of §7.1 | 7 days to stop collection | Retained ≤ 90 days, floor 5 weeks for C4 | That collection stopped, and that existing rows follow the erasure path | `action = deleted` for the purge; the collection switch is not itself a row count |
+| **C4** / **C5** Logs | Withdrawal stops the *collection*, it does not retroactively unwrite a log row. Already-written rows follow the erasure path of §7.1 | 7 days to stop collection | **30 days** for both, SUB-8 exceptions #4 and #5; C4's window is below the 5-week gate floor (`F-S9-6`) | That collection stopped, and that existing rows follow the erasure path | `action = deleted` for the purge; the collection switch is not itself a row count |
 | **C6** Package's own captures | Withdrawal does not reach a class with zero members. **On membership, the destruction condition already fires at publication regardless of consent** | Publication | None | That the class has zero members | `action = not-applicable`, `rows_affected = 0` |
 
 ### 7.4 The sixth column: its terms arrive set, and "destroy on schedule" is reasoned
@@ -452,7 +537,7 @@ settle is published, and in no case longer than the package's own publication; d
 — on publication of C011 under `docs/research/`, every capture is destroyed at its quarantine path;
 redaction discipline — payload segment only, never the signature; quarantine path — `_local/scratch/`.
 **Members at revision 1: none.** Zero captures were produced
-(`01_production-evidence-and-the-access-audit.md:128`), because SUB-1 executed zero of nine designed
+(`01_production-evidence-and-the-access-audit.md:154`), because SUB-1 executed zero of nine designed
 spikes for want of a credential — not because the class is inapplicable.
 
 **Why the action is "destroy on schedule" rather than "erase on request", stated rather than
@@ -507,18 +592,20 @@ an unowned copy.
 
 | Measure | Count |
 | --- | --- |
-| Categories audited | **33** |
-| Categories mapping to a defined copy class | **33** |
+| Categories audited | **33** — SUB-3's 32 plus `LD-S8-1` |
+| Categories mapping to a defined copy class | **28** — `LD-S3-1` … `LD-S3-27` and `LD-S3-31`, per §3 |
+| Categories **deliberately** mapping to no class, each with a recorded reason | **5** — `LD-S3-28` … `LD-S3-30` (derived, never persisted: nothing comes to rest), `LD-S3-32` (aggregate, not personal data, §5.2), and `LD-S8-1` (the consent record, which lives **inside** C1's stores but is a category SUB-8 created after §3's mapping was written; its propagation is carried in C1's cells as SUB-8's exception #1) |
 | Categories with no propagation owner | **0** |
-| Copy locations surfaced that **no class claims** | **2** — the external-provider egress (§4.4) and the stderr log sink (§4.5) |
+| Copy locations surfaced that **no class claims** | **3** — the external-provider egress (§4.4), the stderr log sink (§4.5), and the STDIO host's own state (§4.6) |
 | Matrix cells that cannot be resolved to an action, a deadline and an owner | **0** — every cell has all three; three C3 cells are flagged unresolved-with-owner-and-date, which is what OUT-12 permits |
 
-**Every one is reported as a finding.** The two unclaimed copy locations are **`F-S9-1`** and
-**`F-S9-5`**, each with a named owner. The count of unowned copies *within the inventory* is zero —
-and that zero is only meaningful because the audit ranged over a copy set closed by §4 rather than
-assumed. **The two unclaimed locations are the audit's real output**; a run that surfaced neither
-would be indistinguishable from a run that did not look, which is the failure this package keeps
-producing.
+**Every one is reported as a finding.** The three unclaimed copy locations are **`F-S9-1`** (egress),
+**`F-S9-5`** (stderr) and the STDIO host state carried within **`F-S9-4`**, each with a named owner.
+The count of unowned copies *within the inventory* is zero — and that zero is only meaningful
+because the audit ranged over a copy set closed by §4 rather than assumed. **The three unclaimed
+locations are the audit's real output**; a run that surfaced none would be indistinguishable from a
+run that did not look, which is the failure this package keeps producing. Two of the three were
+found only after the enumeration had already returned green once (§4.2.1).
 
 **Declared copy-class cardinality: 6.** This is the figure `DR-C11-S16-3` requires each propagation
 to declare, and it is the trigger `A-S8-1` names for its own re-validation
@@ -527,7 +614,7 @@ to declare, and it is the trigger `A-S8-1` names for its own re-validation
 ## 9. What this proof does not cover
 
 The propagation proof is bounded by what escapes the enforcement point. SUB-5 states that **four**
-things escape, "each named with its route" (`05_…md:544`–`:546`):
+things escape, "each named with its route" (`05_…md:546`–`:547`):
 
 | # | Escapee | SUB-5's id | Effect on this proof |
 | --- | --- | --- | --- |
@@ -560,7 +647,7 @@ Two further bounds this chapter states about itself:
 | --- | --- | --- | --- |
 | `CAP-S3-3` (**C010**) | **Supplied-to** | `NEU-986` (`SUB-12 of C010`), co-named `NEU-896` | The retention window, its code-derived floor and the deletion owner are designed in §6.6 and handed over. **Not absorbed, not re-filed** |
 | `CAP-S4-1` (**C010**) | **Supplied-to** | `NEU-986` (`SUB-12 of C010`), co-named `NEU-896` | Same gap sighted from component placement; same mechanism handed over |
-| `CAP-S7-1` (**C010**) | **Owned here, discharged here** | `NEU-893` outright (`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:283`) | Discharged in §6.6 by supplying its stated lifting condition, including the gate-input statement `:284` records as never made |
+| `CAP-S7-1` (**C010**) | **Owned here, discharged here** | `NEU-893` named first, **alongside** `NEU-986` at the package-completeness gate and `NEU-896` at convergence (`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:283`) | Discharged in §6.6 by supplying its stated lifting condition, including the gate-input statement `:284` records as never made |
 | `CAP-S5-1` (**C010**) | **Co-owned here, discharged elsewhere** | Co-owned with `NEU-986` | Discharged under OUT-8 by SUB-5, not here. Recorded so SUB-14's classification has a source. Neither absorbed nor declined |
 | `OI-S5-1` | **Consumed, not owned** | `NEU-850` | Consumed by citing the stand-in entry SUB-3 authored at position 3 — the reading this package adopted, its owner and its re-validation trigger. **This chapter assumes no reading of its own** |
 
@@ -582,11 +669,11 @@ its own about backups**, so the package carries one id for one fact.
 | Register | Ids |
 | --- | --- |
 | Outcomes (`90_outcome-register.md`) | OUT-12's row |
-| Findings (`91_findings-register.md`) | `F-S9-1` … `F-S9-5` |
+| Findings (`91_findings-register.md`) | `F-S9-1` … `F-S9-6` |
 | Risks (`92_risk-register.md`) | **`R2`** — charter § Risks row 2, the only one of the fifteen naming OUT-12 — plus `R-S9-1`, `R-S9-2`, `R-S9-3` |
 | Open items (`93_open-items-and-provisional-register.md`) | `OI-S9-1` |
 | Caps (`94_caps-and-incomplete-scope.md`) | none filed; four inherited caps recorded by disposition in §10 |
-| Stand-ins (`95_stand-in-assumption-register.md`) | `A-S9-1` |
+| Stand-ins (`95_stand-in-assumption-register.md`) | `A-S9-1`, `A-S9-2` |
 | Spikes (`96_spike-register.md`) | `SPK-S9-1` |
 | Completeness gate (`97_package-completeness-gate.md`) | `G-S9-1` … `G-S9-14` |
 | Decision records | `DR-C11-S9-1`, `DR-C11-S9-2`, `DR-C11-S9-3` |
@@ -606,8 +693,10 @@ are written qualified for exactly this reason.
 ## 12. What this chapter does not establish
 
 - **Nothing about production.** No row count, no population size, no backup fact, no observed
-  behaviour. Zero of twenty-two designed spikes have executed package-wide — a figure re-counted at
-  this sub-task's own cutoff in `96_spike-register.md`, not inherited.
+  behaviour. Zero designed spikes have executed package-wide — **twenty-four** at this branch's HEAD
+  and **twenty-two** at this chapter's `ee0a750` cutoff, both counted mechanically rather than
+  inherited, and both recorded with the reason the two figures differ in `96_spike-register.md`
+  § SUB-9 and in **`F-S9-2`**.
 - **Nothing about whether the disposal happened.** §6 publishes a disposition; the execution is
   `R-S9-1`'s, with a named owner outside this package.
 - **Nothing about the egressed copies' fate.** `F-S9-1` names the exposure; what the providers

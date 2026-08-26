@@ -49,7 +49,7 @@ success message that is not backed by six rows is not a result.
 
 SUB-16 published the contract at position 7 and stated explicitly that it "neither evaluates nor
 predicts SUB-9's design", and that **SUB-9's acceptance asserts the match**
-(`../16_attribution-and-detection.md:338`–`:341`). This section is that acceptance.
+(`../16_attribution-and-detection.md:338`–`:342`). This section is that acceptance.
 
 | # | Contract field | Contract requirement (`../16_attribution-and-detection.md:315`–`:320`) | This design | Conforms |
 | --- | --- | --- | --- | --- |
@@ -170,16 +170,17 @@ evaluable as a design — **not** as a running system, which no part of this pac
 | The three location properties | `../16_attribution-and-detection.md:322`–`:325` |
 | The timing rule and the no-grace clause | `../16_attribution-and-detection.md:327`–`:331` |
 | The six negative clauses | `../16_attribution-and-detection.md:333`–`:336` |
-| SUB-16 asserts only its own half; SUB-9's acceptance asserts the match | `../16_attribution-and-detection.md:338`–`:341` |
+| SUB-16 asserts only its own half; SUB-9's acceptance asserts the match | `../16_attribution-and-detection.md:338`–`:342` |
 | `session_id` and `correlation_id` are both caller-asserted | `../16_attribution-and-detection.md:49` |
 | `deadline_at`'s value is 30 days, a stand-in, not a determination | `../95_stand-in-assumption-register.md:567`–`:575` |
 | `A-S8-1`'s re-validation trigger is SUB-9's cardinality | `../95_stand-in-assumption-register.md:600`–`:608` |
 | The sixth class's terms, as SUB-1 recorded them | `../01_production-evidence-and-the-access-audit.md:151`–`:159` |
-| Zero captures were produced | `../01_production-evidence-and-the-access-audit.md:128` |
+| Zero captures were produced | `../01_production-evidence-and-the-access-audit.md:154` |
 | Empty membership is not absent terms; SUB-9 must route through it | `../03_learner-data-inventory-and-classification.md:431`–`:437` |
 | The class is reached by no port and no SQL statement | `../05_the-enforcement-point-that-confines-every-read-and-write.md:564`–`:582` |
 | Refusal, not empty scope, for a non-`user` principal | `../05_the-enforcement-point-that-confines-every-read-and-write.md:247`–`:257` |
-| The restart rate that rules out a process-local store | `src/transport/http.ts:83` |
+| The binding structure a process-local store would share is a `Map`, emptied on restart | `src/transport/http.ts:83` |
+| The measured restart rate (≥3.29/day over 7 days) | `../15_operational-objectives-for-the-real-platform.md` §2.2, `C-17`, via `../91_findings-register.md` § `F-S15-3` |
 
 ## Revision trigger
 

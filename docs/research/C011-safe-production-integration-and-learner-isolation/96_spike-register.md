@@ -767,12 +767,12 @@ above, `SPK-S8-1`'s provider question, and this one.
 
 - **Id:** `SPK-S9-1`
 - **Question:** For the two outbound call sites that carry learner content — the embedding adapter and the content classifier — **which provider endpoint does the production deployment actually reach, and what are that provider's retention, deletion and sub-processing terms for the content it receives?** The question has a wrong answer: a provider that retains submitted content for training, or that offers no deletion path, makes `F-S9-1`'s exposure materially worse than one with a zero-retention API tier.
-- **Why reading could not settle it:** The repository fixes the *client library* but not the *endpoint or the account*. `src/adapters/langchain/embedding-adapter.ts:89` and `src/adapters/langchain/content-classifier-adapter.ts:199` construct their clients from configuration — `openaiApiKey`, `model` and their classifier equivalents — resolved at runtime from environment variables that are **unset in this environment**. A base URL override, a proxy, or a self-hosted compatible endpoint would all read identically in the source. Contractual retention terms are not in the repository at all, under any reading.
+- **Why reading could not settle it:** Reading settles the *client libraries* and **rules one thing in that a first pass missed** — there are **two** embedding branches, not one: `new OpenAIEmbeddings` (`src/adapters/langchain/embedding-adapter.ts:89`) and `new OllamaEmbeddings` (`:118`), selected by `provider` at `:71`–`:72`, plus the classifier's `new ChatOpenAI` (`content-classifier-adapter.ts:199`). What reading **cannot** settle is which branch production runs and where it points. Both resolve from environment variables that are **unset in this environment**; the Ollama branch's `baseUrl` comes from `OLLAMA_BASE_URL` (`src/config/resolve-embedding-config.ts:34`) with a **self-hosted default** of `http://localhost:11434` (`src/domain/config/embedding-defaults.ts:11`), so the answer to *"does learner content leave the deployment at all"* is configuration-dependent and could legitimately be **no**. A base URL override, a proxy or a self-hosted compatible endpoint all read identically in the source. Contractual retention terms are not in the repository at all, under any reading.
 - **Exit condition:** The production configuration is read and the receiving endpoint identified for both adapters, **and** the corresponding provider's data-retention terms for API submissions are recorded — or the operator states that no such content is sent because the feature is disabled in production.
 - **Method:** Read the production environment's classifier and embedding configuration (endpoint, model, account tier) from the deployment's compose environment, without invoking either adapter. Record the resolved endpoint per adapter. Then record the provider's published API data-retention policy for that tier, with its retrieval date. **No learner content is submitted, and no call is made through either adapter** — this is a configuration read plus a document read, and the spike must not exercise the egress path it exists to characterise.
 - **Quarantine path:** Nothing lands under `src/`, `tests/` or `drizzle/`; nothing is merged as product code. Any captured configuration is redacted of key material and held at `_local/scratch/`, under `LD-S3-31`'s recorded terms. **If any capture is taken, the sixth copy class acquires its first member** and `09_proving-a-data-right-reaches-every-copy.md` §7.5's routing applies — the class's terms attach at that instant.
 - **Date:** **Not executed.** Determined impossible to execute on 2026-08-26: no production credential, configuration access or deployment access of any kind exists in this environment.
-- **Result:** **None.** No endpoint is identified and no retention term is recorded. `F-S9-1` therefore names the exposure and its owner without characterising its severity, and **no claim about any provider appears anywhere in this sub-task's output.**
+- **Result:** **None.** No endpoint is identified and no retention term is recorded. `F-S9-1` therefore names the exposure and its owner without characterising its severity, and **no claim about which provider production actually uses, or on what terms, appears anywhere in this sub-task's output.** The *existence* of the three learner-content call sites is a code fact and is asserted (`F-S9-1`); their *destination and terms* are not.
 - **Confidence:** **none.** Confidence would be raised to `high` by reading the production configuration directly; it cannot be raised at all by any further reading of the repository, which is what makes this a spike rather than an open item about the code.
 - **Expiry:** **2027-02-26**, six months from design. Also expires immediately on any change to either adapter's client construction or configuration resolution.
 - **Expiry rationale:** Provider retention terms and account tiers change on the provider's schedule, not this package's, and a term quoted long after it was read is a claim about the past presented as a claim about the present. Six months is the shortest interval over which the answer is likely to remain true and the longest over which the question stays worth asking unchanged. The adapter-change clause is separate because a configuration change can invalidate the endpoint answer overnight while leaving the terms answer intact.
@@ -782,16 +782,25 @@ above, `SPK-S8-1`'s provider question, and this one.
 
 **SUB-9 register totals at revision 1:** **one spike designed, zero executed** — `SPK-S9-1`.
 
-**The cumulative figure at this sub-task's cutoff is twenty-three designed, zero executed.** The
-count was re-taken here rather than inherited, and **it disagrees with the heading-count method**.
-Counting **distinct `SPK-` ids** at cutoff `ee0a750`, before this section's own entry, gives
-**twenty-two** — SUB-1 nine, SUB-2 three, SUB-4 two, SUB-15 four, SUB-16 one, SUB-8 one, SUB-6 two —
-which agrees with SUB-6's arithmetic at `:673`–`:679`. Counting **`####`-level headings** gives
-**twenty**, because `SPK-S16-1` (`:447`) and `SPK-S8-1` (`:491`) are written at `##` level. Adding
-this section's one gives **23**. The divergence is registered as **`F-S9-2`** and routed to **SUB-14
-(NEU-1007)**, which owns register reconciliation and is the only party that may normalise a heading
-level in a merged file. **No predecessor's text is edited here** — this register is append-only, and
-repairing the two headings in place would mean rewriting SUB-16's and SUB-8's sections.
+**The cumulative figure is given at two named points, because this sub-task's chapter and its branch
+sit at different ones and one number for both would be wrong at one of them.**
+
+| Point | Distinct `SPK-` ids | `####` headings | `##` headings | Executed |
+| --- | --- | --- | --- | --- |
+| Cutoff `ee0a750` — this chapter's cutoff, before this section's own entry | **22** | 20 | 2 | **0** |
+| This branch at HEAD, after merging `origin/develop` @ `7450bfb` and adding `SPK-S9-1` | **24** | 21 | 3 | **0** |
+
+The 22 decomposes as SUB-1 nine, SUB-2 three, SUB-4 two, SUB-15 four, SUB-16 one, SUB-8 one, SUB-6
+two, agreeing with SUB-6's arithmetic at `:673`–`:679`. The 24 adds SUB-11's `SPK-S11-1`, merged from
+`develop` while this sub-task was in flight, and this section's `SPK-S9-1`.
+
+**The two methods disagree by exactly the number of `##`-level entries, and that number is not
+stable:** it was two at `ee0a750` (`SPK-S16-1` at `:447`, `SPK-S8-1` at `:491`) and is three at HEAD,
+SUB-11's entry being the third. A heading-count therefore undercuts the id-count by three today and
+by more tomorrow. Registered as **`F-S9-2`** and routed to **SUB-14 (NEU-1007)**, which owns register
+reconciliation and is the only party that may normalise a heading level in a merged file. **No
+predecessor's text is edited here** — this register is append-only, and repairing the three headings
+in place would mean rewriting SUB-16's, SUB-8's and SUB-11's sections.
 
 The figure is stated as a count taken at a named cutoff rather than as a standing total, for the
 reason SUB-4 recorded and SUB-5 and SUB-6 each restated: a cumulative total is only correct on the

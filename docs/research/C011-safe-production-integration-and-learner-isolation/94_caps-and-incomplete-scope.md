@@ -292,7 +292,7 @@ SUB-17's split-fidelity record both have a source. **This sub-task files no cap 
 | --- | --- | --- | --- |
 | **`CAP-S3-3` (C010)** | **Supplied-to** | `NEU-986` (`SUB-12 of C010`), co-named `NEU-896` | The retention window, its **code-derived** 5-week floor and the deletion owner are designed at `09_proving-a-data-right-reaches-every-copy.md` §6.6 and **handed over**. The cap stays with its owner; this package supplies what it lacks, exactly as OUT-12 states. Defined at `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:148` |
 | **`CAP-S4-1` (C010)** | **Supplied-to** | `NEU-986` (`SUB-12 of C010`), co-named `NEU-896` | The same gap sighted from component placement; the same mechanism is handed over and the structural obstruction is unchanged by this sub-task. Defined at `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:165`. **Not to be confused with this package's own `CAP-S4-1`** at `:115` above — see `F-S9-3` |
-| **`CAP-S7-1` (C010)** | **Owned here, discharged here** | `NEU-893` outright | Its `Owner:` line names `NEU-893` *"the only party positioned to assign a retention-and-deletion owner"* (`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:283`), alongside `NEU-986` at the gate and `NEU-896` at convergence. **Discharged** at `09_…md` §6.6 by supplying exactly the lifting condition `:284` names — a named deletion owner on `SC-S3-16` and `SC-S3-17` with a retention window, **plus the `SC-S3-17` gate-input statement that entry records as never made by any party** |
+| **`CAP-S7-1` (C010)** | **Owned here, discharged here** | `NEU-893`, named first of three | Its `Owner:` line names `NEU-893` *"the only party positioned to assign a retention-and-deletion owner"* (`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:283`), alongside `NEU-986` at the gate and `NEU-896` at convergence. **Discharged** at `09_…md` §6.6 by supplying exactly the lifting condition `:284` names — a named deletion owner on `SC-S3-16` and `SC-S3-17` with a retention window, **plus the `SC-S3-17` gate-input statement that entry records as never made by any party** |
 | **`CAP-S5-1` (C010)** | **Co-owned here, discharged elsewhere** | Co-owned with `NEU-986` | **Discharged under OUT-8 by SUB-5**, not here, including the one worked `holds` verdict that is the invariant's first positive instance. Recorded as owned-here-discharged-elsewhere so SUB-14's classification has a source; this sub-task **neither absorbs nor declines it**, and files no C011 `CAP-S5-1` — a bare `CAP-S5-1` in this package is always C010's, per `:186` above |
 | **`OI-S5-1`** | **Consumed, not owned** | `NEU-850` | Not a cap; listed here because OUT-12 requires its disposition alongside the four. Consumed by **citing the stand-in entry SUB-3 authored at position 3** rather than assuming a reading of its own. Recorded in `93_open-items-and-provisional-register.md` § SUB-9 |
 
@@ -303,8 +303,18 @@ carry a large number of `file:line` claims. It is **not re-filed**: its owner is
 and it is already recorded once. This sub-task's response is procedural, following SUB-6's: the
 citation checker was run locally, and the `…` ellipsis shorthand — which the checker discards at
 `scripts/citation-paths/checker.ts:121` and therefore cannot gate — was grepped for explicitly, so a
-green result is evidence rather than a vacuous pass. Every `file:line` in this sub-task's output was
-additionally re-read at the cited line.
+green result is evidence rather than a vacuous pass — **23 shorthand refs were found and each was
+resolved by a separate verifier that opens the target file and prints the cited line**, so the
+checker's silence about them is covered rather than relied on.
+
+**What that verifier does and does not establish, stated because an earlier revision of this
+paragraph overstated it.** It resolves every `file:line` and confirms the target exists and is in
+range; it **does not** confirm that the cited line says what the citing sentence claims. That second
+check is a judgement, it was performed by an independent adversarial pass rather than mechanically,
+and **it found six citations whose line was right but whose substance was not** — each corrected in
+place, with the corrections themselves recorded in `F-S9-2` and in `09_…md` §4.2.1. The earlier
+wording, *"every `file:line` was additionally re-read at the cited line"*, claimed the stronger
+check and is withdrawn.
 
 **The `qa-execution:engine` no-op is carried at package level and not duplicated.** The capability
 registry resolves to `git, linear`, no capability owns the `qa-execution` surface, **no QA pass

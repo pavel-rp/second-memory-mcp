@@ -68,15 +68,37 @@ Read together these are not two problems but one asymmetry with a single exit:
 1. **Un-erasability removes the alternative.** No per-learner predicate exists, and none can be
    built, so every disposition that operates per learner is unavailable *by construction*. The only
    predicates available over this population are population-wide ones.
-2. **Invisibility removes the cost.** Once confinement lands, no learner can read these rows and no
-   learner-facing feature depends on them. Their only remaining value is operational — and
-   `DR-C11-S16-2` establishes that pre-cutover rows carry `principal_kind = 'none'`, so they cannot
-   answer *"who did this"* for any row either. A population that nobody can see, that cannot be
-   attributed, and that no feature reads has nothing weighing against its disposal.
+2. **Invisibility removes almost all of the cost — and the exception is stated rather than glossed.**
+   Once confinement lands, **no learner** can read these rows, and `DR-C11-S16-2` establishes they
+   carry `principal_kind = 'none'`, so they cannot answer *"who did this"* for any row either.
+   Their only remaining value is operational.
+
+   **One operational reader exists, and it is not zero.** The Tier-2 blocking gate aggregates
+   `infrastructure.operation_event_log` over a rolling five-week window
+   (`src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`–`:41`), feeding a live
+   blocking-eligibility control (`src/orchestration/tier2-circuit-breaker.ts`). Pre-cutover rows
+   **inside that window are read**, and SUB-6 already recorded the consequence of moving them:
+   the aggregate under-reports for five weeks after cutover (`../91_findings-register.md:703`–`:711`,
+   `F-S6-3`). An earlier revision of this record asserted that *no* feature reads the population;
+   that was **false**, and it is corrected here rather than removed.
+
+   **The claim the decision actually needs is narrower and survives**: the reader is a
+   **five-week-windowed aggregate over telemetry rows**, not a learner-facing feature and not a
+   reader of learner free text — it reads `data->>'field'` on `classifier.tier2_blocked` events. By
+   the time the archive is disposed of at the close of the rollback window (clause 5, bounded at 90
+   days), every pre-cutover row is **outside** the gate's five-week horizon, so the disposal reaches
+   no row the gate still reads. The cost is therefore not zero but **bounded, transient, and already
+   paid at cutover by `DR-C11-S6-2`'s archive** rather than incurred again by this disposal.
 
 The exposure and the remedy therefore have the same cause. That is what makes bulk deletion the
 correct answer rather than the merely convenient one: the same boundary that makes the rows
-un-erasable makes them worthless to retain.
+un-erasable makes them, by the time they are disposed of, worthless to retain.
+
+**The premise this rests on is registered rather than assumed.** That the population has no reader
+remaining *at disposal time* is `A-S9-2`, with its own tolerance envelope and invalidating outcome.
+An earlier revision of `../95_stand-in-assumption-register.md` certified that this decision rested on
+no assumption at all and enumerated only two premises; that certification was wrong, and the third
+premise is now carried explicitly.
 
 **Why not the other two options `F-S8-2` admits.**
 
@@ -99,7 +121,7 @@ failure mode: an empty set is verifiable by counting it.
 
 **What lifts `CAP-S7-1` (C010), and the extra condition nobody had discharged.**
 `../../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:283` names `NEU-893`
-the owner of `CAP-S7-1` outright, and `:284` states its lifting condition: a named deletion owner on
+as the first of `CAP-S7-1`'s three named owners — alongside `NEU-986` at the gate and `NEU-896` at convergence — and `:284` states its lifting condition: a named deletion owner on
 `SC-S3-16` and `SC-S3-17` with a retention window, plus — for `SC-S3-17` specifically — a statement
 of "what happens to a gate input, **which no party has yet done**."
 
@@ -129,7 +151,7 @@ rows, not free text — so no part of the erasure duty attaches to what the gate
 | 3 | **Narrow the erasure duty to the attributable population** so the mechanism is complete by definition | Exactly what SUB-8 refused at `../08_consent-and-what-a-learner-can-export-and-erase.md:470`–`:472`. Redefining the duty to match the mechanism is the paper-completion failure `R2` names. |
 | 4 | **Retroactively attribute the rows**, then delete per learner | Impossible, not merely hard. The only structure that ever held the binding is the process-local map at `src/transport/http.ts:83`, emptied by every restart at a measured ≥3.29/day. `../16_attribution-and-detection.md:279`–`:285` establishes the impossibility; a design that assumed otherwise would be asserting against a finding. |
 | 5 | **Delete the live log tables at cutover instead of archiving first** | Removes SUB-7's rollback material and destroys the population before anyone has counted it. `DR-C11-S6-2` archived precisely so the set becomes finite and countable; deleting at cutover discards that and is unreversible if the migration reverses. |
-| 6 | **Set the retention window below 5 weeks** to minimize retention aggressively | Would break the Tier-2 blocking gate, whose query reads a 5-week rolling window (`src/adapters/drizzle/tier2-blocking-stats-repository.ts:41`). Minimization does not license breaking a running gate; the floor is a code fact, not a preference. |
+| 6 | **Set a live-table retention window here**, sized to the 5-week gate floor | Not this sub-task's to set. SUB-8 already set both windows at **30 days** and audited them (`../08_consent-and-what-a-learner-can-export-and-erase.md:490`–`:491`); overriding a merged, audited position of a named dependency would be the silent override this package keeps producing. **That SUB-8's 30 days sits five days below the gate's own 5-week horizon is a real conflict** — it is reported as `F-S9-6` and routed to the caps' owner, not resolved by picking a number here. |
 | 7 | **Leave the deadline unset** and let the implementation charter choose | Reproduces the unbounded-exception shape `F-S8-2` records. A disposal with no date is a retention with extra steps. |
 
 ## Consequences
@@ -175,7 +197,7 @@ rows, not free text — so no part of the erasure duty attaches to what the gate
 | SUB-6 neither discharges nor re-raises `F-S8-2` | `../06_the-disposition-of-every-unowned-row.md:337`–`:341` |
 | `F-S8-2`'s finding text, owner and resolving event | `../91_findings-register.md:431`, `:435`, `:436` |
 | `R-S6-1`'s residual is closed only by SUB-9 publishing a disposition | `../92_risk-register.md:586`–`:588` |
-| `CAP-S7-1`'s owner is `NEU-893` outright | `../../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:283` |
+| `CAP-S7-1` names `NEU-893` first of three owners | `../../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:283` |
 | `CAP-S7-1`'s lifting condition, incl. the undischarged gate-input statement | `../../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:284` |
 | `CAP-S3-3` / `CAP-S4-1` owner is `NEU-986`, co-named `NEU-896` | `../../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:499`–`:500` |
 | The Tier-2 gate reads `operation_event_log` | `src/adapters/drizzle/tier2-blocking-stats-repository.ts:39` |
