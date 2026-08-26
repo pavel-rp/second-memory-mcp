@@ -863,9 +863,10 @@ It raises **no second record of the total**: a re-derived tally here would give 
 cross-register consistency check two ids for one quantity, which is the failure the one-id-per-fact
 rule exists to prevent, and `F-S9-2` is the id.
 
-Two things follow that are worth naming for **SUB-14** (NEU-1007), which aggregates. First, the
-earlier tallies in this file totalling **twenty** are **not errors** — each is scoped to the
-sub-tasks that had landed when it was written, and appending to an append-only register does not
-falsify a historical statement; they are simply easy to misread as current, and `F-S9-2` is the entry
-that is current. Second, `observed-in-production` remains applied to **zero** claims package-wide,
+Two things follow that are worth naming for **SUB-14** (NEU-1007), which aggregates. First, this file carries **several** earlier cumulative tallies — twenty, twenty-one, twenty-two and
+twenty-three among them — and **none of them is an error**. Each is scoped to the sub-tasks that had
+landed when it was written, and appending to an append-only register does not falsify a historical
+statement. They are simply easy to misread as current, and there is more than one of them, which is
+why naming a single figure would itself have been misleading. **`F-S9-2` is the entry that is
+current**, and this entry adds one to it. Second, `observed-in-production` remains applied to **zero** claims package-wide,
 and this sub-task applies it to none.

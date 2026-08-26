@@ -95,7 +95,7 @@ timestamp is greater than that row's `created_at` — the check at `:64` is
 
 **Consequence one: a migration file runs exactly once, so a sweep cannot be a migration file.** The
 migrator *process* runs on every one of `OBJ-7`'s ≥ 7 daily restarts; an individual migration's
-statements do not. A batched sweep shipped as migration `0029` would be marked applied after its
+statements do not. A batched sweep shipped as a migration file would be marked applied after its
 first boot and would never run again — so it would either have to finish inside that one boot, which
 defeats batching entirely, or it would leave the population permanently half-keyed with **no
 mechanism to resume**, which is `R-S5-1`'s exact precondition arriving by accident.
@@ -621,7 +621,8 @@ satisfies:
    slices until either the slice budget expires or the sweep's predicate returns zero rows.
 2. **Idempotent at the statement level.** Every statement's `WHERE` clause excludes the rows it has
    already acted on. Re-running a completed sweep affects zero rows and raises no error. This matters
-   because the migrator runs unconditionally on every one of `OBJ-7`'s ≥ 7 daily restarts.
+   because the **sweep runner** re-enters on every one of `OBJ-7`'s ≥ 7 daily restarts. (The schema
+   DDL is a different case: a migration file runs exactly once — §1.1, `F-S13-9`.)
 3. **Resumable with no separate progress state.** **The resume cursor is the target predicate
    itself** — `WHERE user_id IS NULL` for `S4`, `WHERE timestamp < :cutover` for `S1`, the table's
    own emptiness for `S2`. A separate progress ledger was considered and rejected: it would have to
@@ -648,7 +649,13 @@ one.** The per-boot slice is bounded by a **wall clock**, not by a row target:
 ```
 while (elapsed_in_this_sweep < SM_MIGRATION_SLICE_MS) {
     n = execute one batch statement (LIMIT SM_MIGRATION_SLICE_ROWS)
-    if (n == 0) { sweep is complete; break }
+    if (n == 0) {
+        // NOT "the sweep is done" — only "this statement matched nothing".
+        // Completion is a separate question, asked of the sweep's own
+        // remaining-work predicate, never inferred from a rowcount:
+        if (remaining_work_count() == 0) { sweep is complete }
+        break   // either way, stop; a repeated zero-match makes no progress
+    }
 }
 ```
 
@@ -711,7 +718,9 @@ CREATE TABLE IF NOT EXISTS infrastructure.migration_marker (
 );
 INSERT INTO infrastructure.migration_marker (marker_id)
 VALUES ('c011.attribution_carrier_landed')
-ON CONFLICT (marker_id) DO NOTHING;   -- idempotent across the daily re-runs
+ON CONFLICT (marker_id) DO NOTHING;   -- belt and braces: this file runs once
+                                      -- (1.1), so the guard is only against a
+                                      -- statement re-run by hand.
 ```
 
 ```sql
@@ -959,8 +968,12 @@ backfill that wrote one value everywhere carries no information that unwriting c
 -- S2 / T5 — IRREVERSIBLE. Every context_tokens row. Batched only so the
 -- statement cannot monopolise a boot; there is nothing to resume to,
 -- because the table's own emptiness is the completion condition.
-DELETE FROM public.context_tokens
-WHERE id IN (SELECT id FROM public.context_tokens ORDER BY id LIMIT :slice_rows);
+WITH batch AS (
+  SELECT id FROM public.context_tokens
+  ORDER BY id LIMIT :slice_rows
+  FOR UPDATE SKIP LOCKED
+)
+DELETE FROM public.context_tokens t USING batch b WHERE t.id = b.id;
 
 -- Gate D / T9 — a DIFFERENT predicate. After T5 this can only match rows
 -- minted between T5 and T6 on a path that did not bind.
@@ -1092,7 +1105,8 @@ basis as `SPK-S1-1`; additionally expires on any change to the off-repo compose 
 ## 4. The runbook
 
 One section per stage. **Every stage is stated against the real deployment** — `develop` auto-deploys
-on green CI (`.github/workflows/cd-prod.yml:3`–`:7`), migrations run unconditionally on boot
+on green CI (`.github/workflows/cd-prod.yml:3`–`:7`), the migrator runs unconditionally on boot and
+applies each migration file exactly once (§1.1)
 (`src/infrastructure/db/migrate.ts:45`–`:49`), there are no down-migrations, and the compose stack is
 off-repo (`.github/workflows/cd-prod.yml:15`, `:26`–`:30`). Where a step cannot run under those
 constraints it names the capability it needs and who owns supplying it.
@@ -1199,7 +1213,16 @@ executable from reversal**, which is OUT-4's requirement.
 - **Verify.** `SELECT column_name FROM information_schema.columns WHERE table_name = 'context_tokens';`
   returns six names; the ten-table unkeyed count of §3.5 returns the full row count of each table
   (nothing is keyed yet, which is the expected state). Boot duration against `OBJ-8`.
-- **Contain.** `SM_MIGRATION_SWEEP=pause`. **Isolation signal: none yet** — the column exists and
+- **Contain.** **Named exception, and it is a correction to SUB-7 rather than an inheritance.** SUB-7
+  credits `T3` with a *"Migration toggle (batch pause)"*
+  (`07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:450`). **That control is not
+  realizable.** After §1.1, `T3` is pure one-shot DDL with **no batches to pause**, and configuration
+  is read *after* `initializeDatabase()` (`src/transport/main.ts:27`, `:42`–`:43`), so no boot-read
+  variable can stop a migration that has already run in the same boot. Reason: the stage's product is
+  a set of nullable columns and indexes, landed atomically. Owner: SUB-13 for the finding,
+  **SUB-7 (NEU-1001)** for the stage set. Registered as **`F-S13-11`**. Reversal remains available
+  (drop the columns; one migration), so the stage is not uncontainable — it is un-*pausable*.
+  **Isolation signal: none yet** — the column exists and
   confines nothing, which is stated rather than left blank because a column present without a
   predicate is exactly the condition `R1` warns reads as evidence of confinement.
 - **Reverse.** Drop the added columns; one migration. Nothing persisted.
@@ -1236,7 +1259,13 @@ executable from reversal**, which is OUT-4's requirement.
   rate: HTTP, the `init_agent_context` call's `response_status` distribution in `mcp_request_log`;
   **STDIO: not observable on this transport** — a STDIO client whose re-mint fails produces no row
   anywhere, so a STDIO re-mint regression is invisible and would surface only as a user report.
-- **Contain.** **Named exception** (SUB-7): irreversible by construction. The *entry* to this stage is
+- **Contain.** **A partial control SUB-7 did not credit, plus SUB-7's named exception — and the two
+  are about different things.** Because `S2` is now a sweep rather than a migration (§1.1),
+  `SM_MIGRATION_SWEEP=pause` **does** stop the purge between batches, exactly as on `T2` and `T7`.
+  That is a real containment step and it did not exist when SUB-7 wrote its table. It changes nothing
+  about the **effect**: rows already deleted are gone, and SUB-7's named exception stands unaltered
+  for them. Registered with `F-S13-11`. **Named exception** (SUB-7): irreversible by construction —
+  the *entry* to this stage is
   controllable; its effect is not. Owner: the creator.
 - **Reverse.** **None.** Every `context_tokens` row is destroyed. The loss is bounded by
   `DR-C10-S8-2`'s reject-don't-grandfather rule having already voided them — bounded, not eliminated.
@@ -1274,7 +1303,11 @@ executable from reversal**, which is OUT-4's requirement.
   `CAP-S7-1`).
 - **Contain.** `SM_MIGRATION_SWEEP=pause`. Rows already keyed stay keyed. **`T8` cannot be entered
   from this position** — a predicate over a partly-keyed population is `R-S5-1` exactly.
-- **Reverse.** `UPDATE <table> SET user_id = NULL` per table; one migration. Nothing is lost.
+- **Reverse.** Set the column back to `NULL` on all ten tables — **through the sweep runner, not as
+  a migration, and batched on the same contract as the forward direction** (`WHERE user_id IS NOT
+  NULL`, time-boxed, `SKIP LOCKED`). An unbatched full-table `UPDATE` here would breach the very
+  bound §3.3 exists to hold, over the very population §3.3 says cannot be sized. Nothing is lost:
+  the value is uniform and re-derivable from V1–V7.
 
 ---
 
@@ -1359,9 +1392,9 @@ demonstrated**.
 | Variable | Stages | Values | Default | Safe position on an unparseable value |
 | --- | --- | --- | --- | --- |
 | `SM_ISOLATION_CARRIER_WRITE` | `T1` | `on` \| `off` | `on` | `on` — writing `none` is worse than not writing |
-| `SM_MIGRATION_SWEEP` | `T3`, `T7` (and `T2`'s move) | `run` \| `pause` | `run` | **`pause`** — do not run a migration whose control you cannot parse |
-| `SM_MIGRATION_SLICE_MS` | `T2`, `T3`, `T7` | positive integer | `5000` (`A-S13-1`) | the default |
-| `SM_MIGRATION_SLICE_ROWS` | `T2`, `T3`, `T7` | positive integer | `10000` (`A-S13-1`) | the default |
+| `SM_MIGRATION_SWEEP` | `T2`, `T5`, `T7` | `run` \| `pause` | `run` | **`pause`** — do not run a sweep whose control you cannot parse |
+| `SM_MIGRATION_SLICE_MS` | `T2`, `T5`, `T7` | positive integer | `5000` (`A-S13-1`) | the default |
+| `SM_MIGRATION_SLICE_ROWS` | `T2`, `T5`, `T7` | positive integer | `10000` (`A-S13-1`) | the default |
 | `SM_IDENTITY_GATE` | `T4`, `T6` | `off` \| `observe` \| `enforce` | `off` | **`observe`** — records, refuses nothing |
 | `SM_ADAPTER_CONFINEMENT` | `T8` | `on` \| `off` | `on` | **`on`** — fail closed |
 

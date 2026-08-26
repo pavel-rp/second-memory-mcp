@@ -401,14 +401,15 @@ there is a closable one — the reasoning SUB-6 recorded for the same choice.
 > (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:301`), in
 > `93_open-items-and-provisional-register.md` here. **`CAP-S13-1` below has no C010 counterpart** —
 > C010's caps register carries no `CAP-S13-*` — so, unlike SUB-7's case, the caps id is the one that
-> does *not* collide. `F-S13-5` … `F-S13-10`, `R-S13-1` … `R-S13-4`, `OI-S13-2`, `A-S13-1`,
+> does *not* collide. `F-S13-5` … `F-S13-11`, `R-S13-1` … `R-S13-4`, `OI-S13-2`, `A-S13-1`,
 > `SPK-S13-1` and `G-S13-1` … `G-S13-7` are likewise free. `DR-C11-S13-1` … `-3` do **not** collide
 > with C010's `DR-C10-S13-1`, because the package prefix differs. Under the package-wide rule
 > `F-S2-2` establishes, a bare `F-S13-<k>` or `OI-S13-<k>` means **this** package's, and C010's is
-> always written qualified. The set is enumerated once here, with matching one-line notes in the
-> `### SUB-13` sections of `91_findings-register.md` and
-> `93_open-items-and-provisional-register.md`, so a reader of either register meets the hazard
-> without having to reach this one.
+> always written qualified. The set is enumerated in full **both here and in `91_findings-register.md` § SUB-13**, with a
+> pointer in `93_open-items-and-provisional-register.md` § SUB-13. The duplication is deliberate and
+> is *navigational*, not a second register record of a fact — neither enumeration carries an id, a
+> severity or an owner — so a reader of any of the three registers meets the hazard without having
+> to find the others.
 
 #### `CAP-S13-1` — Every artifact this sub-task publishes is unexecuted, so the package prices no operation and validates no batch size
 

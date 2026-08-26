@@ -752,7 +752,11 @@ expiry. The exposure is a finding, the unknown is a spike, and neither is an ope
 > (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:301`), where
 > sub-task 13 is a different sub-task about the authority matrix. Under `F-S2-2`'s rule a bare
 > `OI-S13-1` means **this** package's; C010's is always written qualified. The full five-id set this
-> sub-task collides on is listed once, at `94_caps-and-incomplete-scope.md` § SUB-13.
+> sub-task collides on, with each C010 line number, is enumerated in **two** places — here in
+> `91_findings-register.md` § SUB-13 and in `94_caps-and-incomplete-scope.md` § SUB-13. That is
+> deliberate duplication of a *navigational* note, not a second register record of a fact: neither
+> enumeration carries an id, a severity or an owner, and a reader arriving at either register meets
+> the hazard without having to find the other.
 
 #### `OI-S13-1` — Which rollout stage lands the consent record's table has not been decided
 

@@ -1159,7 +1159,7 @@ not restated as a codebase fact anywhere in `09_…md`, and `42` appears nowhere
 > **`F-S13-2`** (`:347`), **`F-S13-3`** (`:359`), **`F-S13-4`** (`:370`), and **`OI-S13-1`**
 > (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:301`). C010
 > has its own sub-task 13, about the authority matrix, and every one of those five is a different
-> record about a different subject. `F-S13-5` … `F-S13-10`, `R-S13-1` … `R-S13-4`, `OI-S13-2`,
+> record about a different subject. `F-S13-5` … `F-S13-11`, `R-S13-1` … `R-S13-4`, `OI-S13-2`,
 > `A-S13-1`, `CAP-S13-1`, `SPK-S13-1` and `G-S13-1` … `G-S13-7` have no C010 counterpart.
 > `DR-C11-S13-1` … `-3` do **not** collide with C010's `DR-C10-S13-1`, because the package prefix
 > differs. Under the package-wide rule `F-S2-2` establishes, a bare `F-S13-<k>` or `OI-S13-<k>` means
@@ -1257,13 +1257,24 @@ not restated as a codebase fact anywhere in `09_…md`, and `42` appears nowhere
 - **What is assumed rather than derived:** Nothing. This is read from the installed library at a stated cutoff. What is **not** established is whether the implementation charter's sweep runner can be added without touching `src/` — it cannot, and building it is out of this sub-task's scope by constraint.
 - **Handed to:** **SUB-6** (NEU-1000), whose `S1`–`S5` stage vocabulary reads as though all five were migrations; **SUB-7** (NEU-1001), whose feasibility table says the six data-bearing stages are *"Yes, but only as boot migrations"* — true of the DDL half and not of the sweep half, and the distinction is neither sub-task's to have caught, since neither owns the batching; the **implementation charter**, which must build the runner.
 
+#### `F-S13-11` — Building the disable paths moves two of them: `T3`'s is not realizable, and `T5` gains one it was never credited with
+
+- **Id:** `F-S13-11`
+- **Finding:** SUB-7's feature-control table credits `T3` with a *"Migration toggle (batch pause)"* and gives `T5` a bare named exception with **no** control (`07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:450`, `:452`). Building the controls shows both assignments are wrong, in opposite directions. **`T3`'s control is not realizable:** after `F-S13-9`, `T3` is pure one-shot DDL — nullable columns and indexes, landed atomically — so there are **no batches to pause**, and configuration is read *after* `initializeDatabase()` (`src/transport/main.ts:27`, `:42`–`:43`), so no boot-read variable can stop a migration that has already run in the same boot. **`T5` gains a real one:** because `S2`'s purge is a sweep rather than a migration, `SM_MIGRATION_SWEEP=pause` stops it between batches exactly as on `T2` and `T7`.
+- **Evidence:** SUB-7's table at the two lines above, read at `fd05ca1`; `F-S13-9`'s finding that a migration file runs exactly once (`node_modules/drizzle-orm/pg-core/dialect.cjs:64`); the boot order at `src/transport/main.ts:27`, `:42`–`:43` and `src/composition-root.ts:379`.
+- **Consequence:** `13_the-ddl-the-migration-plan-and-the-runbook.md` §5 maps `SM_MIGRATION_SWEEP` to **`T2`, `T5`, `T7`** and not to `T3`; `T3`'s containment section carries a named exception with a reason and an owner instead of a control that would not work; `T5`'s carries the new partial control **alongside** SUB-7's named exception, which is unaltered — pausing the purge does not un-delete a deleted row. **The count of stages carrying a real control is unchanged at six, but the membership changes.** SUB-7's six are `T1`, `T3`, `T4`, `T6`, `T7`, `T8`; after this correction they are `T1`, `T4`, `T5`, `T6`, `T7`, `T8` — `T3` out, `T5` in, one for one. `T2` keeps exactly the status SUB-7 gave it: a pausable in-flight move under a named exception for the completed one. A reader working from SUB-7's table alone would reach for a control on `T3` that does nothing, and would not know one exists on `T5`.
+- **What is assumed rather than derived:** Nothing. Both halves follow from `F-S13-9` plus the boot order, both read from source. **This is a correction to a merged sibling's table and is routed, not applied** — SUB-7 owns OUT-3 and its feature-control table, and this register is append-only.
+- **Handed to:** **SUB-7** (NEU-1001), which owns the stage set and the table; the implementation charter, which builds the controls; **SUB-17**, for the audit.
+
 ---
 
-**SUB-13 register totals at revision 1:** ten findings, `F-S13-1` … `F-S13-10`. **Zero blocking
+**SUB-13 register totals at revision 1:** eleven findings, `F-S13-1` … `F-S13-11`. **Zero blocking
 findings.** Three concern a disagreement or an error between merged siblings (`F-S13-1`, `F-S13-3`,
 `F-S13-8`) and are routed to their owners unresolved; one adds a second obstacle to an existing open
 item (`F-S13-2`); six are properties of the repository, its libraries or its data that an implementer needs
-and could not get from any predecessor (`F-S13-4` … `F-S13-7`, `F-S13-9`, `F-S13-10`).
+and could not get from any predecessor (`F-S13-4` … `F-S13-7`, `F-S13-9`, `F-S13-10`); and one is a
+correction to a merged sibling’s feature-control table that only building the controls could
+surface (`F-S13-11`).
 
 **`F-S13-9` was found by re-attacking a claim this sub-task had already written down as true**, and
 that is recorded rather than smoothed over. The first draft of §2.1 justified its `IF NOT EXISTS`

@@ -12,16 +12,20 @@
    two numeric parameters of the sweep, serving `T1`, `T2`'s in-flight move, `T3`, `T4`, `T6`, `T7`
    and `T8`. *(The table below has six rows and SUB-7 credits six stages; the two counts coincide and
    are **not** a one-to-one mapping — two toggles each serve more than one stage, and the two numeric
-   parameters disable nothing on their own.)* The four stages SUB-7
-   gives a named exception get none, because manufacturing one would be the false-completeness failure
-   `DR-C11-S7-2` rejected in its own alternative 4.
+   parameters disable nothing on their own.)* SUB-7's four named exceptions — `T0`, `T2`, `T5`, `T9` — get **no toggle over their
+   stated effect**, because manufacturing one would be the false-completeness failure `DR-C11-S7-2`
+   rejected in its own alternative 4. **Two of the four nonetheless carry a pause over their
+   *action*, and that is not a contradiction:** `T2`'s in-flight move and `T5`'s in-flight purge are
+   both stopped by `SM_MIGRATION_SWEEP`, while a moved row stays moved and a deleted row stays
+   deleted. `T5`'s pause is new — SUB-7 credited it with none, because when SUB-7 wrote its table the
+   purge was a migration rather than a sweep. `F-S13-11`.
 
    | Variable | Stages | Values | Default |
    | --- | --- | --- | --- |
    | `SM_ISOLATION_CARRIER_WRITE` | `T1` | `on` \| `off` | `on` |
-   | `SM_MIGRATION_SWEEP` | `T2`, `T3`, `T7` | `run` \| `pause` | `run` |
-   | `SM_MIGRATION_SLICE_MS` | `T2`, `T3`, `T7` | positive integer | `5000` (`A-S13-1`) |
-   | `SM_MIGRATION_SLICE_ROWS` | `T2`, `T3`, `T7` | positive integer | `10000` (`A-S13-1`) |
+   | `SM_MIGRATION_SWEEP` | `T2`, `T5`, `T7` | `run` \| `pause` | `run` |
+   | `SM_MIGRATION_SLICE_MS` | `T2`, `T5`, `T7` | positive integer | `5000` (`A-S13-1`) |
+   | `SM_MIGRATION_SLICE_ROWS` | `T2`, `T5`, `T7` | positive integer | `10000` (`A-S13-1`) |
    | `SM_IDENTITY_GATE` | `T4`, `T6` | `off` \| `observe` \| `enforce` | `off` |
    | `SM_ADAPTER_CONFINEMENT` | `T8` | `on` \| `off` | `on` |
 
@@ -37,8 +41,11 @@
    `enforce=off, observe=off`, reachable from `T6` by one operator action — the open position SUB-7
    forbids. Three ordered positions make it unreachable by construction rather than by procedure.
 
-4. **`SM_MIGRATION_SWEEP` is one variable rather than one per stage**, because `T3` and `T7` are four
-   stages apart and never run concurrently, so which sweep is paused is never ambiguous.
+4. **`SM_MIGRATION_SWEEP` is one variable rather than one per stage.** The three sweeps it governs —
+   `T2`, `T5`, `T7` — are separated in the order and, because a stage is entered only once its
+   predecessor has exited, **no two are ever in flight together**. So which sweep is paused is never
+   ambiguous, even though `T2` and the (non-sweep) `T3` are adjacent: `T3` is not governed by this
+   variable at all (`F-S13-11`).
 
 5. **Precedence follows the shape the repository already runs.** An explicitly set value wins; unset
    takes the default; an unrecognised value takes clause 2's per-control safe position **and logs at
