@@ -155,7 +155,7 @@ assert the match against.
 
 1. **SUB-9 (NEU-1003) receives a conformable target** — nine fields, three location properties, one
    fire condition, six negative clauses — and its acceptance at position 11 asserts the match.
-2. **SUB-12 (NEU-1004) receives a gate it can measure.** *"Every propagation emits a complete proof
+2. **SUB-12 (NEU-1005) receives a gate it can measure.** *"Every propagation emits a complete proof
    set by its deadline"* is now a checkable statement rather than an aspiration.
 3. **The contract creates work that does not exist today.** No proof store exists, no
    `propagation_id` exists, and no propagation emits anything. That is named as a **missing

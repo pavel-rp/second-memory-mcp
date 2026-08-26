@@ -1052,7 +1052,7 @@ census cannot establish.
 
 **Owner:** **The creator, as sole maintainer and sole operator** — the only party who can confirm
 what queries the deployment actually runs, including any outside `src/` (an operator's `psql`
-session, a dashboard, a scheduled report). **SUB-12** (NEU-1004) under OUT-17 inherits it as a
+session, a dashboard, a scheduled report). **SUB-12** (NEU-1005) under OUT-17 inherits it as a
 modelled path.
 
 **Tolerance envelope:** The design tolerates **any reader whose horizon is shorter than the disposal

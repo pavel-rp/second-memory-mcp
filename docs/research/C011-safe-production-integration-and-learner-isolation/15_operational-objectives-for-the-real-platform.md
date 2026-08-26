@@ -408,4 +408,3 @@ Stated plainly, because an objective set is exactly the kind of artifact a later
 
 **The direction is forward-only.** This chapter publishes these ids; whether SUB-7 or SUB-9 in fact
 cites them is that sub-task's acceptance, not this one's.
-</content>

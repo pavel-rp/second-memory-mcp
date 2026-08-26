@@ -119,4 +119,3 @@ not. Neither is true, so they are one row and one finding (`F-S15-3`).
   settle whether the three-pool total is itself a ceiling.
 - **SUB-14 or SUB-17 rules that the analysis must be confined to the charter's four**, in which case
   the pool row moves out of the ranking and into a finding — but is not deleted.
-</content>

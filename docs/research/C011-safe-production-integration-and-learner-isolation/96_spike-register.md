@@ -444,7 +444,7 @@ reconcile at assembly.
 
 ### SUB-16
 
-## `SPK-S16-1` — Is the audit writer mounted on the production deployment at all?
+#### `SPK-S16-1` — Is the audit writer mounted on the production deployment at all?
 
 | Field | Value |
 | --- | --- |
@@ -488,7 +488,7 @@ they can close two items in one read-only query.
 
 ### SUB-8
 
-## `SPK-S8-1` — Which model provider does production use, and does learner content therefore leave the deployment?
+#### `SPK-S8-1` — Which model provider does production use, and does learner content therefore leave the deployment?
 
 | Field | Value |
 | --- | --- |
@@ -504,7 +504,7 @@ they can close two items in one read-only query.
 | **Confidence** | **`none`** — there is no result to hold a confidence in. What would raise it: executing the single question once. Nothing available in the repository can raise it, because the question is definitionally about state outside the repository. |
 | **Expiry** | **2027-02-25** — six months from the design date, or **immediately upon any change to either `resolve-*-config.ts` provider-selection site, to either adapter's provider branching, or to the deploy workflow's environment handling**, whichever is sooner. |
 | **Expiry rationale** | The question is about two deployed environment variables, either of which can change on any deploy — and the deployment auto-deploys from `develop` on green CI at a measured ≥3.29 restarts/day (`15_operational-objectives-for-the-real-platform.md` §2.2, `C-17`). Six months is not a claim that the answer is stable for six months; it is the outer bound at which an unexecuted design should be re-read against a codebase that will have moved. **The dangerous stale direction here is a negative:** a recorded *"no hosted provider"* would license SUB-9 to close its copy-class enumeration and SUB-12 to drop an external processor from its threat model, and a single environment-variable change would silently falsify both. The code-change clause is what protects against that, not the date. |
-| **Routes to** | `93_open-items-and-provisional-register.md` § `OI-S8-1`, which carries the unclosed claim with its named owner. It gates the consent purpose `CP-S8-3` in `08_consent-and-what-a-learner-can-export-and-erase.md` §3, and is consumed by **SUB-9** (NEU-1003) for copy enumeration and **SUB-12** (NEU-1004) for the threat model. |
+| **Routes to** | `93_open-items-and-provisional-register.md` § `OI-S8-1`, which carries the unclosed claim with its named owner. It gates the consent purpose `CP-S8-3` in `08_consent-and-what-a-learner-can-export-and-erase.md` §3, and is consumed by **SUB-9** (NEU-1003) for copy enumeration and **SUB-12** (NEU-1005) for the threat model. |
 
 ---
 
@@ -697,7 +697,7 @@ appended their own entries, and this section follows that established practice. 
 edited here.
 ### SUB-11
 
-## `SPK-S11-1` — Which MCP clients have actually authenticated against the production deployment, by transport and by principal kind?
+#### `SPK-S11-1` — Which MCP clients have actually authenticated against the production deployment, by transport and by principal kind?
 
 | Field | Value |
 | --- | --- |

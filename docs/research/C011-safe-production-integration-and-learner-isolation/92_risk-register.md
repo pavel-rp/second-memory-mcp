@@ -30,9 +30,9 @@ register without negotiating numbers, and SUB-14 renumbers nothing.
 | `R7` Scope drifts from List B | High | OUT-20 | SUB-17 |
 | **`R8` Production access incident or capture leak** | **High** | **OUT-18** | **SUB-1** |
 | `R9` Unprobed dirty-data pathology survives the dry-run | High | OUT-2 | SUB-6 |
-| `R10` Compatibility contract written against a stale tool count | High | OUT-16 | SUB-11 |
-| `R11` Lifecycle half written as if it had an upstream | High | OUT-9 | SUB-3 |
-| `R12` Legal determination asserted, authority overstated | Medium | OUT-9 | SUB-3 |
+| `R10` Legal determination asserted, authority overstated | Medium | OUT-9 | SUB-3 |
+| `R11` Compatibility contract written against a stale tool count | High | OUT-16 | SUB-11 |
+| `R12` Lifecycle half written as if it had an upstream | High | OUT-9 | SUB-3 |
 | **`R13` `n = 1` evidence** | **Medium** | **OUT-18** | **SUB-1** |
 | **`R14` Spike becomes implementation, or a stale spike is cited** | **Medium** | **OUT-18** | **SUB-1** |
 | `R15` Vocabulary collision with the domain's own terms | Low | OUT-20 | SUB-17 |
@@ -40,6 +40,20 @@ register without negotiating numbers, and SUB-14 renumbers nothing.
 Fifteen rows, fifteen named authors: SUB-1 ×3, SUB-3 ×2, SUB-5, SUB-6, SUB-7 ×2, SUB-9, SUB-11 and
 SUB-17 ×4. **SUB-1 authors `R8`, `R13` and `R14`** — all three OUT-18-owned rows — below. The
 remaining twelve are their own authors' to write; their absence here is correct, not a gap.
+
+> **Rows 10–12 corrected by SUB-14 (NEU-1007) at assembly — `F-S3-3` resolved.** As first published,
+> this table listed `R10` = compatibility contract, `R11` = lifecycle half, `R12` = legal
+> determination, which is the order the decomposition and the tracker description carry but **not**
+> the order of the charter's own § Risks table. Under the rule stated four paragraphs above — *"`R<n>`
+> is the row's position in the charter's § Risks table"* — the charter's rows 10, 11 and 12 are legal
+> determination, compatibility contract, and lifecycle half, in that order. **The three authored
+> entries below were always correct**: `R10` is legal determination, `R11` is the tool count, `R12`
+> is the greenfield lifecycle half, each computed from the charter by its own author. Only this index
+> table disagreed with the rule it states, so only this table is changed; **no entry id moves and no
+> entry body is touched**. `A-S11-1`'s re-validation trigger — SUB-14's aggregation pass — is
+> discharged by this check: fifteen rows, fifteen ids, no duplicate and no gap, eleven authored and
+> four reserved for SUB-17. `A-S11-1`'s invalidating outcome did **not** fire — the discrepancy is
+> explained by the index table, not by the charter having moved.
 
 ## Mitigation-status vocabulary
 
@@ -349,7 +363,7 @@ instance of that exposure and names it as such rather than pre-empting SUB-9's e
 - **Severity:** **Medium** — the loss requires a database fault to trigger, and the thresholds are chosen so the failure mode is one-directional (see the mitigation). But the events most likely to coincide with a database fault are not independent of the events the signals watch for.
 - **Owning outcome:** **OUT-15** — the detection design, which is where a threshold is set against a count.
 - **Named owner:** **The creator, as sole maintainer and sole operator**, for the deployed transport behaviour.
-- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether a detection guarantee may rest on a lossy pipeline; **additionally SUB-12 (NEU-1004)**, whose production gates measure counts from these tables and which must not treat a zero as a proven zero.
+- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether a detection guarantee may rest on a lossy pipeline; **additionally SUB-12 (NEU-1005)**, whose production gates measure counts from these tables and which must not treat a zero as a proven zero.
 - **Mitigation:** **Partial, by threshold design rather than by fixing the pipeline.** Every count-based threshold in the matrix is **zero-tolerance** rather than a rate, chosen specifically because the loss is one-directional: a dropped entry can **hide** an event but cannot **manufacture** one, so the design yields false negatives and never false positives. Every count is labelled a lower bound at the point it is used (`16_attribution-and-detection.md` §3 conventions, §7). What is **not** mitigated is the loss itself; fixing it would be a `src/` change, which is out of this sub-task's scope entirely.
 - **Mitigation status:** **Partially mitigated.** The direction of error is constrained and disclosed; the magnitude is not. **Residual, named:** the **audit-entry arrival rate** that would turn the structural bound into a number is unobserved and **no register item in this package covers it** — `OI-S15-3` is the distinct `t_db` question and is not claimed to settle it. No new item is raised, because no threshold stated here depends on the value; the loss accounting itself is `91_findings-register.md` § `F-S16-2`.
 
@@ -421,7 +435,7 @@ the pre-cutover instance of `R2` is already `R-S16-1`, cited and not restated.
 - **Severity:** **Medium** — the misreading requires a reader to stop at the threshold column and not reach `ME-S16-6`, which the two documents make reasonably hard. It is not Low because the failure mode is a **false assurance about an erasure guarantee**, and because supplying the value is precisely the act that makes the row look finished.
 - **Owning outcome:** **OUT-11** — this outcome sets the deadline, so the state change and the exposure it creates are raised here rather than left for a reader to infer from a threshold that quietly filled in.
 - **Named owner:** **SUB-9** (NEU-1003) for the emission, under OUT-12 — `ME-S16-6` names it; **the creator, as sole maintainer and sole operator**, for the store the proof would live in, which does not exist on the deployment.
-- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether a package may report a detection capability as complete when its input is unbuilt; **additionally SUB-12** (NEU-1004), whose gate register must not record this signal as a measurable gate on the strength of the threshold alone.
+- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether a package may report a detection capability as complete when its input is unbuilt; **additionally SUB-12** (NEU-1005), whose gate register must not record this signal as a measurable gate on the strength of the threshold alone.
 - **Mitigation:** **By explicit statement, at every point the value is used.** §9.1 states *"evaluable in principle and still unemitted"* in terms and cites `ME-S16-6` for the gap; OUT-11's outcome-register row repeats it rather than leaving it to the chapter; and `DR-C11-S8-2` consequence 1 records the same distinction a third time, deliberately, because this is the claim most likely to be over-read. The deadline is additionally carried as the stand-in `95_stand-in-assumption-register.md` § `A-S8-1`, so a reader meeting the number meets its provenance with it. What is **not** mitigated is the emission: nothing in this package emits a proof, and nothing in it may — that is a `src/` change.
 - **Mitigation status:** **Open.** No proof is emitted and no store exists; the sub-task that owns the emission runs at position 11. **Residual, named:** `ME-S16-6`, owned by **SUB-9** (NEU-1003); and the deadline's own provenance, carried as `A-S8-1`, whose re-validation trigger is `OI-S3-1` closing. **Nothing here claims the signal has ever run** — `R13`'s `n = 0` position and `CAP-S16-1`'s uncalibrated-threshold cap both apply unchanged, and neither is restated.
 
@@ -433,7 +447,7 @@ the pre-cutover instance of `R2` is already `R-S16-1`, cited and not restated.
 - **Severity:** **High** — because the gap is not a rough edge but the majority of the duty, because `deleteExpired()`'s unwired status means one store grows without bound today with no scheduler that could ever call it (§10.3), and because the same document that states the duty is the one a reader will take as evidence it can be discharged.
 - **Owning outcome:** **OUT-11** — the erasure design, which is where a duty is stated and therefore where the distance between duty and capability is created.
 - **Named owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who can authorise the `src/` work; **co-named SUB-13** (NEU-1006), which authors the DDL and migration plan and is the nearest sub-task to the mechanism.
-- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether the erasure mechanism is built and by which charter — this package may not change `src/` by constraint, so the decision is not one it can take; **additionally SUB-12** (NEU-1004), for which *"a stated duty with no control behind it"* is a gate that cannot be made measurable and is therefore its own blocking trigger.
+- **Escalation route:** **`NEU-896`** at convergence, as the party that decides whether the erasure mechanism is built and by which charter — this package may not change `src/` by constraint, so the decision is not one it can take; **additionally SUB-12** (NEU-1005), for which *"a stated duty with no control behind it"* is a gate that cannot be made measurable and is therefore its own blocking trigger.
 - **Mitigation:** **By audit-before-design, and by refusing the more flattering framing.** The purge audit (§10) was run **before** the disposition table was written rather than after, so the design is stated against a known surface; the chapter says in terms that *"the erasure design in §8 is a specification, not a description of a capability"*; the reachable-versus-dispositioned counts are published as **three of thirteen** rather than left implicit; and OUT-11's outcome-register row carries the same caveat so the gap is visible to a reader who never opens the chapter. What is **not** mitigated is the absence itself: building an erasure path is a `src/` change and is outside this package's scope by constraint.
 - **Mitigation status:** **Open.** No mitigation is in place, and none is available to this sub-task. **Residual, named:** the entire mechanism gap, owned by the creator as sole operator with SUB-13 co-named; and `deleteExpired()`'s unbounded accumulation of expired `context_tokens` rows, whose production population is **unobserved** — that is `OI-S1-7` (SUB-1), cited and not re-raised. **No row count is asserted.**
 
