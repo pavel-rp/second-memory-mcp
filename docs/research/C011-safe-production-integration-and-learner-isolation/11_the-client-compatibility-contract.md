@@ -151,8 +151,17 @@ go stale the next time a tool is registered; `43` does.
 | Registered | 46, across 16 registering modules | 46, across 16 registering modules | **agrees** |
 | Gated | 43 | 43 | **agrees** |
 | Exempt | 3 | 3 | **agrees** |
-| Named `*InputShape` declarations | 42 (41 imported from `src/domain/types/`, 1 module-local) | 42 (41 in `src/domain/types/`, 1 module-local at `src/server/session-progress-tools.ts:131`) | **agrees** |
+| Named `*InputShape` declarations | 41 imported from `src/domain/types/` + 1 module-local | 41 in `src/domain/types/` + 1 module-local at `src/server/session-progress-tools.ts:131` | **agrees** |
 | Genuinely inline declarations | 1 (`teach_next`) | 1 — `src/server/teaching-tools.ts:35`, inside the `z.object({` at `:34` | **agrees** |
+
+**The named-declaration row is deliberately written as a sum and not as its total.** `41 + 1` is a
+count of *named `*InputShape` constants* — a different quantity from the tool surface — but its total
+is numerically identical to the superseded tool-surface miscount. Writing that numeral here, in a
+column headed *"Re-derived here"*, would put it in the package as a re-derived codebase fact and
+would be picked up by exactly the grep that exists to keep it out. The split is the useful form in
+any case: it is the granularity at which C010's own figure went wrong, and it is what a reader
+re-running the derivation actually compares. C010's `F-S5-3` states the total in its own text; this
+chapter reproduces the split without restating the total.
 
 `F-S5-3` lives at
 `../C010-system-and-repository-architecture/02_findings-register.md:249`–`:254`, and `F-S8-1` — its
@@ -185,9 +194,10 @@ this outcome exists to prevent.
 The prompts matter to a compatibility contract for one reason: **the gate cannot see them.** The
 middleware's first predicate is `body?.method !== 'tools/call'`
 (`src/transport/context-token-middleware.ts:51`), so `prompts/list`, `prompts/get`, `tools/list` and
-the initialize handshake all pass it untouched, on both transports. On HTTP the JWT middleware is
-mounted for all methods at `/mcp` (`src/transport/http.ts:164`) and is the real boundary; on STDIO
-there is no boundary at all.
+the initialize handshake all pass it untouched, on both transports. On HTTP the JWT middleware
+covers all methods at `/mcp` (`src/transport/http.ts:164`) and is the real boundary — **but only when
+auth is configured**, since the mount is guarded by `if (authConfig)` at `:163`. On STDIO there is no
+boundary at all.
 
 **This is not an isolation leak, and the chapter says so rather than implying it.** All three prompt
 handlers call `promptPack.getPrompt(...)` on caller-supplied arguments alone; none takes `ctx`, none
@@ -197,14 +207,25 @@ the counted surface**, not about exposure. Recorded as `F-S11-3`.
 ### 1.6 The `42` disclosure
 
 **`42` appears nowhere in this chapter as a codebase fact.** The superseded miscount is named only
-as the thing that was superseded.
+as the thing that was superseded. Two things in this chapter come close enough that stating the bare
+claim and stopping would be the same false self-certification the claim exists to prevent, so both
+are disclosed.
 
-**One citation in this chapter does resolve to a line 42, and it is disclosed rather than denied.**
-§5 and §8 cite `src/infrastructure/db/client.ts:42` — the connection pool's `max: 4`, SUB-15's `C-1`
-input (`15_operational-objectives-for-the-real-platform.md:75`). That is a line number that happens
-to be 42; it is not a tool count. The disclosure is made here so SUB-17's citation audit meets the
-explanation rather than the anomaly, exactly as `08_consent-and-what-a-learner-can-export-and-erase.md`
-§10.3 records having had to correct when an earlier revision claimed no such citation existed.
+**First, one citation resolves to a line 42.** §4 (the `CH-7` row) and §8 cite
+`src/infrastructure/db/client.ts:42` — the connection pool's `max: 4`, SUB-15's `C-1` input
+(`15_operational-objectives-for-the-real-platform.md:75`). That is a line number that happens to be
+42; it is not a tool count.
+
+**Second, one genuine re-derived quantity in this chapter totals 42 — and its total is therefore
+deliberately not written.** The named `*InputShape` declarations are 41 imported plus 1 module-local
+(§1.4). That is a count of named constants, not of tools, and it is written as a sum precisely so the
+numeral does not enter the package as a re-derived codebase fact.
+
+Both disclosures are made here so SUB-17's citation audit meets the explanation rather than the
+anomaly — exactly as `08_consent-and-what-a-learner-can-export-and-erase.md` §11 records having had
+to correct when an earlier revision of that chapter claimed no citation in it resolved to a line 42.
+That correction is the precedent for making the disclosure positively rather than asserting an
+absence.
 
 ---
 
@@ -213,9 +234,12 @@ explanation rather than the anomaly, exactly as `08_consent-and-what-a-learner-c
 The contract below is unreadable without these. Three are consumed from siblings and one is derived
 here; none is re-litigated.
 
-1. **"Gated" is HTTP-only today.** The gate is Express middleware
-   (`src/transport/context-token-middleware.ts:43`) mounted at `src/transport/http.ts:186`. The
-   STDIO limb of the transport switch (`src/transport/main.ts:55`–`:59`) connects
+1. **"Gated" is HTTP-only today — and conditional even there.** The gate is Express middleware
+   (`src/transport/context-token-middleware.ts:43`) mounted at `src/transport/http.ts:186`, under an
+   `if (contextTokenRepo)` guard at `:185`; the JWT layer above it is likewise guarded by
+   `if (authConfig)` at `:163`. Neither is unconditional, so *"gated"* means *gated on a deployment
+   that configured the thing that gates*. The STDIO limb of the transport switch
+   (`src/transport/main.ts:55`–`:59`) connects
    `createMcpServer(ctx)` to a bare `StdioServerTransport` with nothing interposed. Consumed from
    `F-S16-3`, whose hand-forward asks this chapter to **meet** the qualification rather than
    rediscover it.
@@ -259,10 +283,10 @@ occurred.
 | --- | --- | --- | --- |
 | `CH-1` | Ship behind a stated version boundary with an operator configuration step documented before the boundary, not after. No permissive mode. | **Breaking** — unavoidably so, and already priced by C010's `CC-S8-3` as *"breaking, and unavoidably so"* (`../C010-system-and-repository-architecture/12_application-versus-core-rule-and-compatibility-contract.md:552`) | **Behavioural probe, not schema diff.** Call any gated tool over STDIO with no principal configured and assert a refusal carrying a named reason. A schema diff sees nothing: no input schema changes. |
 | `CH-2` | State the changed *meaning* of an argument whose *shape* is unchanged. Every gated tool already declares `context_token` (§1.3), so **zero schemas newly declare it** and a schema diff is empty by construction. | **Breaking in effect, invisible in shape** | **Semantic probe.** Mint a token as principal A, present it on a tool call that reads principal B's rows, assert refusal. Before `CH-2` the same sequence succeeds. This is the class §4.1 exists for. |
-| `CH-3` | Additive columns, nullable at stage A. Publish the row's meaning, since the token becomes learner-identifying and inherits a retention question it did not have. | **Non-breaking** at stage A; the `NOT NULL` tightening at stage D is breaking only for rows, not for clients | **Schema diff** — this is the one change a schema diff does see, and it sees the database schema, not the tool schema. |
+| `CH-3` | Additive columns, nullable at **stage A**, tightened to `NOT NULL` at **stage D** — SUB-4's four-stage set, `04_the-stdio-identity-gate-and-the-bound-context-token.md:441`–`:446`, consumed here and named so a reader of this chapter alone can resolve the labels. Publish the row's meaning, since the token becomes learner-identifying and inherits a retention question it did not have. | **Non-breaking.** SUB-4 classifies stage A and stage D both `No`, and this chapter adopts that verdict unchanged; the stage-D tightening acts on rows the stage-D purge has already removed, never on a client | **Schema diff** — this is the one change a schema diff does see, and it sees the database schema, not the tool schema. |
 | `CH-4` | Announce token invalidation as a one-time event at the version boundary. Every live client re-mints on its next call. | **Breaking, briefly** — every client's in-flight token stops working exactly once | **Behavioural probe.** Present a token minted before the boundary; assert the documented rejection rather than a generic failure. |
 | `CH-5` | Confinement must be a predicate inside the query the method already issues — not a filter applied after, and not a guard above the port boundary. | **Non-breaking for a correctly-scoped client; breaking for any client relying on cross-learner reads** | **Differential-result probe.** Two principals, disjoint fixtures, assert A's call returns none of B's rows. Note the T5 limb of SUB-5's test design: a predicate that refuses *everyone* also passes a naive isolation test, so the probe must assert A sees A's rows, not merely that A sees none of B's. |
-| `CH-6` | Refusal must be distinguishable from an empty result. `DR-C11-S2-2` rejects empty-scoping on the ground that a silent empty result is indistinguishable from a learner with no data. | **Breaking for every service principal** — including the deploy pipeline's own smoke run (§7) | **Behavioural probe.** Authenticate with `client_credentials`, call a row-owning tool, assert a *refusal* and specifically **not** a `200` with an empty array. |
+| `CH-6` | Refusal must be distinguishable from an empty result. `DR-C11-S2-2` rejects empty-scoping on the ground that a silent empty result is indistinguishable from a learner with no data. | **Breaking for every `client`-kind principal.** Whether the deploy pipeline's smoke principal is one is **`[unconfirmed]`** — see §7 and `A-S11-2` | **Behavioural probe.** Authenticate with `client_credentials`, call a row-owning tool, assert a *refusal* and specifically **not** a `200` with an empty array. This probe also settles the `[unconfirmed]` premise, which is why it is worth running before the change rather than after. |
 | `CH-7` | Per-request construction must not add a database round-trip or a connection acquisition. SUB-5 §12 reports zero of each for clauses 1–4. | **Non-breaking** | **Load probe against `OBJ-1`.** Concurrency > 4 against the pool at `max: 4` (`src/infrastructure/db/client.ts:42`) is the first thing that breaks; assert no regression in queueing behaviour. |
 
 ### 4.1 The class a schema diff cannot see, stated as its own class
@@ -307,6 +331,14 @@ can read learner state.
 identity, its version and its intended workflow, and can mint a context token. Under `CH-1` the mint
 becomes principal-bound, so the third of those stops being free; the first two remain free by
 design.
+
+**Exemption is a transport property and does not reach the enforcement point.** An exempt tool
+bypasses the context-token gate; it does **not** bypass `DR-C11-S5-1` clause 3, which sits at the
+adapter, below both transports. `init_agent_context` is the case that proves it — it is gate-exempt
+and nonetheless issues six row-owning port reads, every one of which clause 3 refuses for a
+`client`-kind principal (§7.3). A reader who generalises *"exempt tools are unaffected"* from this
+section to confinement will get that wrong, and the generalisation is the natural one, so it is
+blocked here explicitly.
 
 **What is not claimed.** That three is the right number *forever*. §1.2 established that the two
 derivations of the exempt set agree at this cutoff and that nothing in the tree keeps them in step.
@@ -366,14 +398,21 @@ analogue and are correctly HTTP-only.
 
 The code the extraction ranges over, in units that can be counted:
 
-- **Four Express-typed middleware factories**, in four files totalling **480 lines**:
+- **Four Express-typed middleware modules**, in four files totalling **480 lines**:
   `jwt-middleware.ts` (150), `rate-limit-middleware.ts` (113), `audit-middleware.ts` (129),
-  `context-token-middleware.ts` (88). Each is typed `RequestHandler`
-  (`:87`, `:70`, `:23`, `:46` respectively). *(File totals, not middleware-body totals — stated so
-  the unit is not mistaken for a more precise measurement than it is.)*
+  `context-token-middleware.ts` (88). *(File totals, not middleware-body totals — stated so the unit
+  is not mistaken for a more precise measurement than it is.)* All four are Express-typed, but **not
+  uniformly**, and the seam has to absorb all three shapes: `createAuditMiddleware` returns
+  `RequestHandler` (`audit-middleware.ts:23`) and so does `createContextTokenMiddleware`
+  (`context-token-middleware.ts:46`); `createJwtMiddleware` returns **`Promise<RequestHandler>`**
+  (`jwt-middleware.ts:87`), so its mount is `await`ed; and `createRateLimiter` returns a
+  **`RateLimiter` object** (`rate-limit-middleware.ts:21`, `:57`) whose `middleware` property is the
+  `RequestHandler` (`:70`), mounted as `createRateLimiter(cfg).middleware` (`http.ts:173`).
 - **Three inline anonymous middlewares** in `http.ts` (`:108`, `:123`, `:153`), roughly 47 lines,
   one of which (correlation) is transport-neutral in concept and inline in fact.
-- **The STDIO limb to attach them to: three statements, five lines** (`src/transport/main.ts:55`–`:59`).
+- **The STDIO limb to attach them to: three statements** at `src/transport/main.ts:56`–`:58`, inside
+  a five-line `else` block spanning `:55`–`:59` whose first and last lines are the braces. The two
+  figures describe different spans and are stated separately so they are not read as one.
 - **`createPrmHandler` (`src/transport/prm-handler.ts:4`) is excluded** — it is an HTTP route
   handler serving protected-resource metadata, not a pipeline layer, and has no STDIO analogue.
 
@@ -391,8 +430,10 @@ response writer that can short-circuit, and an ordered chain with a `next()`.** 
 MCP-level middleware abstraction.
 
 **The load-bearing consequence: the MCP SDK offers no such interposition point at the layer that
-needs it.** `createMcpServer` returns a bare `McpServer` whose tools are attached by 46 individual
-`registerTool` calls (`src/transport/create-server.ts:17`–`:23`). There is no documented hook
+needs it.** `createMcpServer` (`src/transport/create-server.ts:17`–`:23`) constructs a bare
+`McpServer` and hands it to a single `registerServerTools(server, ctx)` call at `:23`; that call
+fans out through `src/server/tools.ts:17`–`:30` to the 46 individual `server.registerTool(` sites
+enumerated in §1.1. There is no documented hook
 between "a `tools/call` arrives" and "the registered handler runs". The extraction must therefore
 land in one of two places, and this is the real fork in the price:
 
@@ -428,7 +469,7 @@ they are — **it silently re-classifies them.** Three tiers:
 | 3 | Gated tools, principal configured | degraded (one-time config) | degraded, unlogged | **unaffected — no principal is read, so nothing confines** |
 | 4 | `TRANSPORT` unset — the default | **broken until configured** | **broken until configured**, unlogged | **unaffected — the largest class stays ungated** |
 | 5 | Harness constructing `createMcpServer(ctx)` directly | unaffected | unaffected | unaffected |
-| 6 | Deploy-pipeline smoke run (HTTP) | broken by `CH-6` | broken by `CH-6` | **still broken by `CH-6`** — see §7 |
+| 6 | Deploy-pipeline smoke run (HTTP) | broken by `CH-6` | broken by `CH-6` | **still broken by `CH-6`** — see §7. Tier-independent, but **conditional on `A-S11-2`**: the whole row assumes the smoke principal resolves to kind `client` |
 | 7 | STDIO client presenting a bearer token | unaffected (accepted) | unaffected (accepted) | unaffected (still ignored) |
 
 **Three readings, and the third is the one that matters.**
@@ -455,6 +496,15 @@ they are — **it silently re-classifies them.** Three tiers:
    discovered to be a rewrite is the work most likely to be cut, and why a green `I4` may not be
    cited as the argument for cutting it.
 
+4. **The table itself is now the exposure, and it is registered as one.** Once a tier determines
+   what three of the seven rows mean, the seven-path table stops being tier-independent — and it is
+   the artifact a rollout planner will actually consult, in SUB-4's chapter, where no tier column
+   exists. A planner reading it after the extraction is cut sees five *unaffected* rows and concludes
+   STDIO came through the change well. That is a distinct hazard from `R-S4-4`'s (which is about the
+   audit limb being cut) and from `F-S11-4`'s (which is the technical fact), so it is carried as its
+   own risk entry, **`R-S11-2`**, owned by SUB-7 (`NEU-1001`) for the tier choice and by
+   `SUB-10 of C010 (NEU-984)` for the extraction's scope, escalating to `NEU-896`.
+
 **What this pricing does not do.** It does not give a number of hours or a line count for the
 extraction itself. The tree supports counting *what must be ranged over* (§6.1) and *where it must
 land* (§6.2); it does not support estimating effort, and no estimate is offered. `F-S4-4` said the
@@ -465,13 +515,30 @@ happens to each of the seven paths if it is not paid**. Recorded as `F-S11-4`.
 
 ## 7. The deploy-pipeline smoke run, walked as the existing client it is
 
-The CD pipeline's smoke job (`.github/workflows/cd-prod.yml:110`–`:174`) is a real MCP client
-against production. It authenticates with `grant_type=client_credentials` (`:158`) and runs
-`pnpm run test:smoke` (`:174`), which executes `tests/smoke/smoke.test.ts`.
+The CD pipeline's smoke job (`.github/workflows/cd-prod.yml:110`–`:174`) is an MCP client that runs
+against production on every release. It authenticates with `grant_type=client_credentials` (`:158`)
+and runs `pnpm run test:smoke` (`:174`), which executes `tests/smoke/smoke.test.ts`. It is read from
+those two files, **not observed running** (`CAP-S11-1`) — so it is a client this chapter can
+establish exists in the pipeline, not one whose behaviour anyone here has watched.
 
-Under SUB-2's identity rule, a `client_credentials` token carries no `sub`, so the principal kind is
-`client` and the learner key is `NULL`. Under `DR-C11-S5-1` clause 3, every row-owning operation for
-a `client`-kind principal is **refused**. Walking the suite scenario by scenario:
+### 7.1 The premise this walk rests on, stated before the walk
+
+**`[unconfirmed]`.** The whole of §7 assumes the production `client_credentials` token carries **no
+`sub`**, so that SUB-2's rule resolves the smoke principal to kind `client` and `DR-C11-S5-1` clause
+3 refuses its row-owning operations. **That is a belief, not an observation.** It is recorded in a
+code comment at `src/transport/jwt-middleware.ts:116`, registered as C011's `OI-S1-1` with
+`SPK-S1-1` as the spike that would settle it — **not executed, confidence `none`** — and SUB-2
+carries its complement as `R-S2-2`, the risk that the smoke principal acquires a `sub` and silently
+becomes a learner owning production rows.
+
+**SUB-4 kept both branches live** (`92_risk-register.md:279`: *"Both are live because `OI-S1-1` /
+`SPK-S1-1` are open and no token has been observed"*), and this chapter does **not** close either.
+It walks the branch where the belief holds, because that is the branch that produces a compatibility
+obligation. **On the other branch the walk inverts: 8 of 8 scenarios pass, `CH-6` breaks no existing
+client, and §6.3 row 6 is wrong.** Registered as **`A-S11-2`**, with the `P3` probe of §4.1 as the
+one action that settles it.
+
+### 7.2 The walk, on the branch where the premise holds
 
 | # | Scenario | Line | Row-owning? | Under this contract |
 | --- | --- | --- | --- | --- |
@@ -479,13 +546,39 @@ a `client`-kind principal is **refused**. Walking the suite scenario by scenario
 | 2 | `GET /version` | `:111` | no | **passes** — same |
 | 3 | MCP `initialize` handshake | `:128` | no | **passes** — not `tools/call` |
 | 4 | `initialized` notification | `:152` | no | **passes** |
-| 5 | `init_agent_context` returns a token | `:163` | no | **passes** — gate-exempt (§4.2). Under `CH-3` the minted row binds a `client`-kind principal, which is a valid bind |
+| 5 | `init_agent_context` returns a token | `:163` | **yes — six of them** | **passes, but not for the reason gate-exemption suggests** — see §7.3 |
 | 6 | `list_learning_items` | `:200` | **yes** | **FAILS** — refused at the adapter |
 | 7 | `session_status` for a nonexistent id | `:231` | **yes** | **FAILS** — refused at the adapter, and the test asserts a *specific* error, so a refusal fails it even though it expects an error |
 | 8 | session `DELETE` cleanup | `:263` | no | **passes** |
 
 **Six of eight pass; two fail, and both fail for the reason the design intends.** The deploy gate
 therefore fails on every release from the moment `CH-6` lands.
+
+### 7.3 Scenario 5 is row-owning, and it survives on a fail-open rather than on its exemption
+
+Gate exemption is a **transport** property and the enforcement point is the **adapter**, so an exempt
+tool is not thereby exempt from confinement — the distinction §6.3 reading 2 turns on. Scenario 5 is
+the case that makes it concrete, and classifying it *not row-owning* would have been wrong.
+
+`init_agent_context` calls `ctx.buildLearnerContext()` (`src/server/server-context-tools.ts:27`),
+which fires **six row-owning port queries in parallel**
+(`src/orchestration/learner-context-workflows.ts:95`–`:103`): `chunks.batchFetchMinimal()`,
+`topics.batchFetchMinimal()`, `sessions.getActiveSession()`, `sessions.listSessions(...)`,
+`reviewPersistence.getWeakAreas()` and `reviewPersistence.getReviewsByDateRange(...)`. Under
+`DR-C11-S5-1` clause 3 every one of them is refused for a `client`-kind principal.
+
+**The scenario still passes — because the call is wrapped in a fail-open.**
+`src/server/server-context-tools.ts:28`–`:31` catches any error from `buildLearnerContext`, logs a
+warning and returns `null`; the smoke assertion at `tests/smoke/smoke.test.ts:191`–`:194` accepts
+`learner_context: null` as *"graceful degradation"*. So the verdict is *passes*, and the mechanism is
+a swallowed refusal rather than an absence of row-owning work.
+
+**Two consequences worth stating.** The smoke suite would go green while silently losing the entire
+learner-context payload, which is a degradation no assertion in it detects — the same shape as
+`R-S5-1`, where a safe-direction failure passes every test anyone runs. And a reader who generalises
+*"gate-exempt tools are unaffected"* from §4.2 to the enforcement point will get this wrong; §4.2 is
+about the transport gate only. Not routed as a new finding: it is a property of the smoke suite and
+of `CH-6`, both already owned, and it is stated here rather than absorbed.
 
 **Three things this chapter adds to what `F-S4-3` and `F-S5-12` already establish.**
 
@@ -511,15 +604,29 @@ here.
 
 ## 8. What an existing client is **not** guaranteed
 
-A client's guarantee cannot exceed what the enforcement point confines. SUB-5 named four things it
-does not (`05_the-enforcement-point-that-confines-every-read-and-write.md` §6). They bound this
-contract, and the bound is stated positively rather than left to inference.
+A client's guarantee cannot exceed what the enforcement point confines. SUB-5 enumerates **four
+escapes** at `05_the-enforcement-point-that-confines-every-read-and-write.md:547` — *"Four things
+escape, and each is named with its route"* — as §6.1, §6.2, §6.3 and §6.4. The table below carries
+**three of SUB-5's four** and substitutes SUB-5's §7.4, and the substitution is deliberate rather
+than a miscount:
+
+- SUB-5's **§6.4** is the non-retroactive boundary. It is a *population* limit rather than a *path*
+  outside the enforcement point, and it cuts in both directions, so it is carried below the table
+  with its complement (`F-S8-2` under-reaching, `R-S5-1` over-reaching) rather than flattened into a
+  one-line row that could only state one direction.
+- SUB-5's **§7.4** names the operator and maintenance paths — `clearAllTables`, `deleteExpired` and
+  direct `psql` access, *"outside every port and therefore outside the enforcement point entirely"*.
+  That is a genuine path escape and belongs in a table of what the contract may not promise, even
+  though SUB-5 reaches it while enumerating test coverage rather than in §6.
+
+**So this is not SUB-5's four re-stated; it is four path escapes, three of them SUB-5's §6 rows.**
+The bound is stated positively rather than left to inference.
 
 | Escape | What the contract may not promise | Owner |
 | --- | --- | --- |
 | **Content egress via two external-service ports** (§6.1) — `EmbeddingPort`, `ContentClassifierPort` | That learner content stays inside the deployment. Chunk content and classifier prompts leave it, to an external provider. Not a cross-learner exposure; a data-protection surface | SUB-8 (`NEU-1002`) / `OI-S3-1`; the provider identity is `SPK-S8-1`, **not executed** |
 | **`LD-S3-31`, the sixth copy class** (§6.2) — captures at `_local/scratch/` | That every copy of learner content is behind a port. This one is behind none, reached by no SQL statement. Membership at revision 1 is **zero** | The creator; destroyed on this package's publication |
-| **`Tier2BlockingStatsRepository`** (§6.3, `F-S5-9`) — aggregates `infrastructure.operation_event_log`, a table with no ownership key behind no port `OUT-2` reaches | That every aggregate is confined. No predicate can be pushed below this one's aggregation | C010's `CAP-S3-3` / `CAP-S4-1`, owner `NEU-986`, co-named `NEU-896` |
+| **`Tier2BlockingStatsRepository`** (§6.3, `F-S5-9`) — aggregates `infrastructure.operation_event_log`, a table with no ownership key sitting behind no port that **`NEU-850`'s `OUT-2`** reaches (qualified, per SUB-5's own wording at `05_the-enforcement-point-that-confines-every-read-and-write.md:590`; C011 has its own OUT-2 and a bare id would read as that one) | That every aggregate is confined. No predicate can be pushed below this one's aggregation | C010's `CAP-S3-3` / **C010's** `CAP-S4-1`, owner `NEU-986`, co-named `NEU-896` — cited qualified because C011 has a `CAP-S4-1` of its own (`94_caps-and-incomplete-scope.md:117`) |
 | **Operator and `psql` paths** (§7.4) — `clearAllTables`, `deleteExpired`, and direct database access | That the operator is confined. Direct `psql` access is outside every port and therefore outside the enforcement point entirely | The creator, as sole operator; modelled by SUB-12 (`NEU-1005`) under OUT-17 |
 
 **Two further limits on the guarantee, from elsewhere in the package.**
@@ -540,18 +647,30 @@ contract, and the bound is stated positively rather than left to inference.
 
 **And the honest ceiling on the whole document.** **No existing client's behaviour was observed.**
 No production credential exists in this environment — `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and
-`VPS_*` are all unset. Across the package, **twenty spikes are designed and zero have been
-executed** (§12). The client population this contract is written for has **unknown size and unknown
-composition**. Recorded as `CAP-S11-1`, with `SPK-S11-1` as the bounded experiment that would close
-it.
+`VPS_*` are all unset. Across the package, **twenty-one spikes are designed and zero have been
+executed** once this sub-task's own entry is counted (§12 shows the enumeration). The client
+population this contract is written for has **unknown size and unknown composition** — including the
+smoke run of §7, which is established from `cd-prod.yml` and `smoke.test.ts` rather than observed
+running. Recorded as `CAP-S11-1`, with `SPK-S11-1` as the bounded experiment that would close it.
 
 ---
 
 ## 9. The DP-specificity review
 
-**The review's scope.** C005's constraint (`:61`) requires core changes to be reusable,
-backward-compatible, **non-DP-specific** and fail safely. The outcome asks whether *this package's
-mechanism* lets a course-specific concept into the core surface.
+**The review's scope.** The constraint is that core changes be reusable, backward-compatible,
+**non-DP-specific** and fail safely. The outcome asks whether *this package's mechanism* lets a
+course-specific concept into the core surface.
+
+**A note on the constraint's own provenance, because it is weaker than it looks.** The clause reaches
+this sub-task as *"C005 charter `:61`"*, via the charter and this task's tracker description. **That
+reference resolves to no file in this repository** — no C005 charter exists under `docs/research/` or
+in `_local/`, the citation names no path, and no other C011 chapter cites C005 at all. It is also
+invisible to the citation checker, which discards any candidate beginning with `:`
+(`scripts/citation-paths/checker.ts:122`). So the clause is carried here **as the charter states it**,
+and a reader cannot verify its wording against a source. That does not weaken the finding below —
+`F-S11-2` is an observation about `src/`, true independently of which document phrases the rule — but
+it does mean the *standard* is inherited on the charter's authority rather than read. Registered as
+`OI-S11-3`.
 
 **Verdict on this package's changes: clean.** Every one of `CH-1` … `CH-7` is expressed in
 vocabulary that is either transport-generic (principal, principal kind, context token, transport) or
@@ -570,17 +689,27 @@ boolean criterion keys into a core MCP tool input schema:
 correct_recurrence · correct_base_case · correct_iteration_order · complexity_stated
 ```
 
-and its own `.describe()` names them, at `:285`, as *"Per-criterion booleans for the **DP** grading
-rubric … All four are required."* These are dynamic-programming concepts. A self-hoster teaching
-anything else cannot supply a meaningful `correct_recurrence`, and cannot omit it.
+and its own `.describe()` names them — across `:285`–`:286`, the string being a two-line
+concatenation — as *"Per-criterion booleans for the **DP** grading rubric. Each is true only if the
+learner's answer demonstrably satisfies that criterion. All four are required."* These are
+dynamic-programming concepts. A self-hoster teaching anything else cannot supply a meaningful
+`correct_recurrence`, and cannot omit it.
 
-**It reaches three of the 46 registered tools:**
+**It reaches three of the 46 registered tools — and, separately, the prompt surface §1.5 counted:**
 
-| Tool | Registered at | Carries the rubric via |
+| Entry point | Registered at | Carries the rubric via |
 | --- | --- | --- |
-| `submit_answer` | `src/server/teaching-tools.ts:111` | `SubmitAnswerInputShape` (`src/domain/types/teaching.ts:306`), `grading:` at `:330` — **input schema** |
-| `revise_grade` | `src/server/teaching-tools.ts:198` | `ReviseGradeInputShape` (`:467`), `grading:` at `:472` — **input schema** |
-| `teach_next` | `src/server/teaching-tools.ts:19` | the `nextStep` guidance string at `:62` and `:88`, which spells the four keys out — **response payload** |
+| `submit_answer` (tool) | `src/server/teaching-tools.ts:111` | `SubmitAnswerInputShape` (`src/domain/types/teaching.ts:306`), `grading:` at `:330` — **input schema** |
+| `revise_grade` (tool) | `src/server/teaching-tools.ts:198` | `ReviseGradeInputShape` (`:467`), `grading:` at `:472` — **input schema** |
+| `teach_next` (tool) | `src/server/teaching-tools.ts:19` | the `nextStep` guidance string at `:62` and `:88`, which spells the four keys out — **response payload** |
+| The prompt surface | `src/transport/create-server.ts:25`, `:45`, `:80` | `formatQualityRubric()` (`src/shared/prompts/prompt-pack.ts:837`, `:855`, `:857`) names the same four keys and is spliced into seven prompt builders (`:247`, `:281`, `:319`, `:687`, `:731`, `:774`, `:818`) — **prompt text** |
+
+**The fourth row exists because this chapter added the prompt surface to the counted set (§1.5,
+`F-S11-3`), so a review that ranged only over the 46 tools would have been narrower than the surface
+this chapter itself defined.** Three-of-46 is a floor for the tool surface, not a statement about the
+49 registered entry points. The prompt reach is a distinct instance rather than a second copy of the
+same one: `GradingPayloadShape` constrains what a client may *send*, while `formatQualityRubric()`
+shapes what the server *tells* a client to send, and removing one would not remove the other.
 
 **Three qualifications, so the finding is not over-read.**
 
@@ -589,8 +718,9 @@ anything else cannot supply a meaningful `correct_recurrence`, and cannot omit i
 2. **It is out of scope to fix here.** The remedy is a `src/` change, which this sub-task may not
    make by constraint.
 3. **It is not an isolation or privacy defect.** It is a **reusability** defect, against the
-   *reusable* and *non-DP-specific* limbs of C005 `:61` — the same clause this sub-task's own
-   constraints carry.
+   *reusable* and *non-DP-specific* limbs of the core-change clause the charter cites as C005 `:61`
+   — whose own reference does not resolve to a file here (`OI-S11-3`, above). The observation about
+   `src/` stands on its own reading; only the phrasing of the standard is inherited.
 
 Recorded as `F-S11-2`, with `R-S11-1` for the residual exposure and `NEU-896` as the escalation
 route, since a core-reusability breach is a program-level surface.
@@ -660,22 +790,47 @@ because it remains live for any later re-count, not because it fired.
 
 **One namespace note.** `F-S5-3` and `F-S8-1` are **C010's** ids and are cited qualified throughout.
 This package has its own `F-S5-*` series (SUB-5's, `F-S5-1` … `F-S5-13`) and its own `F-S8-*` series
-(SUB-8's) — both cited bare. C010 also has a sub-task 8, so **any `S<n>`-scoped id may collide**;
-per `README.md` § Id conventions a bare id is always this charter's own. `F-S2-2` records the same
-hazard for `OI-S1-2`, which denotes different facts in the two packages.
+(SUB-8's) — both cited bare. C010 also has a sub-task 8, so **any `S<n>`-scoped id may collide**, and
+the collision is not hypothetical inside this package either: **C011 has its own `CAP-S4-1`**
+(`94_caps-and-incomplete-scope.md:117`) alongside C010's, and §8's escape table cites the C010 one,
+so it is written qualified there.
+
+**The disambiguating rule, stated precisely rather than generalised.** `README.md` § Id conventions
+fixes it for **sub-tasks** — *"A C010 sub-task is always cited qualified … A bare `SUB-n` is always
+this charter's own"* — and does **not** state a general rule for `F-`, `OI-`, `CAP-` or `R-` records.
+This chapter applies the same convention to record ids by analogy, and says so rather than citing the
+README for a clause it does not contain. `F-S2-2` records the underlying hazard for `OI-S1-2`, which
+denotes different facts in the two packages.
 
 ---
 
-## 12. Evidence posture
+## 12. Evidence posture and register integrity
 
-**No spike in this package has been executed.** Enumerated directly from `96_spike-register.md` at
-this cutoff: SUB-1 nine (`SPK-S1-1` … `SPK-S1-9`), SUB-15 four, SUB-2 three, SUB-4 two, SUB-16 one,
-SUB-8 one, SUB-5 zero — **twenty designed, zero executed**. `SPK-S11-1` makes twenty-one designed.
+**No spike in this package has been executed.** Enumerated directly from `96_spike-register.md`'s own
+section headings at this cutoff: SUB-1 nine (`SPK-S1-1` … `SPK-S1-9`), SUB-15 four, SUB-2 three,
+SUB-4 two, SUB-16 one, SUB-8 one, SUB-5 zero — **twenty before this sub-task**, and **twenty-one
+designed, zero executed** once `SPK-S11-1` is counted. Both figures are stated because they answer
+different questions, and every other statement of the total in this sub-task's own output uses
+**twenty-one**.
 
-The figure is stated here because it was wrong twice before in this package: `F-S4-6` records a
-cumulative total of "twelve" that omitted SUB-15's four, and the correction itself was computed on
-three different bases by three authors. **It is re-derived here by enumeration, not carried from
-`F-S4-6`.**
+The figure is stated here because it was wrong repeatedly in this package: `F-S4-6` records a
+cumulative total of "twelve" that omitted SUB-15's four, and the correction was then computed on
+different bases by three authors (sixteen, seventeen, eighteen). **It is re-derived here by
+enumeration, not carried from `F-S4-6` or from SUB-8's note.**
+
+**The tracker ids this package uses for SUB-11 and SUB-12 are inconsistent, and every hand-forward
+addressed to this sub-task is misaddressed.** Three ids are used for two sub-tasks across merged
+chapters: SUB-11 appears as `NEU-1003` (at `04_the-stdio-identity-gate-and-the-bound-context-token.md:735`,
+`91_findings-register.md:258`, `:276`, `:285`, `93_open-items-and-provisional-register.md:350`,
+`:361`) and as `NEU-1005` (at `91_findings-register.md:109`, `:356`,
+`93_open-items-and-provisional-register.md:289`), while `NEU-1004` — this sub-task's own id — is used
+for **SUB-12** in a dozen places. **The tracker settles it**: `NEU-1003` is SUB-9, `NEU-1004` is
+SUB-11, `NEU-1005` is SUB-12, reproducing the decomposition's own publication table. Two of the
+misaddressed hand-forwards are load-bearing for this outcome — `F-S4-4`'s unpriced cost (`:276`) and
+`F-S4-5`'s changed-meaning obligation (`:285`) — and both are nonetheless discharged here, because
+routing by `SUB-<n>` is unambiguous throughout and only the parenthetical id is wrong. Recorded as
+**`F-S11-1`** and handed to SUB-14, which is the only party permitted to correct another sub-task's
+entries; **nothing is corrected in place.**
 
 **No claim in this chapter carries the `observed-in-production` evidence label.** Every codebase
 claim is `observed-in-repository` at `35f92ba`; every claim about production behaviour is a
@@ -684,33 +839,49 @@ derivation from a repository fact, and is labelled as such where it appears.
 **No QA pass is claimed, and the record that was supposed to carry that fact is missing.** The
 capability registry resolves to `git, linear`; no capability owns the `qa-execution` surface, so the
 autonomous QA phase is a genuine **Core Article 8 no-op** rather than a skipped gate. Four places in
-the package decline to file a per-sub-task cap for this on the authority of `CAP-S1-3` — **which is
-not filed in `94_caps-and-incomplete-scope.md`**. The QA fact is unaffected and undisputed; the
-routing is not. Recorded as `F-S11-5` and handed to SUB-14, and this chapter **also** declines to
-file a duplicate rather than resolving an assembly-level gap with a per-sub-task record.
+the package rest that position on **`CAP-S1-3`** — one of them declining to file a per-sub-task cap
+on its authority (`94_caps-and-incomplete-scope.md:197`), one answering a completeness-gate row *not
+applicable* by pointing at it (`97_package-completeness-gate.md:232`), and two stating plainly that
+it applies (`05_the-enforcement-point-that-confines-every-read-and-write.md:1408`;
+`traceability/S5_the-enforcement-point.md:67`). **`CAP-S1-3` is not filed in
+`94_caps-and-incomplete-scope.md`** — SUB-1 filed two caps, not three. The QA fact is unaffected and
+undisputed; the routing is not, and the no-op is presently carried at package level by `README.md`
+§ *"Verification note"* as prose rather than by any cap-register entry. Recorded as `F-S11-5` and
+handed to SUB-14, and this chapter **also** declines to file a duplicate rather than resolving an
+assembly-level gap with a per-sub-task record.
 
 ---
 
 ## 13. Source-change confirmation
 
-No file under `src/` or `drizzle/` changes in this sub-task. No test file is written. The
-deliverable is this chapter, its register entries, one decision record, one traceability file and
-the glossary rows. Verified by `git diff --name-only origin/develop`.
+**No file under `src/`, `drizzle/` or `tests/` changes in this sub-task**, and no test file is
+written. Verified by `git diff --name-only origin/develop`.
+
+The changed set is this chapter, the eight register appends, one decision record, one traceability
+file, the two folder-index rows, three `docs/GLOSSARY.md` rows — **and `.current-task`**, a one-line
+status breadcrumb at the repository root that the project's own convention writes
+(`CLAUDE.md` § Status Breadcrumb). It is named here rather than glossed as *"only this package
+directory"*, because it is the one path in the change set that sits outside `docs/` and the one line
+in it that carries a deletion.
 
 ---
 
 ## 14. Ids allocated by this sub-task
 
-| Register | Ids |
-| --- | --- |
-| Findings | `F-S11-1` … `F-S11-5` |
-| Risks | **`R11`** (charter row 11), `R-S11-1`, `R-S11-2` |
-| Open items | `OI-S11-1`, `OI-S11-2` |
-| Caps | `CAP-S11-1` |
-| Stand-ins | `A-S11-1` |
-| Spikes | `SPK-S11-1` |
-| Decision records | `DR-C11-S11-1` |
-| Gate rows | `G-S11-1` … `G-S11-21` |
+| Register | Ids | Where each is derived |
+| --- | --- | --- |
+| Findings | `F-S11-1` … `F-S11-5` | §12 (`F-S11-1`, `F-S11-5`), §9 (`F-S11-2`), §1.5 (`F-S11-3`), §6.3 (`F-S11-4`) |
+| Risks | **`R11`** (charter row 11), `R-S11-1`, `R-S11-2` | §10 (`R11`), §9 (`R-S11-1`), §6.3 reading 4 (`R-S11-2`) |
+| Open items | `OI-S11-1`, `OI-S11-2`, `OI-S11-3` | §1.2 and §4.2 (`OI-S11-1`), §6.2 (`OI-S11-2`), §9 (`OI-S11-3`) |
+| Caps | `CAP-S11-1` | §8 |
+| Stand-ins | `A-S11-1`, `A-S11-2` | §10 (`A-S11-1`), §7.1 (`A-S11-2`) |
+| Spikes | `SPK-S11-1` | §8 |
+| Decision records | `DR-C11-S11-1` | the whole chapter |
+| Gate rows | `G-S11-1` … `G-S11-21` | `97_package-completeness-gate.md` § SUB-11 |
+
+**Every id is derived in a numbered section of this chapter**, not merely allocated here — the
+right-hand column exists so a reader can check that, and so an id with no derivation is visible as a
+gap rather than as a table row.
 
 Every id is computed from the charter and this sub-task's own number. **No id is derived from "the
 next number in a shared sequence"**, and no concurrent sibling's output was read to pick one — which

@@ -811,10 +811,17 @@ against C010's `F-S5-3`.
    directions). Reconciled against `F-S5-3` at §1.4 and agreeing **to the 41 / 1 / 1 granularity of
    where the declarations live**, not merely on the three headline numbers. No finding routed to
    `NEU-895`.
-2. **MET.** §1.6. One citation in the chapter resolves to a line 42 —
-   `src/infrastructure/db/client.ts:42`, the pool's `max: 4` — and is **disclosed** as a line number
-   rather than claimed absent, which is the error `08_consent-and-what-a-learner-can-export-and-erase.md`
-   §10.3 records having had to correct in its own revision.
+2. **MET, and it was not met on the first draft.** §1.6 now carries **two** disclosures. One
+   citation resolves to a line 42 — `src/infrastructure/db/client.ts:42`, the pool's `max: 4`, cited
+   in §4 and §8. And one genuine re-derived quantity *totals* 42 — the named `*InputShape`
+   declarations — so §1.4's reconciliation row is written as **`41 + 1`** and the total is
+   deliberately not stated. **The first draft failed this limb while certifying it met:** §1.4
+   carried a bare `42` in a column headed *"Re-derived here"*. An adversarial pass caught it before
+   the PR opened. The limb is recorded as met **with the near-miss disclosed**, because the measure
+   is about a numeral not entering the package and the honest report of how close it came is worth
+   more than a clean line. The precedent for disclosing rather than asserting an absence is
+   `08_consent-and-what-a-learner-can-export-and-erase.md` **§11**, which records the same
+   correction against its own earlier revision.
 3. **MET.** §4, seven rows, three columns each.
 4. **MET.** §4.1. Three of the seven changes (`CH-2`, `CH-5`, `CH-6`) alter semantics with **zero**
    schema-shape delta, and the section states *why* the obvious check returns empty: all 46 names

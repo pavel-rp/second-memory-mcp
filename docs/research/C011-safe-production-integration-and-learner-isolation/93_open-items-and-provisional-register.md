@@ -558,16 +558,33 @@ bounded experiment against production: `OI-S5-1` needs a measurement another ite
 - **Resolving event:** The extraction's design is settled — either an interposition adapter lands in `src/transport/`, or a decorator lands at the registration sites. On option B the item resolves **with a consequent obligation**: an assertion that the wrapped-handler set equals the non-exempt registered set, because a forgotten decorator on one of 46 sites yields a tool that is registered, believed gated, and ungated — a failure §1.3's schema mapping cannot catch, since that mapping checks *declarations*, not *wrapping*.
 - **Why not a stand-in:** Because no branch is assumed. The chapter prices **both** and states the consequence of each; nothing downstream of it depends on which is chosen, so there is no assumption to register a tolerance envelope against.
 
+#### `OI-S11-3` — The core-change clause this package measures DP-specificity against resolves to no file, and this sub-task is its only citer
+
+- **Id:** `OI-S11-3`
+- **Item:** The constraint *"core changes must be reusable, backward-compatible, non-DP-specific and fail safely"* reaches this sub-task as **`C005 charter :61`** — via `01_charter.md` § Constraints and this sub-task's tracker description. **The reference names no file, and no C005 charter exists in this repository**: nothing under `docs/research/` and nothing in `_local/` carries one, and **no other C011 chapter cites C005 at all**. It is additionally invisible to the citation gate, which discards any candidate beginning with `:` (`scripts/citation-paths/checker.ts:122`), so a green checker run says nothing about it. What is open is where the clause is actually written, and therefore whether the wording this package measures against is the wording that was ratified.
+- **Status:** open
+- **Source:** `11_the-client-compatibility-contract.md` §9; `_local/C011__resolve-safe-production-integration-and-learner-isolation/01_charter.md` § Constraints (gitignored); `scripts/citation-paths/checker.ts:122`.
+- **Consumer:** **SUB-17 (`NEU-1008`)** under OUT-20, whose citation audit requires every codebase and upstream claim to resolve to a real path or carry a version and date — this one does neither; **SUB-14 (`NEU-1007`)**, which assembles the package a cold reader receives and for which an unresolvable authority is a house-style defect.
+- **Owner:** **`NEU-896`** at convergence, as the party holding the cross-package charter set and the only one positioned to say where C005 lives; **SUB-14 (`NEU-1007`)** for the package-side disposition — cite it resolvably, restate the clause with a real source, or record it as an inherited-by-charter standard.
+- **Resolving event:** A resolvable citation for the clause lands — a path plus a line, or a named document with a date — or the package records explicitly that the standard is inherited on the charter's authority and is not independently verifiable from the repository.
+- **Why not a stand-in:** Because nothing here rests on the clause's *wording* being one thing rather than another. `F-S11-2`'s substance — that four dynamic-programming criterion keys are required fields in core tool schemas — is an observation about `src/` that holds under any phrasing of a non-DP-specificity rule. What is missing is a verifiable **authority**, not a load-bearing **belief**, so this is an open item and not an assumption with a tolerance envelope.
+
 ---
 
-**SUB-11 register totals at revision 1:** two open items, `OI-S11-1` and `OI-S11-2`, both open at
-this revision. Each carries a named owner and an observable resolving event, neither blank. **Zero
-dispositions of another package's items are recorded here.** **Zero second records:** C010's
-`OI-S8-1` — that `context_tokens` names no principal — is cited from its single owning record inside
-`11_the-client-compatibility-contract.md` §2 rather than re-raised, and `OI-S3-1`
-(controller/processor and lawful basis) is cited in §8's escape table on the same rule. **Zero of
-two correspond to a spike entry** — neither is settled by a bounded experiment against production:
-`OI-S11-1` needs a test written and `OI-S11-2` needs a design decision taken, and both are settled
-by work rather than by observation. The one question this sub-task *does* need production to answer
-— whether any existing client exists at all — is registered as **`SPK-S11-1`** with `CAP-S11-1` as
-its standing cap.
+**SUB-11 register totals at revision 1:** three open items, `OI-S11-1`, `OI-S11-2` and `OI-S11-3`,
+all open at this revision. Each carries a named owner and an observable resolving event, neither
+blank. **Zero dispositions of another package's items are recorded here.** **Zero second records:**
+C010's `OI-S8-1` — that `context_tokens` names no principal — is cited from its single owning record
+inside `11_the-client-compatibility-contract.md` §2 rather than re-raised; `OI-S3-1`
+(controller/processor and lawful basis) is cited in §8's escape table on the same rule; and
+**`OI-S1-1`** — whether a production `client_credentials` token carries a `sub` — is cited from its
+single owning record in §7.1 and carried as the stand-in `A-S11-2`, **not** re-raised as a fourth
+open item here.
+
+**Zero of three correspond to a spike entry**, and the reason is uniform: none is settled by an
+experiment against production. `OI-S11-1` needs a test written, `OI-S11-2` needs a design decision
+taken, and `OI-S11-3` needs a document located — all settled by work rather than by observation. The
+two questions this sub-task *does* need production to answer are registered elsewhere: whether any
+existing client exists at all is **`SPK-S11-1`**, with `CAP-S11-1` as its standing cap; and whether
+the smoke principal's token carries a `sub` is **`SPK-S1-1`**, cited rather than re-designed, with
+`A-S11-2` carrying the assumption this chapter makes in its absence.

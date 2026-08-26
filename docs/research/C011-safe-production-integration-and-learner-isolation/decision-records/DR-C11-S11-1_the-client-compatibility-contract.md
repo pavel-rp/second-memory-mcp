@@ -30,10 +30,11 @@ The backward-compatibility contract for existing MCP clients is published as
    rows, not merely none of B's*).
 
 4. **The guarantee is stated with its negative half, bounded by the enforcement point.** What a
-   client is **not** guaranteed is published as a table of the four things SUB-5 recorded the
-   enforcement point does not confine, plus the two-directional attribution limit and the `OBJ-1`
-   concurrency ceiling. **A client's guarantee may not exceed what the enforcement point actually
-   confines.**
+   client is **not** guaranteed is published as a table of **four path escapes** — three of SUB-5's
+   §6 rows plus its §7.4 operator paths, with SUB-5's §6.4 non-retroactive boundary carried below the
+   table because it is a *population* limit that cuts both ways rather than a path outside the
+   enforcement point — plus the `OBJ-1` concurrency ceiling. **A client's guarantee may not exceed
+   what the enforcement point actually confines.**
 
 5. **`F-S4-4`'s cost is priced as a fork and three delivery tiers, not as an estimate.** The
    extraction is priced by naming what a transport-neutral seam must carry, identifying the
@@ -157,7 +158,11 @@ about the extraction, and it is only visible once the cost is decomposed into ti
 | STDIO has no interposed middleware, and is the default mode | `src/transport/main.ts:55`–`:59`; `src/config/resolve-transport-config.ts:35` |
 | The seven-layer HTTP pipeline | `src/transport/http.ts:108`, `:123`, `:153`, `:164`, `:173`, `:180`, `:186` |
 | Four Express-typed middleware factories | `src/transport/jwt-middleware.ts:87`; `src/transport/rate-limit-middleware.ts:70`; `src/transport/audit-middleware.ts:23`; `src/transport/context-token-middleware.ts:46` |
-| No SDK interposition point between dispatch and handler; 3 prompts registered | `src/transport/create-server.ts:17`–`:23`, `:25`, `:45`, `:80` |
+| No SDK interposition point between dispatch and handler | `src/transport/create-server.ts:17`–`:23` constructs the server and makes a single `registerServerTools(server, ctx)` call at `:23`, which fans out through `src/server/tools.ts:17`–`:30` to the 46 `registerTool` sites — the 46 calls are not in `create-server.ts` |
+| 3 prompts registered | `src/transport/create-server.ts:25`, `:45`, `:80` |
+| The DP rubric also reaches the prompt surface | `src/shared/prompts/prompt-pack.ts:837`, `:855`, `:857` (`formatQualityRubric()`), spliced at `:247`, `:281`, `:319`, `:687`, `:731`, `:774`, `:818` |
+| `init_agent_context` is row-owning and survives on a fail-open | `src/server/server-context-tools.ts:27`, `:28`–`:31`; `src/orchestration/learner-context-workflows.ts:95`–`:103`; `tests/smoke/smoke.test.ts:191`–`:194` |
+| The smoke principal's `sub`-absence is believed, not observed | `src/transport/jwt-middleware.ts:116` (a code comment); `../92_risk-register.md:221` (`R-S2-2`), `:279`; `../96_spike-register.md` § `SPK-S1-1`, **not executed** |
 | The DP rubric in the core surface | `src/domain/types/teaching.ts:275`–`:287` (`:285` for the description), `:306`, `:330`, `:467`, `:472`; `src/server/teaching-tools.ts:19`, `:62`, `:88`, `:111`, `:198` |
 | The smoke run's grant and its eight scenarios | `.github/workflows/cd-prod.yml:110`–`:174` (`:158` for `client_credentials`); `tests/smoke/smoke.test.ts:104`, `:111`, `:128`, `:152`, `:163`, `:200`, `:231`, `:263` |
 | The consumed decisions | `DR-C11-S4-1`, `DR-C11-S4-2`, `DR-C11-S4-3`, `DR-C11-S5-1`; the seven paths at `../04_the-stdio-identity-gate-and-the-bound-context-token.md:413`–`:421` |
