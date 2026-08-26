@@ -1195,8 +1195,8 @@ establish); `decision-records/DR-C11-S13-1`, `DR-C11-S13-2`, `DR-C11-S13-3`;
 2. **MET, with one divergence routed.** §2.1 quotes `OUT-2` from
    `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`–`:53`;
    §2.6 walks `DR-C11-S5-2`'s `C1` and `C5` requirement by requirement and finds **no divergence on
-   `notes`**. One divergence is found elsewhere — `session_chunks` — and is routed to SUB-5 as
-   `F-S13-1`, not absorbed.
+   `notes`**. Four divergences are found elsewhere — `session_chunks` and the three
+   `session_questions` children — and are routed to SUB-5 as `F-S13-1`, not absorbed.
 3. **MET.** `DR-C11-S13-2`. The resume cursor is the sweep's own target predicate, so resumability
    needs no ledger; the batch is bounded by a **wall clock**, which is self-limiting whatever the
    table holds. **`CAP-S7-1` is not lifted** — total completion still scales with the unknown count,

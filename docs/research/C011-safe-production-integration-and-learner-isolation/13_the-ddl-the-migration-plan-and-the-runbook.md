@@ -76,7 +76,7 @@ extended by `drizzle/0012_extend_mcp_request_log.sql:1`–`:3`; and
 `src/infrastructure/db/schema.ts:320`. This is `F-S1-1`, re-confirmed rather than restated.
 
 **The boot order, which prices everything in §4 and §5.** `src/transport/main.ts:27` calls
-`initializeDatabase()` on **both** transports; `src/infrastructure/db/migrate.ts:44`–`:48` resolves
+`initializeDatabase()` on **both** transports; `src/infrastructure/db/migrate.ts:45`–`:49` resolves
 the migrations folder and runs the Drizzle migrator. Configuration resolves *after*, at
 `src/transport/main.ts:42`–`:43` and `src/composition-root.ts:379`. There are twenty-five SQL
 files under `drizzle/` and the journal's last entry is `idx: 24`, tag
@@ -86,11 +86,11 @@ files under `drizzle/` and the journal's last entry is `idx: 24`, tag
 
 Read from the library rather than assumed, because the entire migration plan's shape depends on it.
 
-`src/infrastructure/db/migrate.ts:44`–`:48` calls the Drizzle `node-postgres` migrator on the
-application's own pool. That migrator (`node_modules/drizzle-orm/pg-core/dialect.cjs:46`–`:72`)
+`src/infrastructure/db/migrate.ts:45`–`:49` calls the Drizzle `node-postgres` migrator on the
+application's own pool. That migrator (`node_modules/drizzle-orm/pg-core/dialect.cjs:46`–`:73`)
 creates `drizzle.__drizzle_migrations` (`id SERIAL PRIMARY KEY`, `hash text NOT NULL`, `created_at
 bigint`), selects **the single most recent applied row**, and applies every migration whose journal
-timestamp is greater than that row's `created_at` — the check at `:63` is
+timestamp is greater than that row's `created_at` — the check at `:64` is
 `if (!lastDbMigration || Number(lastDbMigration.created_at) < migration.folderMillis)`.
 
 **Consequence one: a migration file runs exactly once, so a sweep cannot be a migration file.** The
@@ -285,7 +285,7 @@ ALTER TABLE public.context_tokens
   ADD COLUMN IF NOT EXISTS principal_claim_source TEXT;
 
 -- The two-valued domain. `none` is deliberately absent: it is unreachable
--- on this table by construction (05_...md:266-:276).
+-- on this table by construction: see 05_the-enforcement-point-that-confines-every-read-and-write.md:266-:276
 ALTER TABLE public.context_tokens
   ADD CONSTRAINT chk_context_tokens_principal_kind
   CHECK (principal_kind IS NULL OR principal_kind IN ('user', 'client'));
@@ -402,6 +402,46 @@ requirement as stated. `status` is `NOT NULL DEFAULT 'active'` and constrained t
 `('active','completed')` at `src/infrastructure/db/schema.ts:107` and `:122`, so the predicate is
 well-defined and the index is non-trivial.
 
+> **This index will fail on any realistic production population, and a pre-flight probe is owed
+> before it is attempted.** `status` defaults to `'active'` (`src/infrastructure/db/schema.ts:107`)
+> and only moves to `'completed'` when a session is completed, so **every abandoned session stays
+> `'active'` for ever**. After `S4` writes **one identical `user_id` into every row**, any two
+> historically-active sessions therefore collide on `(user_id, status)` and the index creation
+> aborts. This is not a remote possibility: `F-S5-8` records that the guard the index replaces was a
+> time-of-check-to-time-of-use race that *"does not prevent two active sessions"*, so the pre-cutover
+> population is precisely the population that was never constrained. **A uniform backfill converts a
+> per-learner uniqueness rule into a global one.**
+>
+> None of SUB-6's twelve probes covers it — `P-DUP-1`, `P-DUP-2` and `P-DUP-3` cover `notes`,
+> `learning_topics` and the four already-unique-indexed tables
+> (`06_the-disposition-of-every-unowned-row.md` §6.2), never multiple active sessions. The probe is
+> written here as `P-DUP-4` (§3.7) and is a **hard entry condition on `T9`**, with a stated
+> remediation rather than an abort: unlike a dirty-data pathology, this one is expected, benign and
+> fixable in place. Registered as **`F-S13-10`**.
+
+```sql
+-- P-DUP-4 — a HARD entry condition on T9, run AFTER S4 and immediately
+-- before the index is created. Non-1 means the index will abort.
+SELECT COUNT(*) AS active_sessions FROM public.learning_sessions WHERE status = 'active';
+
+-- Remediation, if it returns more than 1. This is a DATA decision, not a
+-- schema one, and it is the operator's to take: the sessions are real and
+-- abandoned, not corrupt. Close all but the most recent, preserving it.
+--   UPDATE public.learning_sessions SET status = 'completed', updated_at = <now-epoch-ms>
+--   WHERE status = 'active'
+--     AND id <> (SELECT id FROM public.learning_sessions
+--                WHERE status = 'active' ORDER BY start_time DESC LIMIT 1);
+-- Then re-run P-DUP-4 and proceed only when it returns 0 or 1.
+```
+
+**Why a remediation and not an abort.** `R9`'s abort condition exists for pathologies *"a dirty-data
+pathology that no aggregate query probed for"* — states that indicate the data is wrong. Multiple
+active sessions do not indicate wrong data; they indicate a rule that was never enforced, which is
+exactly what SUB-5 deleted the orchestration guard to fix. Aborting would leave the operator with no
+path forward; closing the stale sessions is the intended end state and is reversible in the only
+sense that matters (a completed session is not deleted). The distinction is stated because treating
+every non-zero probe as an abort is how a runbook becomes unexecutable.
+
 ### 2.4 The consent record
 
 SUB-8 designs the versioned consent record and routes its DDL here: *"a new MCP-core-owned table in
@@ -456,7 +496,7 @@ open item cannot block OUT-8. That framing is consumed unchanged.
 transaction, and whether that is affordable against `OBJ-1` is unpriced. That is true and unchanged
 here. The second obstacle is ownership:
 
-- `src/infrastructure/db/migrate.ts:45` is `const pool = getPool();` — **the boot migrator runs on
+- `src/infrastructure/db/migrate.ts:46` is `const pool = getPool();` — **the boot migrator runs on
   the same pool, the same `DATABASE_URL` and therefore the same database role as every application
   query** (`src/infrastructure/db/client.ts:37`–`:53`).
 - A role that executes `CREATE SCHEMA` and `CREATE TABLE` **owns** the resulting tables.
@@ -520,19 +560,28 @@ keyed to the resolved principal identifier"*.
 | Keyed to the resolved principal identifier | §3.5's `S4` writes the V1–V7-verified target subject; the enforcement point writes it thereafter (`DR-C11-S5-1` clause 3) | **Realized** |
 | `C5` — a reachable transition onto a populated table | §2.1 nullable → §3.5 backfill → §3.6 tighten, the three-step form `F-S5-10` requires | **Realized** |
 
-**No divergence on `notes`. Nothing is routed back to SUB-5 on the `holds` derivation.**
+**No divergence on `C1` or `C5` for `notes`. Nothing is routed back to SUB-5 on the `holds`
+derivation.** The scope of that sentence is exactly the two of `DR-C11-S5-2`'s five enumerated
+changes that this artifact realizes: `C1`, the ownership key, and `C5`, the reachable transition.
+**`C2` (the enforcement point applied to `NotesRepository`), `C3` (SUB-4's STDIO gate) and `C4`
+(SUB-2's identity rule) are not checked here and are not certified**, because none is this
+sub-task's to build and none is realized by DDL. A reader must not take the row above as a clearance
+of the derivation as a whole.
 
-**One divergence is found elsewhere and is routed.** SUB-5's per-port table says *"`session_chunks`
-inherits ownership through its session rather than carrying its own key — stated as a DDL requirement
-for SUB-13, not authored here"*
-(`05_the-enforcement-point-that-confines-every-read-and-write.md:335`). SUB-6 gives `session_chunks`
-the disposition `backfill-by-join`, which its own vocabulary defines as *"existing rows receive the
-key derived from a parent row across a declared, `NOT NULL` foreign key"* — the row **receives** a
-key (`06_the-disposition-of-every-unowned-row.md` §2.1, §3 row 4) — and counts it among the ten
-tables `S3` adds the column to and `S5` sets `NOT NULL`. SUB-7's `T7` and `T9` exit conditions are
-both stated over **ten** tables.
+**Four divergences are found elsewhere and are routed together.** SUB-5's per-port table says
+*"`session_chunks` inherits ownership through its session rather than carrying its own key — stated
+as a DDL requirement for SUB-13, not authored here"*
+(`05_the-enforcement-point-that-confines-every-read-and-write.md:335`) and, in the next row,
+*"The three child tables inherit ownership through `session_questions`"* (`:336`) — that is
+`session_chunks`, `session_question_chunks`, `session_question_attempts` and
+`session_question_attempt_revisions`. SUB-6 gives all four the disposition `backfill-by-join`, which
+its own vocabulary defines as *"existing rows receive the key derived from a parent row across a
+declared, `NOT NULL` foreign key"* — the row **receives** a key
+(`06_the-disposition-of-every-unowned-row.md` §2.1, §3 rows 4, 6, 7, 8) — and counts all four among
+the ten tables `S3` adds the column to and `S5` sets `NOT NULL`. SUB-7's `T7` and `T9` exit
+conditions are both stated over **ten** tables, which is unsatisfiable over six.
 
-The DDL follows SUB-6 and SUB-7: `session_chunks` carries its own `user_id`, derived by join. The
+The DDL follows SUB-6 and SUB-7: all four carry their own `user_id`, derived by join. The
 reasons are that OUT-2 owns the dispositions, that two stages' exit conditions are counted over ten
 tables and would be unsatisfiable over nine, and that a table with no key of its own cannot carry the
 adapter's predicate without a join the predicate does not have. **The divergence is registered as
@@ -773,7 +822,7 @@ becomes a property of the SQL rather than of the reader's diligence.
 > `UPDATE public.learning_chunks c … FROM batch b JOIN public.learning_topics p ON p.id = c.topic_id`
 > raises `ERROR: invalid reference to FROM-clause entry for table "c"`. Every statement below
 > therefore puts both the batch predicate and the parent predicate in `WHERE`. **The first draft of
-> this section had the `JOIN … ON` form in all six statements** and is corrected here rather than
+> this section had the `JOIN … ON` form in all seven statements** and is corrected here rather than
 > silently — a chapter whose whole claim is *"executable as written"* should say when a draft of it
 > was not.
 
@@ -928,38 +977,40 @@ two are `NULL` too, so gate `D`'s single-column predicate is complete rather tha
 conventional.
 
 **`S5` — the tightening, written so it is not a full-table rewrite.** The naive
-`ALTER TABLE … SET NOT NULL` takes an `ACCESS EXCLUSIVE` lock and scans the whole table to prove no
-`NULL` remains. On PostgreSQL 12 and later a validated `CHECK (col IS NOT NULL)` lets the planner
-prove it instead, and `SET NOT NULL` becomes a catalog update:
+**The plain one-step form is the right one here, and that conclusion is the opposite of the standard
+advice.** The received wisdom is to avoid a bare `SET NOT NULL` — which takes `ACCESS EXCLUSIVE` and
+scans the table — in favour of a three-step dance: add `CHECK (col IS NOT NULL) NOT VALID` (O(1)),
+`VALIDATE CONSTRAINT` (one scan under `SHARE UPDATE EXCLUSIVE`, which blocks neither reads nor
+writes), then `SET NOT NULL`, which PostgreSQL 12 and later can prove from the validated `CHECK`
+without a second scan.
+
+**On this deployment that dance buys nothing, and §1.1 is what proves it.** All pending migrations
+run inside **one transaction** (`node_modules/drizzle-orm/pg-core/dialect.cjs:62`). Step 1 takes
+`ACCESS EXCLUSIVE` on the table and, being inside that transaction, **holds it until commit** — so
+step 2's weaker `SHARE UPDATE EXCLUSIVE` is irrelevant, because the stronger lock on the same table
+is already held and is not released until the whole migration commits. The entire lock-contention
+argument, which is the three-step form's only real benefit, evaporates. And the scan count is the
+same either way: a bare `SET NOT NULL` performs **one** scan, and the three-step form performs
+**one** scan, in `VALIDATE CONSTRAINT`. There is no second scan to avoid.
+
+So the DDL is the simple form:
 
 ```sql
--- Step 1 — O(1). Adding a CHECK ... NOT VALID does not scan.
-ALTER TABLE public.notes
-  ADD CONSTRAINT chk_notes_user_id_not_null CHECK (user_id IS NOT NULL) NOT VALID;
-
--- Step 2 — one sequential scan, under SHARE UPDATE EXCLUSIVE, which does not
--- block reads or writes.
-ALTER TABLE public.notes VALIDATE CONSTRAINT chk_notes_user_id_not_null;
-
--- Step 3 — O(1) on PG12+, because the validated CHECK proves the property.
 ALTER TABLE public.notes ALTER COLUMN user_id SET NOT NULL;
-
--- Step 4 — optional; the CHECK is now redundant with the NOT NULL.
-ALTER TABLE public.notes DROP CONSTRAINT chk_notes_user_id_not_null;
-
--- Repeat steps 1-4 for the other nine tables.
+-- ...and the same for the other nine tables, schema-qualified per F-S13-4.
 ```
 
-**What this buys and what it does not.** It replaces a scan-under-`ACCESS EXCLUSIVE` plus a second
-implicit scan with **one** scan under a lock that blocks neither reads nor writes. It does **not**
-shorten boot: all four steps run inside the boot migrator, before the server accepts traffic, so the
-scan is still on the boot clock. The gain is in lock contention and in doing the work once, not in
-`OBJ-8` compliance — `CAP-S7-1` is unchanged and no claim is made that `T9` fits. Registered as
-`F-S13-5`, because a reader could otherwise take the three-step form as an availability argument.
+**What this costs, stated plainly.** One sequential scan per table, under `ACCESS EXCLUSIVE`, inside
+the boot migrator, before the server accepts traffic. It does **not** fit `OBJ-8` in any demonstrated
+sense — `CAP-S7-1` is unchanged and no claim is made that `T9` fits. What the three-step form would
+have changed is nothing; what it would have added is three extra statements per table and a
+plausible-sounding availability argument that is false here. Registered as **`F-S13-5`**, because the
+three-step form is what a competent implementer will reach for, and the reason it does not help is
+not visible from the SQL — it is visible only from the migrator's transaction wrapping.
 
-The scan-skip in step 3 requires **PostgreSQL 12 or later**, as does the generated column in §2.2.
-The repository's own compose pins `pgvector/pgvector:pg16` (`docker-compose.yml:3`), but the
-production compose stack is off-repo. `SPK-S13-1`.
+*(If the sweeps are ever moved out of the boot migrator, or the migrator stops wrapping the batch in
+one transaction, the three-step form becomes worthwhile again and this section should be revisited.
+That is `DR-C11-S13-2`'s rejected alternative 4 becoming available.)*
 
 ### 3.7 The pre-flight gate
 
@@ -982,7 +1033,7 @@ WHERE difficulty NOT BETWEEN 1 AND 10
 
 | Limb | Independent re-verification at `fd05ca1` |
 | --- | --- |
-| `difficulty NOT BETWEEN 1 AND 10` | **Correct, and over-determined at five sites.** `src/domain/types/spaced-repetition-tools.ts:102`, `src/domain/types/session.ts:147` and `src/domain/types/recommendations.ts:78` each declare `.int().min(1).max(10)`; `src/shared/constants/validation.ts:6`–`:7` sets `MIN_DIFFICULTY: 1` and `MAX_DIFFICULTY: 10`; and `src/domain/algorithms/sr-calculator.ts:191` clamps with `Math.max(1, Math.min(10, Math.floor(input.difficulty)))`. Every one of the five line numbers SUB-7 forwarded is exact at this cutoff. |
+| `difficulty NOT BETWEEN 1 AND 10` | **Correct, and over-determined at five sites.** `src/domain/types/spaced-repetition-tools.ts:102`, `src/domain/types/session.ts:147` and `src/domain/types/recommendations.ts:78` each declare `.int().min(1).max(10)`; `src/shared/constants/validation.ts:6`–`:7` sets `MIN_DIFFICULTY: 1` and `MAX_DIFFICULTY: 10`; and `src/domain/algorithms/sr-calculator.ts:191` clamps with `Math.max(1, Math.min(10, Math.floor(input.difficulty)))`. **Attribution, stated precisely:** SUB-7 forwarded **three** source citations for this limb (`spaced-repetition-tools.ts:102`, `algorithm.ts:76`, `algorithm-defaults.ts:7` via `06_the-disposition-of-every-unowned-row.md:476`); the other four sites in this row are this chapter's own additions, forwarded by nobody. All five were re-read at this cutoff and all five are exact. |
 | `ease_factor < 1.3` | **Correct, and the floor cannot be lowered.** `src/config/resolve-algorithm-config.ts:12`–`:14` wraps the override in `Math.max(parseNumber(env.SM_MIN_EASE_FACTOR, DEFAULT_ALGORITHM_CONFIG.minimumEaseFactor), DEFAULT_ALGORITHM_CONFIG.minimumEaseFactor)`, so `SM_MIN_EASE_FACTOR` can only **raise** it; the default is `1.3` at `src/domain/config/algorithm-defaults.ts:7`; the clamp at `src/domain/config/algorithm.ts:72`–`:76` is floor-only, with an `Infinity` ceiling. This is `F-S7-7`'s conclusion, re-derived rather than taken on trust. |
 | `repetitions < 0` | **Correct.** `src/domain/types/spaced-repetition-tools.ts:63`, `.int().min(0)`. |
 | `interval_days < 0` | **Correct.** The tool field is spelled `interval` at `src/domain/types/spaced-repetition-tools.ts:65`, `.int().min(0)`; the column it lands in is `interval_days` at `src/infrastructure/db/schema.ts:65` and is **nullable**, so `< 0` correctly does not match an unset row. |
@@ -1042,7 +1093,7 @@ basis as `SPK-S1-1`; additionally expires on any change to the off-repo compose 
 
 One section per stage. **Every stage is stated against the real deployment** — `develop` auto-deploys
 on green CI (`.github/workflows/cd-prod.yml:3`–`:7`), migrations run unconditionally on boot
-(`src/infrastructure/db/migrate.ts:44`–`:48`), there are no down-migrations, and the compose stack is
+(`src/infrastructure/db/migrate.ts:45`–`:49`), there are no down-migrations, and the compose stack is
 off-repo (`.github/workflows/cd-prod.yml:15`, `:26`–`:30`). Where a step cannot run under those
 constraints it names the capability it needs and who owns supplying it.
 
@@ -1146,7 +1197,7 @@ executable from reversal**, which is OUT-4's requirement.
   column is *not* here** — it lands at `T9`, because adding a `STORED` generated column rewrites the
   table and at this stage the table still holds the full pre-cutover population (§2.2).
 - **Verify.** `SELECT column_name FROM information_schema.columns WHERE table_name = 'context_tokens';`
-  returns seven names; the ten-table unkeyed count of §3.5 returns the full row count of each table
+  returns six names; the ten-table unkeyed count of §3.5 returns the full row count of each table
   (nothing is keyed yet, which is the expected state). Boot duration against `OBJ-8`.
 - **Contain.** `SM_MIGRATION_SWEEP=pause`. **Isolation signal: none yet** — the column exists and
   confines nothing, which is stated rather than left blank because a column present without a
@@ -1213,7 +1264,7 @@ executable from reversal**, which is OUT-4's requirement.
 - **Entry.** Three hard conditions, all SUB-6's, **all of which must be re-run now and not inherited
   from an earlier run**: **V1–V7 pass** (V7 requires exactly this re-run); **`P-ORPHAN-2` returns
   empty**; and the four-wave order is respected — which §3.5 makes self-enforcing. **Additionally
-  run `P-RANGE-1` and the other eleven probes of `06_…` §6.2 plus `P-ENC-3` of §3.7; any
+  run `P-RANGE-1` and the other eleven probes of `06_the-disposition-of-every-unowned-row.md` §6.2 plus `P-ENC-3` of §3.7; any
   non-zero result is an ABORT, not a warning** (`R9`).
 - **Apply.** The **sweep runner**, not a migration (§1.1): the four waves of §3.5, driven by the
   slice loop, re-entered on every boot until all ten unkeyed counts reach zero. No schema object
@@ -1246,15 +1297,28 @@ executable from reversal**, which is OUT-4's requirement.
 
 #### `T9` — Tighten: `S5`, gate stage `D`, and the carrier's constraint
 
-- **Entry.** `T8` exited.
-- **Apply.** Migration `0030`: gate `D`'s NULL-binding purge, the generated `learner_key` column on
+- **Entry.** `T8` exited, **and `P-DUP-4` returns 0 or 1** (§2.3). This second condition is not
+  optional bookkeeping: if more than one session is `active`, the partial unique index below **will
+  abort this migration**, and the fix is a data decision the operator must take deliberately rather
+  than discover mid-stage.
+- **Apply.** Migration `0028`: gate `D`'s NULL-binding purge, the generated `learner_key` column on
   `context_tokens` (§2.2 — placed here, not at `T3`, because it rewrites the table), `context_tokens`'
-  three `SET NOT NULL`s, the ten tables' four-step tightening (§3.6), and the partial unique index
-  (§2.3). Order within the migration matters: the purge runs **before** the generated column is
-  added, so the rewrite touches the smallest possible population.
+  three `SET NOT NULL`s, the ten tables' tightening (§3.6), and the partial unique index (§2.3).
+  Order within the migration matters twice: the purge runs **before** the generated column is added,
+  so the rewrite touches the smallest possible population; and the partial unique index is created
+  **last**, so a failure there does not roll back the tightening — though, since the migrator wraps
+  all pending migrations in one transaction (§1.1), a failure anywhere rolls back everything in this
+  file, which is the safe direction.
 - **Verify.** `SELECT is_nullable FROM information_schema.columns` returns `NO` for `user_id` on all
-  ten and for all three `context_tokens` binding columns. **A failed constraint addition means a row
-  was missed at `T7`** — that is the signal, and it is a good one.
+  ten and for all three `context_tokens` binding columns.
+  **Read a failure carefully — the two likely causes are different and only one is a defect.** A
+  failed `SET NOT NULL` (or a failed `VALIDATE CONSTRAINT`) means **a row was missed at `T7`**, which
+  is a genuine signal and a good one. A failed **unique index** creation means **more than one
+  session was `active`**, which is not a `T7` defect at all but the expected consequence of a uniform
+  backfill over a rule that was never enforced (`F-S13-10`); the remedy is `P-DUP-4`'s remediation,
+  not a re-run of the backfill. An earlier draft of this step attributed **both** failures to a
+  missed row, which would have sent an operator to re-examine `T7` over a population that was
+  correctly keyed.
 - **Contain.** **Named exception** (SUB-7): a `NOT NULL` constraint is not toggleable; removing it is
   a migration. Owner: SUB-13.
 - **Reverse.** Drop the constraints; one migration. Dropping a constraint restores the prior state
@@ -1282,7 +1346,7 @@ pre-empt SUB-13's own design"* (rejected alternative 5). Its revision trigger is
 the control surface — concrete variable names, defaults and precedence."* This is that publication.
 
 **The precedent supplies the shape and nothing else.** `CLASSIFIER_ENABLE` is read at
-`src/config/resolve-classifier-config.ts:31`–`:32` with a deprecated alias and explicit conflict
+`src/config/resolve-classifier-config.ts:22`–`:62` with a deprecated alias and explicit conflict
 detection, and `resolveClassifierConfig()` is called **exactly once**, at
 `src/composition-root.ts:379`. Its runbook's emergency path is *"1. Set `CLASSIFIER_ENABLE=false` …
 2. `Deploy.`"* (`docs/runbooks/classifier-blocking-activation.md:261`–`:262`) — re-read at this
@@ -1372,24 +1436,36 @@ implementation charter builds them, every "off" position in this chapter is a sp
 
 1. **Two citations in this chapter land on line 42** — `src/infrastructure/db/client.ts:42` in §2.5
    and again in §1's pool statement. Both are benign: line 42 is `max: 4,` inside the pool
-   constructor, read directly. The settled tool surface is **46 registered / 43 gated / 3 exempt**
-   (`01_production-evidence-and-the-access-audit.md` §8), where 43 is a 13-row mapping and **not**
-   `46 − 3`; `42` is not a codebase fact and is used as one nowhere above.
+   constructor, read directly. The settled tool surface is **46 registered / 43 gated / 3 exempt**.
+   **Two different derivations of the gated figure exist in this package and a draft of this
+   disclosure conflated them.** `01_production-evidence-and-the-access-audit.md` §8 derives it as
+   *"43 gated — 46 − 3"*; SUB-11 later derives it independently as a **thirteen-row mapping** of
+   `context_token:` declarations onto non-exempt registrations and states explicitly that it is
+   *"not `46 − 3`"* (`11_the-client-compatibility-contract.md` §1.3, `G-S11-3`). The two agree on the
+   number and disagree on the method, SUB-11's being the stronger; this chapter cites SUB-11 for the
+   method and asserts neither derivation as its own. `42` is not a codebase fact and is used as one
+   nowhere above.
 2. **Every citation here is written as a full filename**, and a clean checker result is still not
    proof. The checker skips any target containing `…` or `...`
-   (`scripts/citation-paths/checker.ts:121`) — this chapter contains **zero** such references, and
-   that was checked by grep rather than asserted. It also buckets a nowhere-resolving target as
-   `MISSING-target`, invisible in both the summary and `--json`
-   (`scripts/citation-paths/checker.ts:247`–`:266`) — the excluded bucket was read entry by entry.
-   C011 is **not** in the gated list (`scripts/check-citation-paths.ts:21`); that is `CAP-S1-2`,
-   owned by SUB-14, so the checker was run by hand.
+   (`scripts/citation-paths/checker.ts:121`). **A first draft of this chapter certified zero such
+   references and was wrong twice** — a SQL comment carried `(05_...md:266-:276)` and a runbook step
+   carried `` `06_…` §6.2 ``, both silently exempt, both now written as full filenames. The
+   certification is repeated only because the grep was then re-run over all five SUB-13-authored
+   files and returns **zero** path-shaped inline-code targets containing an ellipsis. It also buckets
+   a nowhere-resolving target as `MISSING-target`, invisible in both the summary and `--json`
+   (`scripts/citation-paths/checker.ts:247`–`:266`). C011 is **not** in the gated list
+   (`scripts/check-citation-paths.ts:21`); that is `CAP-S1-2`, owned by SUB-14, so the checker was
+   run by hand.
 
    **The `MISSING-target` bucket was read entry by entry rather than trusted to be empty, and it is
-   not empty.** C011 carries 28 `repo-root-corpus` and 1 914 `repo-root-source` exclusions, plus a
-   `MISSING-target` set that pre-exists this chapter. **Four entries this chapter contributed were
-   repaired** — three bare `schema.ts` references and one bare `.sql`, rewritten to resolve or
-   reworded. **Three kinds remain, each disclosed rather than removed**, because each is deliberate
-   and each matches an existing convention in the package: `pgvector/pgvector:pg16` (a container
+   not empty.** C011's other two buckets — `repo-root-source` (source paths, out of the gate's scope
+   by design) and `repo-root-corpus` — are large and are deliberately **not** quoted as figures here:
+   both move with every commit to the package, so a number written now is stale the moment a sibling
+   lands, and a stale number in a disclosure is worse than no number. What matters is the third
+   bucket. **Four entries this chapter contributed were repaired** — three bare `schema.ts`
+   references and one bare `.sql`, rewritten to resolve or reworded. **Three kinds remain, each
+   disclosed rather than removed**, because each is deliberate and each matches an existing
+   convention in the package: `pgvector/pgvector:pg16` (a container
    image tag, not a path), `/home/deploy/docker-services/second-memory-mcp` (a host path outside
    this repository, identical to the one at `DR-C11-S7-2` clause 1), and
    `decision-records/DR-C11-S13-1` in the outcome register's *"Verified by"* line — an

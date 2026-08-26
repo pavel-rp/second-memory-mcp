@@ -925,6 +925,6 @@ is **`R-S16-2`**, cited in the runbook wherever a verification step depends on a
 **One thing that would look like a risk and is filed as a finding instead.** That an RLS layer written
 the usual way would be inert on this deployment is **`F-S13-2`**, not a risk entry: it is a
 determinate, presently-true property of the deployment read directly out of
-`src/infrastructure/db/migrate.ts:45` and `src/infrastructure/db/client.ts:37`–`:53`, not an exposure
+`src/infrastructure/db/migrate.ts:46` and `src/infrastructure/db/client.ts:37`–`:53`, not an exposure
 that might materialise. Its consequence is already carried — the RLS DDL is published unrecommended,
 with both preconditions attached — and the unobserved part of it is `OI-S13-2`.

@@ -43,7 +43,7 @@
 5. **Precedence follows the shape the repository already runs.** An explicitly set value wins; unset
    takes the default; an unrecognised value takes clause 2's per-control safe position **and logs at
    warn**, mirroring `CLASSIFIER_ENABLE`'s conflict detection at
-   `src/config/resolve-classifier-config.ts:31`–`:32`. No alias is defined for any of the six: there
+   `src/config/resolve-classifier-config.ts:22`–`:62`. No alias is defined for any of the six: there
    is no deprecated predecessor to be compatible with.
 
 6. **Every application costs one restart, and that restart re-runs the boot migrator.** This is
@@ -145,10 +145,10 @@ less.
 | Six stages carry a real control; four carry a named exception; zero are blank | `DR-C11-S7-2_the-deploy-independent-disable-path.md` clause 3; `../07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:445`–`:459` |
 | `T6`'s off position is observe-only, **not** open | `../07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:453` |
 | `T8`'s off position is today's unconfined behaviour, not a resting place | `DR-C11-S7-2_the-deploy-independent-disable-path.md` clause 6 |
-| An env-var toggle with alias handling and conflict detection already exists | `src/config/resolve-classifier-config.ts:31`–`:32`; resolved once at `src/composition-root.ts:379` |
+| An env-var toggle with alias handling and conflict detection already exists | `src/config/resolve-classifier-config.ts:22`–`:62`; resolved once at `src/composition-root.ts:379` |
 | Its runbook's emergency path sets the toggle and then requires a deploy | `docs/runbooks/classifier-blocking-activation.md:261`–`:262` |
 | Configuration is resolved at boot, after the migrator | `src/transport/main.ts:27`, `:42`–`:43`; `src/composition-root.ts:379` |
-| The migrator runs unconditionally with no guard and no lock | `src/infrastructure/db/migrate.ts:44`–`:48` |
+| The migrator runs unconditionally with no guard and no lock | `src/infrastructure/db/migrate.ts:45`–`:49` |
 | The compose stack is outside this repository | `.github/workflows/cd-prod.yml:15`, `:26`–`:30` |
 | A per-request flag would read through the pool whose `max: 4` is `OBJ-1`'s first scaling break | `src/infrastructure/db/client.ts:42`; `../15_operational-objectives-for-the-real-platform.md:248` |
 | No configuration surface for the STDIO principal exists anywhere yet | `../93_open-items-and-provisional-register.md` § `OI-S4-1` |

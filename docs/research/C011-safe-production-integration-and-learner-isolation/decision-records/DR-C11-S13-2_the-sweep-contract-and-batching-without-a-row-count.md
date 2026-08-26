@@ -11,7 +11,7 @@
 1. **Every sweep is idempotent at the statement level.** Each statement's `WHERE` clause excludes the
    rows it has already acted on. Re-running a completed sweep affects zero rows and raises no error.
    This is not a nicety: the boot migrator runs unconditionally on every restart
-   (`src/infrastructure/db/migrate.ts:44`–`:48`) and `OBJ-7` puts that at **≥ 7 times a day**.
+   (`src/infrastructure/db/migrate.ts:45`–`:49`) and `OBJ-7` puts that at **≥ 7 times a day**.
 
 2. **The resume cursor is the sweep's own target predicate.** `WHERE user_id IS NULL` for `S4`,
    `WHERE "timestamp" < :cutover` for `S1`, the table's own emptiness for `S2`. **No separate
@@ -95,7 +95,7 @@ reason this is `A-S13-1` and not a derivation.
 | 1 | **A progress-ledger table recording the last processed id per sweep per table.** | The closest alternative and the one most likely to be reached for. It introduces a second source of truth that must be transactional with the batch; when it diverges it either re-processes (harmless only by luck) or silently skips, and a skipped range surfaces as a failed `SET NOT NULL` on a production boot four stages later. It is also a new table SUB-6 never dispositioned. |
 | 2 | **A row-denominated batch — "10 000 rows per boot" and nothing else.** | It is the bound `CAP-S7-1` forecloses: its duration is unknown because rows-per-second is unmeasured, so it cannot be checked against `OBJ-8` even in principle. It converts an unknown into a *hidden* unknown, which is the failure mode the cap exists to prevent. |
 | 3 | **Run the whole sweep in one boot and accept the outage.** | Honest, simple, and it makes `T2`'s and `T7`'s duration unbounded on a platform where boot precedes traffic. `R-S6-2` exists to reject exactly this, and `DR-C11-S7-2` clause 5 would leave four stages with no working containment control. |
-| 4 | **Defer the sweep out of the boot migrator entirely — a cron job, a one-off script, `pg_cron`.** | It is the design that would actually solve the availability problem, and it is unavailable: migrations run on boot, unconditionally, with no guard and no lock (`src/infrastructure/db/migrate.ts:44`–`:48`), the compose stack is off-repo, and introducing a scheduler is a `src/` change this sub-task is out of scope to make. Recorded because it is what a later charter should reconsider, not because it was close. |
+| 4 | **Defer the sweep out of the boot migrator entirely — a cron job, a one-off script, `pg_cron`.** | It is the design that would actually solve the availability problem, and it is unavailable: migrations run on boot, unconditionally, with no guard and no lock (`src/infrastructure/db/migrate.ts:45`–`:49`), the compose stack is off-repo, and introducing a scheduler is a `src/` change this sub-task is out of scope to make. Recorded because it is what a later charter should reconsider, not because it was close. |
 | 5 | **`SELECT … FOR UPDATE` without `SKIP LOCKED`.** | Two overlapping migrators then block on each other for the duration of a batch, on a platform that cannot guarantee exactly one concurrent boot migrator (`R-S15-3`). `SKIP LOCKED` makes the overlap a division of labour instead of a stall, at no cost when there is only one. |
 | 6 | **Make the archive move a `INSERT … SELECT` followed by a separate `DELETE`.** | Two statements, two transactions, and a window in which a row exists in both tables — or, if the process dies between them, in both permanently. The `WITH … DELETE … RETURNING … INSERT` form makes the move atomic per batch, so a row is in exactly one place at every instant. |
 | 7 | **Pick the slice defaults by benchmarking against a synthetic dataset.** | SUB-6 already built a synthetic dry-run and was explicit that its throwaway SQL *"is explicitly not the OUT-19 migration artifact"*. A number measured against synthetic data of unknown resemblance to production would look derived and would not be, which is worse than a stand-in that says what it is. |
@@ -130,7 +130,7 @@ reason this is `A-S13-1` and not a derivation.
 | The sweep must be batched, idempotent and resumable, and SUB-13 chooses its batching | `../92_risk-register.md` § `R-S6-2` |
 | A sweep that is not resumable cannot be paused by the disable-path control class at all | `DR-C11-S7-2_the-deploy-independent-disable-path.md` clause 5 |
 | Every disable path is read at boot and every restart re-runs the migrator | `DR-C11-S7-2_the-deploy-independent-disable-path.md` clause 4 (`F-S7-2`) |
-| Migrations run on boot, unconditionally, through the same pool as the application | `src/infrastructure/db/migrate.ts:44`–`:48`; `src/infrastructure/db/client.ts:37`–`:53` |
+| Migrations run on boot, unconditionally, through the same pool as the application | `src/infrastructure/db/migrate.ts:45`–`:49`; `src/infrastructure/db/client.ts:37`–`:53` |
 | Configuration resolves after the migrator | `src/transport/main.ts:27`, `:42`–`:43`; `src/composition-root.ts:379` |
 | `T2` and `T7` scale with row counts that were never taken; no stage is shown to fit | `../07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:560`–`:563` (`CAP-S7-1`, `OI-S6-1`) |
 | `OBJ-8`'s allowance is 13.1 s at baseline and 11.4 s on a day one stage lands | `../07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:545`–`:550` |
