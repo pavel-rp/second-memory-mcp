@@ -462,8 +462,8 @@ occurring inside the paragraph written to guard against it.
 
 **The `…md` shorthand, counted rather than characterised.** The form `05_…md` is **invisible to
 `scripts/check-citation-paths.ts`** — such refs are silently exempt, so a `0 non-resolving` result
-over a file full of them is true but is **not evidence**. `12_…md` contains **53** abbreviated
-references, counted mechanically: 4 × `04_…`, 29 × `05_…`, 3 × `08_…`, 6 × `09_…`, 5 × `11_…`,
+over a file full of them is true but is **not evidence**. `12_…md` contains **55** abbreviated
+references, counted mechanically: 4 × `04_…`, 29 × `05_…`, 3 × `08_…`, 6 × `09_…`, 6 × `11_…`, 1 × `12_…`,
 6 × `16_…`. Two checks make them safe and both are mechanical: **every one of the six prefixes is
 also cited at least once in full in the same file**, and **every cross-package citation is written in
 full** with its `../C010-…/` prefix. The second is what makes this sub-task's `0 non-resolving` result

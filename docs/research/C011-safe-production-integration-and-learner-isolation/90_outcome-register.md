@@ -1155,8 +1155,8 @@ DDL is authored, and nothing is applied.
 ## OUT-17 — A security, privacy, ownership and data-lifecycle threat model, resolved into measurable production gates with owners
 
 **Outcome.** Threats are enumerated across every MCP and prospective general-web-API read, write,
-session, retrieval, context-token, analytics, migration and **operator** path — **52 paths across ten
-classes** — and each carries an explicit isolation or lifecycle invariant. **No cross-learner access
+session, retrieval, context-token, analytics, migration and **operator** path — **56 paths across eleven
+classes (A–K)** — and each carries an explicit isolation or lifecycle invariant. **No cross-learner access
 is left to convention, and zero paths lack an invariant.** Operator access is **modelled, not
 exempted**: twelve operator paths, including direct `psql`, SSH to the single VPS. Every critical
 gap resolves to a measurable control with a named owner and a threshold — **26 gates** — and the two
@@ -1169,7 +1169,7 @@ consuming it and re-deciding nothing.
 
 | Acceptance condition | Where it is discharged |
 | --- | --- |
-| Path-by-path invariant matrix, zero paths lacking an invariant | `12_threat-model-and-the-gates-that-authorize-implementation.md` §4–§6; the count is §9.2 — **52 of 52** |
+| Path-by-path invariant matrix, zero paths lacking an invariant | `12_threat-model-and-the-gates-that-authorize-implementation.md` §4–§6; the count is §9.2 — **56 of 56** |
 | Adversarial review of the operator path specifically | §5 — twelve paths (`TP-S12-35` … `TP-S12-43`, `TP-S12-54` … `TP-S12-56`), each with an invariant and an owner; §5.1's `F-S12-4`; §5.2's scope statement |
 | Gate register: control, threshold, owner and evidence source per critical gap | §8 — 22 rows, four populated columns each, plus a provenance label and a transport column |
 | A gap without a measurable control recorded as a blocking finding | §8.1 — `F-S12-5`, `F-S12-6` |
@@ -1183,7 +1183,7 @@ stated as four numbers plus one event, each mechanically checkable by a reader h
 published package:
 
 1. **Paths lacking an invariant: 0**, out of 56 enumerated. *(Met.)*
-2. **Operator paths modelled: 9, exempted: 0.** *(Met.)* Before this chapter the count of modelled
+2. **Operator paths modelled: 12, exempted: 0.** *(Met.)* Before this chapter the count of modelled
    operator paths was zero, in both packages.
 3. **Critical gaps with all four of a control, a threshold, an owner and an evidence source: 26.**
    Gaps with none, recorded as blocking findings with owners: **2**. Gaps resolving to nothing: **0**.

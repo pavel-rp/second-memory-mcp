@@ -836,7 +836,7 @@ cannot, the gap is blocking rather than dressed as a gate with an unsettable thr
 them would inflate the path count.** `F-S12-6` attaches to a path inside the enumeration.
 **`F-S12-5` attaches to the enumeration's boundary** — it is the blocking finding that §2.3's
 falsifier generates, and it is counted in §9 as a finding against the argument rather than as one of
-the 52 paths. A model that quietly promoted it to a path would be claiming to have enumerated
+the 56 paths. A model that quietly promoted it to a path would be claiming to have enumerated
 something it explicitly cannot see.
 
 ---
@@ -1085,8 +1085,8 @@ silently exempt, so a `0 non-resolving` result over a file full of them is true 
 evidence**. A predecessor carried 23 of them, each of which had to be resolved by a separate
 verifier.
 
-**This chapter contains 53 abbreviated references at this cutoff**, counted mechanically rather than
-described as "a few": 4 × `04_…`, 29 × `05_…`, 3 × `08_…`, 6 × `09_…`, 5 × `11_…`, 6 × `16_…`. That
+**This chapter contains 55 abbreviated references at this cutoff**, counted mechanically rather than
+described as "a few": 4 × `04_…`, 29 × `05_…`, 3 × `08_…`, 6 × `09_…`, 6 × `11_…`, 1 × `12_…`, 6 × `16_…`. That
 is a real number and it is stated rather than glossed. **An earlier draft said 46 with a per-prefix
 breakdown that under-counted `11_…`** — the one prefix this section singles out as the ambiguous
 one — and the figure has since moved again as the chapter grew. The count is therefore stamped *at
