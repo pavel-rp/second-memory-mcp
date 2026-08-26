@@ -1001,17 +1001,20 @@ dispositions); `decision-records/DR-C11-S9-1`, `DR-C11-S9-2`, `DR-C11-S9-3`;
    term, and **adds the exclusion's own falsifier**, which SUB-6 did not state.
 5. **MET.** §10. `OI-S1-8` cited by id with its owner carried; a grep of this chapter confirms zero
    second records of the backups fact.
-6. **MET.** §8 — 33 categories audited, 0 with no propagation owner, **1** copy location surfaced
-   that no class claims, reported as `F-S9-1` with a named owner. Zero revisions raised against
-   SUB-3's inventory.
+6. **MET.** §8 — 33 categories audited, 0 with no propagation owner, **2** copy locations surfaced
+   that no class claims, reported as `F-S9-1` (external-provider egress) and `F-S9-5` (the stderr
+   log sink that mirrors both log tables) with named owners. Zero revisions raised against SUB-3's
+   inventory.
 7. **MET.** `DR-C11-S9-3` — 9/9 fields, 3/3 location properties, the timing rule and 6/6 negative
    clauses walked individually.
 8. **MET.** §10, all five, including the qualification that C010's `CAP-S4-1` and C011's own
    `CAP-S4-1` are different caps sharing an id.
 
 **What this measure does not claim.** It does not claim the copy set is complete over copies that
-*exist* — only over copies **this deployment creates**, with the external-provider egress named as
-the exception (`F-S9-1`). It does not claim any disposal has been executed: `F-S8-2` is downgraded
+*exist* — only over copies **this deployment creates**, with two named exceptions: the
+external-provider egress (`F-S9-1`) and the stderr log sink (`F-S9-5`). **It specifically does not
+claim that executing every action in the matrix erases a learner's free text**, because `F-S9-5`
+establishes that a copy survives on stderr that no cell of the matrix addresses. It does not claim any disposal has been executed: `F-S8-2` is downgraded
 to resolved on its own stated resolving event, which is the **publication of a disposition**, and
 the execution is carried as `R-S9-1` with an owner outside this package. It does not claim any
 production fact — no row count, no population size, no backup fact, and `observed-in-production`

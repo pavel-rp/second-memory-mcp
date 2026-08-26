@@ -112,31 +112,45 @@ Enumerated statically at cutoff `ee0a750`:
 | `W-5` | The MCP response | The protocol's own return path | The client device | C2 |
 | `W-6` | Platform backup | Outside `src/` by construction | Existence unestablished | C3 (`OI-S1-8`) |
 | `W-7` | This package's captures | SUB-1's terms, read as recorded | Zero members | C6 |
+| `W-8` | **Process stderr** | The pino logger's own sink — `src/shared/logger.ts:65` | **Carries learner free text**; redaction is credentials-only | **Log-sink exception, §4.5** |
 
 > **Claim.** No copy of learner-derived data created by this deployment rests outside the six
-> classes and the one named egress exception.
+> classes and the **two** named exceptions.
 >
-> **Argument.** A copy exists at a location only if some write placed it there. `W-1` … `W-7`
+> **Argument.** A copy exists at a location only if some write placed it there. `W-1` … `W-8`
 > enumerate every channel by which a byte can leave the process: persistence, disk, network, memory,
-> protocol response, platform backup, and this package's own activity. There is no eighth — a byte
-> that is neither persisted, written to disk, sent over the network, held in memory, returned to the
-> caller, backed up, nor captured by this package has not gone anywhere. `W-2` is empty **by
+> protocol response, platform backup, this package's own activity, and **the process's own standard
+> streams**. A byte that is none of these has not left the process. `W-2` is empty **by
 > measurement**. `W-1`, `W-4`, `W-5`, `W-6` and `W-7` each terminate in an enumerated class. `W-3`
-> terminates outside all six and is named as the exception rather than absorbed. ∎
+> and `W-8` terminate outside all six and are **named as exceptions rather than absorbed**. ∎
 
-The completeness claim rests on `W-1` … `W-7` partitioning process egress, which is a property of
+The completeness claim rests on `W-1` … `W-8` partitioning process egress, which is a property of
 the runtime rather than of this chapter's diligence. `W-2`'s zero is the measurement carrying the
-most weight: the deployment writes **no** learner data to disk outside the database, which removes
-an entire family of copies — log files, temp files, on-disk exports — that a store survey could only
-have reasoned about speculatively.
+most weight among the rows that resolve into a class: the deployment writes **no** learner data to
+disk *through a filesystem API*, which removes an entire family of copies — temp files, on-disk
+exports — that a store survey could only have reasoned about speculatively.
+
+**`W-8` was missing from the first draft of this section, and saying so is load-bearing.** That
+draft asserted `W-1` … `W-7` and the sentence *"there is no eighth channel"*, having checked the
+enumeration with four greps that all came back green. The greps looked for `writeFile`,
+`appendFile`, `createWriteStream`, `writeFileSync` and `mkdir` — **none of which a logger writing to
+a file descriptor calls** — so an entire egress channel carrying learner free text sat outside a
+check that reported clean. It was found by re-attacking the partition rather than by re-running the
+greps. This chapter reports it rather than repairing it silently, because a green mechanical check
+that missed a whole channel is exactly the evidence a reader needs about how much this chapter's
+other green checks are worth.
 
 ### 4.3 The falsifier, stated
 
 > **The claim is false if anyone exhibits a write of learner-derived data whose destination is
-> neither one of the six classes nor one of §4.4's two named egress call sites.**
+> neither one of the six classes, nor one of §4.4's two named egress call sites, nor §4.5's stderr
+> sink.**
 
-The falsification procedure is the enumeration re-run: four greps, no production access, any reader.
-It is stated so a later reader can attack the claim rather than accept it.
+The falsification procedure is the enumeration re-run — mechanical, no production access, any
+reader. **It is deliberately not stated as a fixed number of greps.** "Four greps" is what the first
+draft said, and four greps is exactly what missed `W-8`. The procedure is *enumerate the channels
+and show each terminates in a class or a named exception*; the greps are evidence for individual
+rows, not the method.
 
 ### 4.4 What the argument found: the egress copies no class claims
 
@@ -155,6 +169,36 @@ confinement half of this as `F-S5-2`; the propagation half has no other home and
 **This is filed as `F-S9-1` with a named owner**, exactly as OUT-12 requires of *"any copy the
 unowned-copy audit surfaces that no class claims"*. It is reported, not absorbed into prose, and the
 matrix's completeness claim in §7 is bounded by it explicitly.
+
+### 4.5 What the argument found second: the log sink that mirrors both log tables
+
+`W-8` is the pino logger's stderr sink, and three lines of one file fix what it carries:
+
+1. **It writes to file descriptor 2.** `pino.destination(2)` in MCP mode
+   (`src/shared/logger.ts:65`).
+2. **The redact configuration spans every sink.** It *"censors credential/secret fields to
+   `[REDACTED]` at serialization time across every pino sink (**stderr** + both DB transports)"*
+   (`src/shared/logger.ts:25`–`:26`). So whatever payload reaches `operation_event_log` or
+   `mcp_request_log` through a pino transport reaches **stderr** as well.
+3. **The redaction is credentials-only**, fourteen paths over `password`, `token`, `apiKey`,
+   `apikey`, `api_key`, `authorization` and `secret` (`src/shared/logger.ts:39`–`:54`), and the file
+   states outright: *"**Learner `response` text is intentionally NOT redacted** — it is useful
+   diagnostic data"* (`:35`–`:36`).
+
+**The consequence is the sharpest instance of `R2` in this package.** The learner free text that C4
+and C5 hold has a copy on stderr, which in this deployment is captured by the container runtime and
+written to the host. So **an erasure that correctly clears both log tables — including the bulk
+disposal of §6 — leaves the same content in the container's log files**, outside the database,
+outside every port, and outside all six classes. The mechanism this chapter spends §6 and §7
+designing is, for this copy, entirely bypassed.
+
+It carries no propagation action here because none is available to this package: log-driver
+retention is a deployment arrangement outside the repository, exactly as backups are. **Filed as
+`F-S9-5` with a named owner and an escalation route.**
+
+Note what this does *not* change: it is not a seventh copy class. A class is a thing the matrix
+assigns actions to, and this is a location the matrix explicitly cannot reach — the same shape as
+§4.4's egress. Admitting it as a class would imply an action exists.
 
 ## 5. The membership test, applied per candidate and written down
 
@@ -466,12 +510,15 @@ an unowned copy.
 | Categories audited | **33** |
 | Categories mapping to a defined copy class | **33** |
 | Categories with no propagation owner | **0** |
-| Copy locations surfaced that **no class claims** | **1** — the external-provider egress of §4.4 |
+| Copy locations surfaced that **no class claims** | **2** — the external-provider egress (§4.4) and the stderr log sink (§4.5) |
 | Matrix cells that cannot be resolved to an action, a deadline and an owner | **0** — every cell has all three; three C3 cells are flagged unresolved-with-owner-and-date, which is what OUT-12 permits |
 
-**Every one is reported as a finding.** The single unclaimed copy location is **`F-S9-1`**, with a
-named owner. The count of unowned copies *within the inventory* is zero — and that zero is only
-meaningful because the audit ranged over a copy set closed by §4 rather than assumed.
+**Every one is reported as a finding.** The two unclaimed copy locations are **`F-S9-1`** and
+**`F-S9-5`**, each with a named owner. The count of unowned copies *within the inventory* is zero —
+and that zero is only meaningful because the audit ranged over a copy set closed by §4 rather than
+assumed. **The two unclaimed locations are the audit's real output**; a run that surfaced neither
+would be indistinguishable from a run that did not look, which is the failure this package keeps
+producing.
 
 **Declared copy-class cardinality: 6.** This is the figure `DR-C11-S16-3` requires each propagation
 to declare, and it is the trigger `A-S8-1` names for its own re-validation
@@ -535,13 +582,13 @@ its own about backups**, so the package carries one id for one fact.
 | Register | Ids |
 | --- | --- |
 | Outcomes (`90_outcome-register.md`) | OUT-12's row |
-| Findings (`91_findings-register.md`) | `F-S9-1` … `F-S9-4` |
+| Findings (`91_findings-register.md`) | `F-S9-1` … `F-S9-5` |
 | Risks (`92_risk-register.md`) | **`R2`** — charter § Risks row 2, the only one of the fifteen naming OUT-12 — plus `R-S9-1`, `R-S9-2`, `R-S9-3` |
 | Open items (`93_open-items-and-provisional-register.md`) | `OI-S9-1` |
 | Caps (`94_caps-and-incomplete-scope.md`) | none filed; four inherited caps recorded by disposition in §10 |
 | Stand-ins (`95_stand-in-assumption-register.md`) | `A-S9-1` |
 | Spikes (`96_spike-register.md`) | `SPK-S9-1` |
-| Completeness gate (`97_package-completeness-gate.md`) | `G-S9-1` … `G-S9-13` |
+| Completeness gate (`97_package-completeness-gate.md`) | `G-S9-1` … `G-S9-14` |
 | Decision records | `DR-C11-S9-1`, `DR-C11-S9-2`, `DR-C11-S9-3` |
 | Document numbers | `09_` only |
 
@@ -565,6 +612,9 @@ are written qualified for exactly this reason.
   `R-S9-1`'s, with a named owner outside this package.
 - **Nothing about the egressed copies' fate.** `F-S9-1` names the exposure; what the providers
   actually retain is `SPK-S9-1`, unexecuted.
+- **Nothing about how long the container's logs are kept.** `F-S9-5` establishes that learner free
+  text reaches stderr; the log driver, its rotation and its retention are a deployment arrangement
+  outside this repository, and no claim about them is made here.
 - **Nothing about confinement.** Who may read a copy is SUB-5's, under OUT-8.
 - **No QA pass.** The `qa-execution` surface is unconfigured, so the automated QA phase is a genuine
   Core Article 8 no-op, carried at package level as `CAP-S1-3` and not re-filed here.

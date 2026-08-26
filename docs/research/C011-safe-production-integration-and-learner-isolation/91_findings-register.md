@@ -940,11 +940,29 @@ charter's own. `F-S2-2` records the same hazard for `OI-S1-2`.
 - **What is assumed rather than derived:** That no future server-side web-owned state is introduced — a grant `NEU-896` converges, explicitly not pre-empted here. C6's non-reachability is derived from SUB-5's recorded observation, not re-derived.
 - **Handed to:** **SUB-12** (NEU-1004) under OUT-17, whose threat model must treat an unhonoured client instruction and an unperformed manual deletion as distinct failure modes from a missing proof. **SUB-14** (NEU-1007) for aggregation.
 
+#### `F-S9-5` — Learner free text is written to stderr by the shared pino sink, so an erasure that correctly clears both log tables leaves the same content in the container's logs
+
+- **Id:** `F-S9-5`
+- **Finding:** The pino logger writes to **file descriptor 2** in MCP mode, and its redact configuration is **shared across every sink** — the file states it "censors credential/secret fields to `[REDACTED]` at serialization time across every pino sink (**stderr** + both DB transports)". The redaction is **credentials-only**, and the same file records that "**Learner `response` text is intentionally NOT redacted** — it is useful diagnostic data". Therefore **every learner payload that reaches `infrastructure.operation_event_log` or `infrastructure.mcp_request_log` through a pino transport also reaches stderr**, which in this deployment is captured by the container runtime and written to the host. The copy rests outside the database, outside every port, and outside all six copy classes.
+- **Evidence:** `src/shared/logger.ts:65` (`pino.destination(2)`); `:25`–`:26` (the sink-scope statement); `:39`–`:54` (the fourteen credentials-only redact paths); `:35`–`:36` (learner `response` deliberately not redacted). Enumerated as write channel `W-8` in `09_proving-a-data-right-reaches-every-copy.md` §4.2 and §4.5. Consistent with charter assumption 19 and with `F-S3-1`, neither of which reaches the **stderr** sink — both are about what the two tables persist.
+- **Consequence:** **This is the sharpest instance of `R2` in the package**, and it is created by a path no outcome had examined. The entire mechanism of `09_…md` §6 and §7 — the per-learner delete, the bulk disposal of the pre-cutover population, the retention windows handed to `CAP-S3-3` / `CAP-S4-1` (both C010) — operates on the two tables and **does nothing whatever to the log-file copy**. An operator who executes every action in the matrix correctly, and can prove it, has still not erased the learner's free text. It also bounds `F-S9-4`: a completion proof for C4 or C5 attests to rows removed from a table, never to bytes removed from a log file.
+- **What is assumed rather than derived:** That the deployment's container runtime persists stderr, and for how long. **Neither is established** — the log driver, its rotation and its retention are a deployment arrangement outside this repository, in the same class of unknown as `OI-S1-9`'s hosting and log-shipping facts, and **no claim is made about them here**. What *is* derived, from the code alone, is that the learner content reaches the stream. Whether anything downstream keeps it is the open half.
+- **Handed to:** **`NEU-896`** at convergence, as a data-lifecycle exposure whose remedy is a deployment change (a log driver with a bounded retention, or redacting `response` at the sink) rather than a schema or code change this package scopes. **The creator, as sole maintainer and sole operator**, as the only party who can inspect or change the log driver. **SUB-12** (NEU-1004) under OUT-17, whose threat model must carry a learner-content sink that no erasure path reaches. **SUB-14** (NEU-1007) for aggregation. **`NEU-986` is deliberately not the route** — this is not a log-*table* retention gap, and routing it to `CAP-S3-3`/`CAP-S4-1`'s owner would hand it to a party whose caps do not cover it.
+
 ---
 
-**SUB-9 register totals at revision 1:** **four findings**, `F-S9-1` … `F-S9-4`, none blocking.
-`F-S9-1` is the finding OUT-12 requires — the one copy location the unowned-copy audit surfaced that
-no class claims — and it carries a named owner and an escalation route.
+**SUB-9 register totals at revision 1:** **five findings**, `F-S9-1` … `F-S9-5`, none blocking.
+`F-S9-1` and `F-S9-5` are the findings OUT-12 requires — the **two** copy locations the unowned-copy
+audit surfaced that no class claims — and each carries a named owner and an escalation route.
+
+**`F-S9-5` was found by re-attacking an enumeration that had already returned green**, and that is
+recorded rather than smoothed over. The first draft of `DR-C11-S9-2` asserted seven write channels
+and the sentence *"there is no eighth channel"*, backed by four greps that all passed. The greps
+searched for filesystem-API call names, and a logger writing to a file descriptor calls none of
+them — so a channel carrying unredacted learner free text sat outside a check that reported clean.
+The lesson is registered with the finding because it is the package's most concrete instance of the
+failure class its own reviews keep naming: **a green mechanical check is evidence about the check,
+not about the claim.**
 
 **One inherited blocking finding is dispositioned rather than re-raised.** `F-S8-2` is downgraded
 from **blocking** to **resolved** on its own stated resolving event at `:436` — *"SUB-9 publishes a

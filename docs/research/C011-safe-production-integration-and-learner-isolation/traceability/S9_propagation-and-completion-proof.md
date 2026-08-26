@@ -18,7 +18,8 @@
 | OUT-12 | The aggregate result set is carried as SUB-3 inventoried it — counts over rows are not the rows | §5.2, citing `../03_…md:468`–`:482` | `consumed` | **consumed** | The disclosure boundary is SUB-5's aggregate rule and `F-S5-9`, not this sub-task's |
 | OUT-12 | The backups column is populated by citation to the package's single record, with its owner carried | §10, citing `../93_open-items-and-provisional-register.md:117`–`:132` | `consumed` | **[unconfirmed]** | `OI-S1-8` is open. **Zero backups records are raised here**, verified by grep over this sub-task's output |
 | OUT-12 | The unowned-copy audit runs mechanically over SUB-3's inventory ∪ `LD-S8-1` and reports a count | §8 — 33 categories, 0 with no propagation owner | `derived` | **confirmed** | The zero holds only within the inventory; **1** copy location outside it is unclaimed — `F-S9-1`. `R-S9-3` carries the risk that the qualification is dropped downstream |
-| OUT-12 | Every copy the audit surfaces that no class claims is reported as a finding with an owner | `F-S9-1` in `../91_findings-register.md` | `observed-in-repository` | **confirmed** | The provider's actual retention terms are unknown — `SPK-S9-1`, unexecuted |
+| OUT-12 | Every copy the audit surfaces that no class claims is reported as a finding with an owner | `F-S9-1` and `F-S9-5` in `../91_findings-register.md` — **two** locations | `observed-in-repository` | **confirmed** | The provider's actual retention terms are unknown (`SPK-S9-1`, unexecuted); the container log driver's retention is unknown and is not claimed |
+| OUT-12 | Learner free text reaches **stderr** via the shared pino sink, so a correct erasure of both log tables leaves the content in the container's logs | `F-S9-5`; `../09_proving-a-data-right-reaches-every-copy.md` §4.5, citing `src/shared/logger.ts:65`, `:25`–`:26`, `:39`–`:54`, `:35`–`:36` | `observed-in-repository` | **confirmed** | Whether the runtime persists stderr, and for how long, is a deployment fact outside this repository and is **not** established here |
 | OUT-12 | The copy set is **closed by an argument with a stated falsifier**, not assumed complete | §4.2 (`W-1` … `W-7`) and §4.3; `../decision-records/DR-C11-S9-2_the-copy-set-closure-argument.md` | `observed-in-repository` | **confirmed** | Static at `ee0a750`. One new outbound client or one `writeFile` invalidates it — `R-S9-2` |
 | OUT-12 | The deployment writes no learner data to disk outside the database | §4.2 `W-2` — grep over `src/` for `writeFile` / `appendFile` / `createWriteStream` / `writeFileSync` / `mkdir` returned **zero matches** | `observed-in-repository` | **confirmed** | A measurement at one cutoff, not a standing property |
 | OUT-12 | The pre-cutover population receives a disposition rather than a key | §6; `../decision-records/DR-C11-S9-1_the-pre-cutover-population-disposition.md` — bulk deletion at archive close, under storage limitation | `derived` | **confirmed** | The disposal is designed, not executed — `R-S9-1`. Its date rests on `A-S9-1` pending `OI-S9-1` |
@@ -38,9 +39,12 @@
 - **That any copy was actually reached.** Every row above describes a design. No propagation has
   been executed, no proof row has ever been written, and `propagation_proof` does not exist as a
   relation. `R-S9-1` carries the unexecuted disposal with a named owner.
+- **That executing the matrix erases a learner's free text.** `F-S9-5` establishes a copy on stderr
+  that no cell of the matrix reaches, so a correctly executed and fully proved propagation still
+  leaves learner content in the container's log files.
 - **That the copy set is complete over copies that exist.** It is complete over copies **this
-  deployment creates**, bounded explicitly by the external-provider egress (`F-S9-1`) and by the
-  operator and `psql` paths SUB-5 names at
+  deployment creates**, bounded explicitly by the external-provider egress (`F-S9-1`), the stderr
+  log sink (`F-S9-5`), and by the operator and `psql` paths SUB-5 names at
   `../05_the-enforcement-point-that-confines-every-read-and-write.md:719`–`:722`, which are
   SUB-12's to model under OUT-17.
 - **Any production fact.** No row count, no population size, no backup fact, no provider identity.
