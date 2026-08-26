@@ -732,7 +732,7 @@ available.
   `CAP-S5-1`'s transport precondition is supplied in design.
 - **To SUB-7 (NEU-1001), OUT-3 / OUT-4.** §9.1's four-stage set with its two ordering constraints,
   and `R-S4-3`'s per-process-singleton limit as a deployment-shape input.
-- **To SUB-11 (NEU-1003), OUT-16.** This change's own compatibility consequence — seven paths, two
+- **To SUB-11 (NEU-1004), OUT-16.** This change's own compatibility consequence — seven paths, two
   broken deliberately — for folding into the whole-surface contract, plus `F-S4-4`'s unpriced cost.
 - **To SUB-16 (NEU-999).** `F-S4-4` / `R-S4-4`: audit parity across transports is not achieved by
   mounting, because there is nothing to mount on.

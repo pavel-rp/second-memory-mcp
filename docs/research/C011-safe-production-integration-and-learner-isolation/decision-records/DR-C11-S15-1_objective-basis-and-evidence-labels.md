@@ -126,4 +126,3 @@ cannot miss it, instead of into a footnote it can.
   whole labelled-derivation approach with measurement and lift `CAP-S15-1`.
 - **C010's `SPK-S6-1` passes its expiry without re-run**, which would make `OBJ-6`'s cited basis
   stale — the stale-citation limb `R14` names.
-</content>

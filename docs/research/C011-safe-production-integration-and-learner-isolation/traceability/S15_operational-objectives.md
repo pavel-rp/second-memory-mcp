@@ -57,4 +57,3 @@ none is cited as such below.
 6. **That the id shapes `R-S15-<k>` and `A-S15-<k>` are the package's settled convention.** They are
    SUB-15's collision-free choice with a recorded rationale; **SUB-14 (NEU-1007) adjudicates** and
    may renumber, in which case every id in this matrix moves with it.
-</content>

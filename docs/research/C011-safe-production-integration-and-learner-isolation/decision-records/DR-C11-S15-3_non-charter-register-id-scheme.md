@@ -64,4 +64,3 @@ The scheme is also the one the package already uses five times over. `F-S<n>-<k>
 - **A sixteenth row is added to the charter's § Risks table**, which would give a charter-derived number to a risk that currently has none and would shrink this record's scope to the stand-in register alone.
 - **SUB-2 or SUB-3 publishes a colliding `R16` / `A-52`**, which would confirm the collision hazard this record was written against and is worth recording as evidence either way.
 - **SUB-17's cross-register consistency check** finds an id-shape ambiguity this record did not anticipate.
-</content>

@@ -444,7 +444,7 @@ reconcile at assembly.
 
 ### SUB-16
 
-## `SPK-S16-1` — Is the audit writer mounted on the production deployment at all?
+#### `SPK-S16-1` — Is the audit writer mounted on the production deployment at all?
 
 | Field | Value |
 | --- | --- |
@@ -488,7 +488,7 @@ they can close two items in one read-only query.
 
 ### SUB-8
 
-## `SPK-S8-1` — Which model provider does production use, and does learner content therefore leave the deployment?
+#### `SPK-S8-1` — Which model provider does production use, and does learner content therefore leave the deployment?
 
 | Field | Value |
 | --- | --- |
@@ -697,7 +697,7 @@ appended their own entries, and this section follows that established practice. 
 edited here.
 ### SUB-11
 
-## `SPK-S11-1` — Which MCP clients have actually authenticated against the production deployment, by transport and by principal kind?
+#### `SPK-S11-1` — Which MCP clients have actually authenticated against the production deployment, by transport and by principal kind?
 
 | Field | Value |
 | --- | --- |

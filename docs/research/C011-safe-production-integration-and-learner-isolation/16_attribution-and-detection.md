@@ -446,8 +446,8 @@ to a line 42.
 | --- | --- | --- |
 | `DR-C11-S16-1` | The attribution carrier — a three-valued `principal_kind` plus a nullable `learner_key`, and the ruling that neither existing column may be reused | **SUB-13** (NEU-1006) DDL; **SUB-5** (NEU-997) enforcement point; **SUB-7** (NEU-1001) sequencing |
 | `DR-C11-S16-2` | The determined privacy classification of both log tables, with its export, erasure and retention consequence | **SUB-8** (NEU-1002) under OUT-11; **SUB-9** (NEU-1003) under OUT-12 |
-| `DR-C11-S16-3` | The stalled-propagation **signal contract** — nine fields, three location properties, one fire condition, six negative clauses | **SUB-9** (NEU-1003), whose acceptance asserts the match; **SUB-12** (NEU-1004) as a measurable gate |
-| `SIG-S16-1` … `SIG-S16-4` | The four signals, with thresholds and owners | **SUB-12** (NEU-1004) threat model and gate register; **SUB-7** (NEU-1001) rollout stages |
+| `DR-C11-S16-3` | The stalled-propagation **signal contract** — nine fields, three location properties, one fire condition, six negative clauses | **SUB-9** (NEU-1003), whose acceptance asserts the match; **SUB-12** (NEU-1005) as a measurable gate |
+| `SIG-S16-1` … `SIG-S16-4` | The four signals, with thresholds and owners | **SUB-12** (NEU-1005) threat model and gate register; **SUB-7** (NEU-1001) rollout stages |
 | `ME-S16-1` … `ME-S16-7` | The seven missing emissions, each with an owner | **SUB-5**, **SUB-7**, **SUB-9**, **SUB-13**; the creator as sole operator |
 | `F-S16-1` … `F-S16-5` | Findings — the caller-asserted carriers, `OBJ-10`'s lower bound, the gate qualifications, the conditional emission, the permanently unattributable history | **SUB-9**, **SUB-12**, **SUB-14** (aggregation), **SUB-17** (gate) |
 | `R-S16-1` … `R-S16-4` | Residual exposures with severity, mitigation, owner and escalation route | **SUB-14** (aggregation); **SUB-17** (gate) |

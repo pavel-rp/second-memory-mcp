@@ -18,7 +18,10 @@ import { fileURLToPath } from 'node:url';
 import { checkCorpus, isFailing } from './citation-paths/checker.js';
 
 /** Packages required to be clean. Add a package here once it has been swept. */
-const GATED = ['C010-system-and-repository-architecture'];
+const GATED = [
+  'C010-system-and-repository-architecture',
+  'C011-safe-production-integration-and-learner-isolation',
+];
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 

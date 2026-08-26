@@ -184,7 +184,15 @@ than inherited:
 - **46 registered** — `server.registerTool(` occurs 46 times across `src/server/`.
 - **3 exempt** — `src/transport/context-token-middleware.ts` holds an `EXCLUDED_TOOLS` set of exactly
   three names: `init_agent_context`, `get_server_info`, `get_server_workflow`.
-- **43 gated** — 46 − 3.
+- **43 gated** — 46 − 3. **This subtraction is a cross-check, not the derivation of record.** The
+  derivation of record is `11_the-client-compatibility-contract.md` §1.3, which maps the 43
+  `context_token` schema declarations onto the non-exempt registrations module by module across
+  thirteen rows and balances in both directions; that chapter states plainly that *"`46 − 3 = 43` is
+  arithmetic, not evidence"*, and it is right. The subtraction is retained here because it agrees,
+  and agreement between two independent routes is worth recording — but a reader wanting the evidence
+  should read the mapping. *(Reconciled by SUB-14 (NEU-1007) at assembly; both derivations were
+  published and only their evidential status differed, never the figure. Re-derived independently at
+  cutoff `d526ffe`: 46 registered, 3 exempt, 43 gated — unchanged.)*
 
 The figure carried by C010's charter and by some tracker descriptions is a **corrected miscount** and
 is not repeated here as a codebase fact.

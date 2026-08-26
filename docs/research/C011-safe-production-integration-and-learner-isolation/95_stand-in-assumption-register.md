@@ -1052,7 +1052,7 @@ census cannot establish.
 
 **Owner:** **The creator, as sole maintainer and sole operator** — the only party who can confirm
 what queries the deployment actually runs, including any outside `src/` (an operator's `psql`
-session, a dashboard, a scheduled report). **SUB-12** (NEU-1004) under OUT-17 inherits it as a
+session, a dashboard, a scheduled report). **SUB-12** (NEU-1005) under OUT-17 inherits it as a
 modelled path.
 
 **Tolerance envelope:** The design tolerates **any reader whose horizon is shorter than the disposal
@@ -1070,7 +1070,7 @@ limitation still has no per-learner alternative — but it reopens the choice be
 `R-S6-1`'s accepted residual.
 
 **Re-validation trigger:** **A read-path census over both log tables is performed** — the
-observation this entry stands in for — or, sooner, **`SUB-12` (NEU-1004) publishes OUT-17's threat
+observation this entry stands in for — or, sooner, **`SUB-12` (NEU-1005) publishes OUT-17's threat
 model**, which enumerates operator and `psql` paths that `05_…md:719`–`:722` places outside every
 port and which this sub-task's write-path enumeration cannot reach. Either event replaces the
 assumption with a fact.
