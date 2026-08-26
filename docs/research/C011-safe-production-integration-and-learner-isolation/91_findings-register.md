@@ -1154,7 +1154,7 @@ not restated as a codebase fact anywhere in `09_…md`, and `42` appears nowhere
 
 ### SUB-12
 
-Eight findings. **Two are blocking** (`F-S12-5`, `F-S12-6`) under OUT-17's rule that a critical gap
+Nine findings. **Two are blocking** (`F-S12-5`, `F-S12-6`) under OUT-17's rule that a critical gap
 without a measurable control is recorded as a blocking finding rather than accepted. The last two
 (`F-S12-7`, `F-S12-8`) are package-hygiene defects observed in passing and **reported rather than
 fixed**, on the precedent SUB-5 set with `F-S5-13` — both live in other sub-tasks' artifacts, which
@@ -1270,6 +1270,45 @@ this package does not rewrite.
   only that it is a **gate-less gap** under OUT-17's rule, which is a different statement about the
   same fact.
 - **Severity:** medium. **Owner:** **`NEU-896`**, which converges the client surface.
+
+#### `F-S12-9` — A **second** cross-learner control input: Tier-1b linter-rule eligibility, live by default
+
+- **Finding.** `loadInitialRuleReports()` reads `infrastructure.linter_rule_validation_report` at boot
+  (`src/transport/main.ts:40`; `src/composition-root.ts:347`), and `applyEligibilityToRules` sets each
+  Tier-1b rule's `blockingEligible` from it (`src/shared/linter/rule-intent.ts:80`–`:94`), producing
+  the one rule list shared by `chunkDeps` and `topicDeps` (`src/composition-root.ts:408`–`:411`). That
+  report is computed over `infrastructure.linter_validation_corpus`, whose `chunk_id` is a foreign key
+  to `learning_chunks.id` and which carries **no ownership key**
+  (`src/infrastructure/db/schema.ts:333`–`:362`). **A single process-wide control — is this rule
+  blocking or warning-only? — is derived from an unconfined aggregate over learner-referencing rows
+  and applied to every learner.**
+- **Two differences from `F-S12-1`, and they cut opposite ways.** This one is **live by default** —
+  the boot read is unconditional, whereas the Tier-2 breaker is not even constructed unless an
+  operator enables blocking. But it is **not learner-actuated**: `upsertCorpusEntry` and `upsertReport`
+  are called from **nowhere under `src/`** outside the adapter, so no runtime learner path writes the
+  corpus; the writer is the operator script `lint:corpus:seed` (`package.json:27`, `TP-S12-56`).
+- **The framing correction, made against the file.** This was put to the chapter as *"structurally
+  identical to `F-S12-1`"*. **It is not.** Without a learner-writable path it is not an *actuation*
+  channel in the sense §7.3 defines; it is a **cross-learner control input**, the wider category both
+  `GATE-S12-9` and `GATE-S12-10` are written over. Reporting it as learner-actuated would overstate
+  it in exactly the direction this chapter criticises elsewhere.
+- **It approaches, but does not meet, a falsifying condition SUB-5 stated.** SUB-5 excludes
+  `LinterValidationRepository` from owner scoping because its tables are *"keyed to a rule id, not to
+  a learner"*, and names the condition that would overturn that: *"If a corpus entry is ever found to
+  quote learner content verbatim, this row is wrong and the route is a finding back to this chapter"*
+  (`05_the-enforcement-point-that-confines-every-read-and-write.md:339`). **This chapter does not
+  claim that condition is met** — whether a corpus row quotes learner text is not establishable from
+  the schema and no credential exists to look. The checkable weaker fact is the FK reference plus the
+  process-wide control. The stronger question is `SPK-S12-7`, **not executed**.
+- **Severity:** medium — below `F-S12-1`. Live by default is worse; not learner-actuated is much
+  better, and the control it moves is a content-quality rule rather than a confinement.
+- **Owner:** **`NEU-896`** at convergence; co-named **SUB-5** (NEU-997) as author of the exclusion
+  whose trigger this approaches. **Controls:** `GATE-S12-9`, `GATE-S12-10`, whose counts move from one
+  to two.
+- **How it was found, because the shape matters.** Not by re-running the searches that produced
+  `F-S12-1`, but by asking a differently-shaped question — *what else does the composition root read
+  from the database before wiring, and what does it decide?* That is `X-5`'s shape applied inward, and
+  it is the concrete demonstration that §2.3's extension list is not decorative.
 
 #### `F-S12-7` — The glossary row for `write-path closure` carries the exact claim its own defining file repudiates
 

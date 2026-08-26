@@ -1148,7 +1148,33 @@ One stand-in.
   that currently masks the leak stops operating and the bound's absence becomes load-bearing.
 - **Status:** **carried.**
 
-**`A-S12-1` is not charter-continued.** It stands in for no charter assumption, so it takes the
+#### `A-S12-2` — That Tier-2 blocking is, or will be, enabled on the deployment
+
+- **The assumption.** `F-S12-1` describes a channel that only exists when the Tier-2 circuit breaker
+  is constructed, and it is constructed **only** when `blockingFields` is non-empty
+  (`src/composition-root.ts:418`–`:421`). The shipped default is an **empty set** with `enable: false`
+  (`src/domain/config/classifier-defaults.ts:31`, `:28`). **This sub-task assumes the finding is worth
+  gating on anyway** — that is, that an operator has enabled Tier-2 blocking, or will.
+- **Why it is carried as a stand-in rather than resolved.** Whether `CLASSIFIER_BLOCKING_FIELDS` is
+  set in production is unobserved, like every other production fact in this package. The alternative
+  to a stand-in was to either drop `F-S12-1` (which would discard a real defect on an unverified
+  guess that the feature is off) or assert the feature is on (which would be the invention the
+  charter forbids).
+- **Tolerance envelope.** The finding, the gate and the amendment all hold under **either** answer.
+  If blocking is off today, `F-S12-1` is a latent defect that activates with a documented procedure;
+  if it is on, the channel is live. What the answer changes is **urgency**, not validity — which is
+  why the severity is high rather than critical and why `GATE-S12-10` is written as a count of
+  cross-learner control inputs rather than as an incident threshold.
+- **Invalidating outcome.** If the Tier-2 blocking mechanism is **removed** from the product rather
+  than configured, `F-S12-1` becomes moot rather than resolved, and `DR-C11-S12-2`'s revision trigger
+  says it must be recorded that way rather than as a fix. `F-S12-9` is unaffected — it is live by
+  default and does not depend on this assumption.
+- **Owner.** **The creator**, as sole maintainer and sole operator.
+- **Re-validation trigger.** `SPK-S12-3` executes and reports whether Tier-2 blocking is enabled, or
+  the mechanism is removed from the product.
+- **Status:** **carried.**
+
+**Neither `A-S12-1` nor `A-S12-2` is charter-continued.** It stands in for no charter assumption, so it takes the
 sub-task-scoped `A-S12-<k>` form rather than continuing the charter's `A-<n>` numbering — the same
 allocation SUB-8, SUB-9, SUB-15 and SUB-16 each made, for the reason recorded in
 `decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`.

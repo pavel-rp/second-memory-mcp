@@ -86,9 +86,14 @@ running system.
 ## Consequences
 
 1. **Every row of the gate register carries a provenance label**, and the totals are reported: at
-   this cutoff, fifteen `D`, three `S`, four `K`, and **zero** production observations.
-2. **Four spikes are registered by this sub-task** (`SPK-S12-2` … `SPK-S12-6` minus those shared with
-   other rows), each with a question, a method and an expiry, each recorded `not executed`. Each
+   this cutoff, **seventeen `D`, two `S`, five `K`**, and **zero** production observations, over
+   **twenty-four** gates.
+2. **Eight spikes are registered by this sub-task** — `SPK-S12-1` … `SPK-S12-8`, each with a question,
+   a method and a mandatory expiry, each recorded `not executed`. **Five gate rows carry the `K`
+   label** (`GATE-S12-13`, `-14`, `-15`, `-19`, `-23`), and the two figures are different things and
+   must not be reconciled: one `K` row cites `SPK-S16-1`, which is SUB-16's spike and is not re-filed
+   here, while two of this sub-task's eight back a **blocking finding** (`F-S12-5` via `SPK-S12-2`)
+   or a **finding** (`F-S12-9` via `SPK-S12-7`) rather than a gate. Each spike
    first fails the *"could this have been read from the repository instead?"* test, which is why the
    register's many readable constants became `D` rows rather than spikes.
 3. **Two gaps produce blocking findings rather than gates** (`F-S12-5`, `F-S12-6`), because no

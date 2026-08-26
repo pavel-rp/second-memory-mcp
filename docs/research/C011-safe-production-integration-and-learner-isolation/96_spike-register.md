@@ -827,7 +827,7 @@ same session.
 
 ### SUB-12
 
-**Six spikes. None executed.** Every one first fails the *"could this have been read from the
+**Eight spikes. None executed.** Every one first fails the *"could this have been read from the
 repository instead?"* test, which is why the threat model's many readable constants became cited
 `file:line` facts rather than spikes. Each carries a question, a method, a mandatory expiry and
 `Result: not executed` rather than a substituted answer.
@@ -916,8 +916,40 @@ repository instead?"* test, which is why the threat model's many readable consta
 - **Owner.** The creator, as sole maintainer and sole operator. **Expiry:** 90 days.
 - **Result:** **not executed.**
 
+#### `SPK-S12-7` — Does any `linter_validation_corpus` row quote learner content verbatim?
+
+- **Question.** SUB-5 excludes `LinterValidationRepository` from owner scoping because its tables are
+  *"keyed to a rule id, not to a learner"*, and states the falsifying condition: *"If a corpus entry
+  is ever found to quote learner content verbatim, this row is wrong and the route is a finding back
+  to this chapter"* (`05_the-enforcement-point-that-confines-every-read-and-write.md:339`). Does any
+  row meet it?
+- **Why it cannot be read.** The corpus's `chunk_id` foreign key to `learning_chunks.id` is
+  establishable from the schema and **is** established (`F-S12-9`). Whether a row's *content* columns
+  reproduce learner text is a property of the rows, not the schema, and no credential exists.
+- **Method.** Read-only `SELECT` over `infrastructure.linter_validation_corpus`, sampling content
+  columns and comparing against the referenced `learning_chunks` rows. **Non-mutating.** A negative
+  result is a result.
+- **Owner.** The creator, as sole operator, for the observation; the finding routes to **SUB-5**
+  (NEU-997) as author of the exclusion. **Expiry:** 90 days.
+- **Result:** **not executed.**
+
+#### `SPK-S12-8` — What production credential files exist on the host, and who holds them?
+
+- **Question.** `package.json:29` ships `db:studio:prod`, which reads `.env.prod`. What credential
+  files exist on the deployment host, what do they grant, and who can read them?
+- **Why it cannot be read.** `.gitignore:18` excludes `.env.*`, so no such file is in the repository,
+  and **an environment-variable probe cannot see a credential file** — which is the specific
+  limitation §5.3 records against this chapter's own `F-S1-2` re-probe.
+- **Method.** Read-only: list `.env*` files on the host and in the deploy directory, and report their
+  ownership and mode. **Do not read or transcribe their contents** — the redaction discipline of
+  `LD-S3-31` applies, and a transcribed credential would create the exposure the spike exists to
+  measure.
+- **Owner.** The creator, as sole maintainer and sole operator; escalates to **`NEU-896`**.
+  **Expiry:** 90 days. **Gate:** `GATE-S12-23`.
+- **Result:** **not executed.**
+
 **Package spike total at this cutoff.** Counted mechanically over this file rather than inherited:
-**24 designed before this section, 6 added here, 30 designed in total, zero executed.** The figure has
+**24 designed before this section, 8 added here, 32 designed in total, zero executed.** The figure has
 moved four times across the package's history — the register narrates the drift as a recurring
 self-correction (`F-S4-6`, `F-S9-2`) rather than as an error — and **each figure is only correct on
 the day it is written**. This one is correct at `57aeba3` on this branch, and a reader should recount

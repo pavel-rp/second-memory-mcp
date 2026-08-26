@@ -890,9 +890,18 @@ allocation matches this register's own id-convention table.
 - **Escalation route.** **`NEU-896`** at convergence, where a retention position taken for one duty and a control depending on it are reconciled across packages.
 - **Mitigation status:** **Unmitigated.** Both merged positions stand, the conflict is real, and neither side is wrong. Nothing here changes either number.
 
+## `R-S12-5` — The matrix rests on two independent closure arguments and states only one of them as its own
+
+- **Severity:** Medium
+- **Risk.** §2's falsifier closes over **ingress**. But six of the fifty-six enumerated paths are not ingresses: Class J (`TP-S12-47` … `TP-S12-51`) is *egress*, and `TP-S12-52` is an at-rest research capture reached by no request at all. Their completeness rests on **SUB-9's** egress closure (`DR-C11-S9-2`), which this chapter inherits rather than re-derives. The exposure is that a reader attacks the stated falsifier, finds it sound, and concludes the whole matrix is closed — when the stated falsifier can neither validate nor falsify six of its rows.
+- **Mitigation.** §2.1 now states the second premise explicitly and names which paths depend on it, rather than leaving a reader to notice that an ingress argument is being asked to carry egress rows. A reader attacking the enumeration is directed to attack **both** arguments. **The mitigation is explicitly not complete**: it makes the seam visible, and it does not make the inherited argument this sub-task's to defend.
+- **Owner.** SUB-12 (NEU-1005) for the statement; **SUB-9** (NEU-1003) remains the owner of the egress closure and of `R-S9-2`, the risk that it silently rots.
+- **Escalation route.** **`NEU-896`** at convergence, where a completeness claim spanning two packages' arguments is reconciled.
+- **Mitigation status:** **Partially mitigated.** The seam is stated; the dependency is real and unremovable, because re-deriving SUB-9's closure here would be the duplicate record the package forbids.
+
 ---
 
-**SUB-12 register totals at revision 1:** **four entries**, all sub-task-scoped (`R-S12-1` High, `R-S12-2` Medium, `R-S12-3` Medium, `R-S12-4` Medium), **zero charter § Risks rows** by the computation above. Every entry carries a severity, a mitigation, a named owner and an escalation route, and **not one is fully mitigated**.
+**SUB-12 register totals at revision 1:** **five entries**, all sub-task-scoped (`R-S12-1` High, `R-S12-2` Medium, `R-S12-3` Medium, `R-S12-4` Medium, `R-S12-5` Medium), **zero charter § Risks rows** by the computation above. Every entry carries a severity, a mitigation, a named owner and an escalation route, and **not one is fully mitigated**.
 
 **One risk is deliberately not raised.** That an operator may read learner free text from the container's log files is **`F-S9-5`**'s subject, owned by SUB-9, and the backups question is **`OI-S1-8`**'s. Both are cited by `TP-S12-36` and `TP-S12-43` and neither is re-recorded here, so the package keeps one id per fact.
 

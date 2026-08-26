@@ -398,9 +398,9 @@ One cap.
 #### `CAP-S12-1` — Every gate in the register is a specification, and not one has ever been evaluated
 
 - **Cap.** The gate register (`12_threat-model-and-the-gates-that-authorize-implementation.md` §8)
-  states 22 controls with thresholds, owners and evidence sources. **None is implemented, none has
-  been evaluated, and no threshold is a measurement.** Provenance across the register is 15 derived,
-  3 stand-in, 4 deferred spike, and **zero production observations** — the label
+  states 24 controls with thresholds, owners and evidence sources. **None is implemented, none has
+  been evaluated, and no threshold is a measurement.** Provenance across the register is 17 derived,
+  2 stand-in, 5 deferred spike, and **zero production observations** — the label
   `observed-in-production` is available to this chapter and used zero times.
 - **Why it is a cap and not an open item or a risk.** No party inside this package can close it. A
   gate is evaluated by observing the running deployment, and **no production credential of any kind

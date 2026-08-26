@@ -34,15 +34,17 @@ during its own preparation, and §2.4 publishes that rather than smoothing it aw
 
 **It is not measured.** No production credential exists. `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and
 `VPS_*` were re-probed at this cutoff and are all unset, independently reproducing
-`91_findings-register.md` § `F-S1-2`. **The evidence label `observed-in-production` is used zero
-times in this chapter, and no gate below claims a production observation.** `DR-C11-S12-3` records
-what "measurable" is therefore permitted to mean.
+`91_findings-register.md` § `F-S1-2`. **The evidence label `observed-in-production` is applied to zero
+rows of this chapter's gate register, and no gate below claims a production observation.** The
+*string* occurs a handful of times, always inside a statement like this one — the claim is about the
+provenance column, and a mechanical recount of that column returns zero. `DR-C11-S12-3` records what
+"measurable" is therefore permitted to mean.
 
 ---
 
 ## 1. Where each predecessor's remit ended, and what this chapter composes
 
-Eleven chapters precede this one and each solved a slice. This chapter asks the composed question
+Twelve chapters precede this one and each solved a slice. This chapter asks the composed question
 none of them could: **given all of them, what can still go wrong, on which path, and what number
 would tell us?**
 
@@ -78,6 +80,17 @@ chapter closes its threat set over the mirror quantity:
 
 > **A learner-state access occurs only where a request entered.** The ingress set is bounded by the
 > process's own entry points, plus the paths that reach the state *without* entering the process.
+
+**One premise this closure does not cover, registered here rather than left implicit.** Six of the
+enumerated paths are **not ingresses at all**: Class J (`TP-S12-47` … `TP-S12-51`) is *egress*, and
+`TP-S12-52` is an at-rest research capture reached by no request. They are in the matrix because
+SUB-9 routed three of them here by name and because a threat model that omitted where learner content
+*goes* would be answering half the question. **Their completeness rests on SUB-9's egress closure, not
+on this chapter's ingress closure**, and the two arguments are independent — a copy set closed over
+writes says nothing about entry points, and vice versa. So §2.3's falsifier can neither validate nor
+falsify those six rows, and **the honest statement is that this matrix rests on two closure arguments,
+one of which it inherits.** Carried as **`R-S12-5`**. A reader attacking the enumeration should attack
+both: the ingress argument here, and `DR-C11-S9-2` for the egress half.
 
 The second clause is the one that makes this different from SUB-9's. SUB-9's partition is over what
 leaves a **process**, and it is therefore closed by the source tree. A threat model cannot be: the
@@ -188,7 +201,7 @@ recording that no mechanism reaches it is a different statement, and it is the t
 
 ## 4. The path-by-path invariant matrix
 
-Thirty-nine paths across nine classes. **Every path carries an invariant. Zero paths carry none** —
+Fifty-six paths across eleven classes (A–K). **Every path carries an invariant. Zero paths carry none** —
 the count is reported in §9.
 
 ### 4.1 Class A — the MCP read path
@@ -270,8 +283,9 @@ re-raised as a copy class.
 | --- | --- | --- | --- | --- |
 | `TP-S12-27` | Aggregates that **can** take the predicate below the aggregation — ten named sites | **ISO:** confined **iff** the predicate applies before aggregation; returning no rows is not confinement | `held-by-design` | `05_…:591`–`:603` |
 | `TP-S12-28` | `Tier2BlockingStatsRepository`'s weekly counts over a table with **no ownership key** | **ISO:** an unconfined `COUNT` discloses a true fact about another learner's data while returning none of it | `out-of-reach` → `GATE-S12-9` | `05_…:605`–`:611`, `F-S5-9`; the query at `src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`–`:42` carries no principal predicate |
-| `TP-S12-29` | **That same unconfined aggregate consumed as a *control input* by the Tier-2 circuit breaker** | **ISO:** state derived from one learner's activity may not alter the controls applied to another | **`gap` — blocking** → `GATE-S12-10` | §7. **New in this chapter, filed as `F-S12-1`** |
-| `TP-S12-30` | The breaker's trip set is process-lifetime and cleared only by restart | **LIFE:** a control that disables itself carries a stated re-enable condition; today the only one is a deploy | `gap` → `GATE-S12-10` | `src/orchestration/tier2-circuit-breaker.ts:65`–`:68`, `:148`–`:151` |
+| `TP-S12-29` | **That same unconfined aggregate consumed as a *control input* by the Tier-2 circuit breaker.** **HTTP only** — on STDIO the source table receives nothing, so no field can trip (§6.1, §7.4 bound 2). Conditional on the operator having enabled Tier-2 blocking, which is **off by default** (§7.4 bound 1) | **ISO:** state derived from one learner's activity may not alter the controls applied to another | `gap` → `GATE-S12-10` | §7. **New in this chapter, filed as `F-S12-1`** |
+| `TP-S12-30` | The breaker's trip set is process-lifetime and cleared only by restart | **LIFE:** a control that disables itself carries a stated re-enable condition; today the only one is **any process restart** — not specifically a deploy — with removal from `CLASSIFIER_BLOCKING_FIELDS` as the operator's permanent path | `gap` → `GATE-S12-10` | `src/orchestration/tier2-circuit-breaker.ts:65`–`:68`, `:148`–`:151`, `:9`–`:11` |
+| `TP-S12-53` | **A second cross-learner control input: Tier-1b linter-rule eligibility.** `loadInitialRuleReports()` reads `infrastructure.linter_rule_validation_report` at boot (`src/transport/main.ts:40`) and `applyEligibilityToRules` promotes Tier-1b rules from warning-only to **blocking**, process-wide for every learner (`src/composition-root.ts:408`–`:411`; `src/shared/linter/rule-intent.ts:80`–`:94`). The report is computed over `infrastructure.linter_validation_corpus`, whose `chunk_id` is a foreign key to `learning_chunks.id` with **no ownership key** (`src/infrastructure/db/schema.ts:333`–`:362`) | **ISO:** a control applied to every learner may not be derived from an unconfined aggregate over learner-referencing rows | `gap` → `GATE-S12-9`, `GATE-S12-10` | §7.5. **New in this chapter, filed as `F-S12-9`** |
 
 ### 4.7 Class G — the migration path
 
@@ -284,7 +298,7 @@ re-raised as a copy class.
 
 ### 4.8 Class H — the operator path
 
-Nine paths, all of them modelled in §5 rather than tabulated twice: `TP-S12-35` … `TP-S12-43`.
+Twelve paths, all of them modelled in §5 rather than tabulated twice: `TP-S12-35` … `TP-S12-43` and `TP-S12-54` … `TP-S12-56`.
 
 ### 4.9 Class I — the prospective general web API
 
@@ -359,6 +373,9 @@ the operator can bypass entirely*. A confinement that holds for all 49 entry poi
 | `TP-S12-41` | **Unsetting `AUDIT_DATABASE_URL` / `DATABASE_URL`** for the audit writer — silently disables all audit emission | **LIFE:** the audited state of the deployment is observable; an unaudited deployment is distinguishable from a silent one | `gap` → `GATE-S12-19` | `src/transport/http.ts:176`–`:182`; `ME-S16-7`; `OI-S16-1` |
 | `TP-S12-42` | **Merging to `develop`** — auto-deploy on green CI, `git reset --hard`, no rollback step | **ISO:** a change that removes or weakens a confinement predicate is detected at the deploy boundary | `gap` → `GATE-S12-20` | Charter assumption 21; `SIG-S16-4` is the signal shaped for exactly this |
 | `TP-S12-43` | **Restoring or reading a backup** — existence unestablished | **LIFE:** every copy is reachable by the erasure predicate | `out-of-reach` (cited) | `OI-S1-8` — **cited, not re-recorded**; this chapter raises no second record of the backups fact |
+| `TP-S12-54` | **`pnpm db:studio:prod`** — `dotenv -e .env.prod -- drizzle-kit studio`: an in-repo script that opens an **arbitrary-CRUD GUI against production**, from a credential **file** | **ISO:** operator database access is authorized, attributed and bounded — a GUI session is `TP-S12-35` with a nicer interface and the same absence of attribution | `out-of-reach` → `GATE-S12-15`, `GATE-S12-23` | `package.json:29`. See §5.3 |
+| `TP-S12-55` | **`pnpm db:migrate`** — a hand-runnable migrator, **distinct from `IN-3`'s boot migrator** | **LIFE:** exactly one migrator runs per schema transition — a property `IN-3`'s unguarded boot run already cannot guarantee, and which a second, manual entry point makes strictly harder | `gap` → `GATE-S12-24` | `package.json:23`; `R-S15-3` for the boot half, cited not re-raised |
+| `TP-S12-56` | **`pnpm lint:corpus:seed`** — writes `infrastructure.linter_validation_corpus` rows that reference learner chunks by foreign key | **ISO:** a write that references learner rows carries a principal, or the table it writes is established not to be learner-scoped | `gap` → `GATE-S12-9` | `package.json:27`; this is the **writer** behind `F-S12-9` (§7.5) |
 
 ### 5.1 `F-S12-4` — the destructive maintenance path whose guard is caller-asserted
 
@@ -426,6 +443,41 @@ package without the qualifier that makes it true. Carried as **`R-S12-1`**.
 
 ---
 
+### 5.3 The three operator scripts an earlier draft missed, and what the omission says about the probe
+
+`IN-7` originally enumerated exactly two operator-run repository scripts — `pnpm db:seed` and
+`scripts/retention-cleanup.sql`. **An independent adversarial pass extended it by reading the whole
+`scripts` block of `package.json`**, a file this chapter already cited one line of. That is the
+enumeration-shape defect again, in the section written to model the operator, and it is published
+rather than folded in.
+
+Three additions, `TP-S12-54` … `TP-S12-56`. **The first is the most consequential single row in this
+chapter's operator model:**
+
+> `"db:studio:prod": "dotenv -e .env.prod -- drizzle-kit studio"` (`package.json:29`)
+
+This is a **shipped, in-repository, named-for-production** entry point that opens a full read-write
+database browser against the production database. It is not a hypothetical operator capability
+inferred from SSH access — it is a script the repository provides for exactly that purpose. Modelling
+the operator path without it would have been the exemption OUT-17 forbids, wearing the clothes of an
+enumeration.
+
+**And it qualifies this chapter's own credential claim, which is stated rather than left standing.**
+§0 says `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and `VPS_*` were re-probed at this cutoff and are all
+unset. That is true, and it is a probe over **environment variables**. `db:studio:prod` reads its
+credential from a **file**, `.env.prod`, which `.gitignore:18` excludes from the repository. **A probe
+over environment variables cannot see a credential file**, so:
+
+- the claim *"no production credential exists in this authoring environment"* stands — `.env.prod` is
+  absent here, and was checked;
+- the claim `GATE-S12-15` rests on, that *"one credential is known"*, is **weaker than it looked**:
+  the repository presupposes a second credential path whose contents nobody has enumerated. The gate
+  is amended to say so, and **`GATE-S12-23`** is added for the file-based path specifically.
+
+This is the second time in this chapter that a mechanical check has corrected a careful reading
+(§2.4 and §13.2 are the others), and the pattern is the argument for §2.3 rather than an
+embarrassment to be tidied away.
+
 ## 6. The five things the enforcement point does not confine, as threat paths
 
 SUB-5 §6 names **four** escapes, and SUB-9 corrected a brief that had merged a fifth into them
@@ -442,7 +494,7 @@ misattribute SUB-5's own structure.
 | 2 | `LD-S3-31` is not confinable — it lives at `_local/scratch/`, behind no port | cross-reference | Zero members; confined by SUB-1's recorded terms. **`TP-S12-52`** | `GATE-S12-21` |
 | 3 | The unkeyed Tier-2 aggregate | `F-S5-9` | `TP-S12-28` (disclosure) **and `TP-S12-29` (actuation — §7)** | `GATE-S12-9`, `GATE-S12-10` |
 | 4 | The non-retroactive boundary | `F-S5-10` | `TP-S12-33`, `TP-S12-34` | `GATE-S12-11` |
-| **5** | **Operator / `psql`** — §7.4, a fifth thing | (no id; named, not registered) | `TP-S12-35` … `TP-S12-43` | `GATE-S12-15` … `GATE-S12-20` |
+| **5** | **Operator / `psql`** — §7.4, a fifth thing | (no id; named, not registered) | `TP-S12-35` … `TP-S12-43`, `TP-S12-54` … `TP-S12-56` | `GATE-S12-15` … `GATE-S12-20`, `GATE-S12-23`, `GATE-S12-24` |
 
 ### 6.1 What the STDIO no-audit-record finding does to this model
 
@@ -536,27 +588,119 @@ retention-and-deletion caps. Adding a retention bound or a deletion owner to
 disposition aimed at the right table can still miss the failure mode**, and that is the whole reason
 this is filed separately rather than as a note under `F-S5-9`.
 
-### 7.4 Severity, honestly bounded
+### 7.4 Severity, honestly bounded — including the two preconditions an earlier draft omitted
 
-Three things bound it, and they are stated rather than left for a reader to discover:
+**Two of the five bounds below were missing from this section's first draft**, and they are the two
+that matter most. An independent adversarial pass found them, and they are published here rather
+than quietly folded in, because a section titled *"honestly bounded"* that omits its dispositive
+preconditions is the over-claiming defect class this chapter is otherwise about.
 
-- **The harm direction weakens a quality gate rather than exposing data.** `applyTo` *shrinks* the
-  blocking set. No learner reads another's content through this channel.
-- **The exposure window is bounded by restart cadence.** The trip set clears on restart, and the
-  deployment restarts at ≥3.29 times per day over the most recent 7 days (`C-17`). **That is a
-  dependency on an accident, not a control** — the same shape `R-S15-2` registers for the session
-  maps, and it fails in exactly the case where it matters most: a deployment that has stabilised and
-  stopped shipping daily.
-- **It requires volume, not privilege.** The threshold is `mean + 2σ` over an aggregate spanning all
-  learners, so at `n = 1` the single learner is trivially the whole population, and at larger `n` the
-  cost to A rises. **No number is offered for how much volume**, because the arrival rate is
-  unobserved (`OI-S15-3` is SUB-15's distinct `t_db` question and is **not** claimed to answer this
-  one) and the prior-week distribution has never been seen. `SPK-S12-3` states the observation that
-  would settle it.
+**Bound 1 — the control is off by default, and when it is off the breaker is not constructed at
+all.** `blockingFields` defaults to an **empty set** and `enable` to `false`
+(`src/domain/config/classifier-defaults.ts:31`, `:28`). The breaker is built **only** when the set is
+non-empty — `resolvedClassifier.classifier.blockingFields.size > 0 ? createTier2CircuitBreaker(...) :
+undefined` (`src/composition-root.ts:418`–`:421`) — and `applyTo` early-returns on an empty set in any
+case (`src/orchestration/tier2-circuit-breaker.ts:167`). **So the entire chain of §7.2 presupposes
+that an operator has explicitly set `CLASSIFIER_BLOCKING_FIELDS` on the deployment.** Whether one has
+is unobserved. This is registered as the stand-in **`A-S12-2`**, and `SPK-S12-3` is extended to ask
+it — the earlier version of that spike asked only whether a field had ever *tripped*, which
+presupposes the answer to this question.
 
-Severity is recorded as **high, not critical**: it is a genuine cross-learner failure with no
-confidentiality impact and a bounded window. Recording it as critical would overstate it; recording
-it as medium would let it be deferred past the gate. **`GATE-S12-10`** is the control.
+**Bound 2 — the channel is HTTP-only, and §6.1 is the proof.** The breaker's input counts rows in
+`infrastructure.operation_event_log` (`event = 'classifier.tier2_blocked'`), and §6.1 establishes that
+under STDIO **nothing is ever written to that table** — `setEventLogger` is called at exactly one
+site inside `startHttpTransport` (`src/transport/http.ts:181`), which the STDIO branch never reaches.
+**On STDIO the aggregate is permanently empty and no field can ever trip.** `TP-S12-29` and
+`TP-S12-30` therefore carry transport `H`. This chapter stated §6.1's rule and then failed to apply
+it to its own headline finding; the correction is recorded rather than absorbed.
+
+**Bound 3 — the harm direction weakens a quality gate rather than exposing data.** `applyTo`
+*shrinks* the blocking set. No learner reads another's content through this channel; the impact is on
+the integrity and availability of a control.
+
+**Bound 4 — the exposure window is bounded by restart cadence.** The trip set clears on **any**
+process restart, and the deployment restarts at ≥3.29 times per day over the most recent 7 days
+(`C-17`). **That is a dependency on an accident, not a control** — the same shape `R-S15-2` registers
+for the session maps, and it fails in exactly the case where it matters most: a deployment that has
+stabilised and stopped shipping daily.
+
+**Bound 5 — it requires volume, not privilege, and it requires at least two learners.** The threshold
+is `mean + 2σ` over an aggregate spanning all learners. **At `n = 1` the harm is vacuous** — there is
+no learner B — and today's deployment is single-tenant by construction, which is the premise of the
+whole package. The harm becomes real exactly when the product acquires its second learner, which is
+the event this entire charter exists to prepare for. **No number is offered for how much volume**,
+because the arrival rate is unobserved (`OI-S15-3` is SUB-15's distinct `t_db` question and is **not**
+claimed to answer this one) and the prior-week distribution has never been seen.
+
+Severity is recorded as **high, not critical**: a genuine cross-learner failure, with no
+confidentiality impact, a bounded window, and two preconditions — an operator opt-in and a second
+learner — neither of which holds today. Recording it as critical would overstate it. Recording it as
+medium would let it be deferred past the gate, and **both preconditions are things this charter
+expects to become true**: multi-learner operation is the point of the package, and enabling Tier-2
+blocking is a documented activation procedure rather than a hypothetical.
+
+**`GATE-S12-10`** is the control, and `SPK-S12-3` — extended by bound 1 to ask whether Tier-2
+blocking is enabled at all, not merely whether a field has tripped — is the observation that would
+settle both preconditions.
+
+**One thing the two new bounds do *not* do: they do not make the finding conditional on a
+hypothetical.** A control that is off today can be switched on by a documented activation procedure
+(`src/orchestration/tier2-circuit-breaker.ts:9`–`:11` names the operator's disable path, which
+implies the enable path), and a package whose entire purpose is to prepare for multi-learner
+operation cannot treat "there is only one learner" as a mitigation. **What the bounds change is the
+honesty of the severity, not the existence of the gap** — which is why the gate stays and the
+severity stays at high.
+
+### 7.5 `F-S12-9` — a *second* cross-learner control input, and it is live by default
+
+The same adversarial pass that found §7.4's missing bounds asked the question that generalises
+`F-S12-1`: **what else does the composition root read from the database before wiring, and what does
+it decide?** That is a differently-shaped search than the one that found the breaker, and it returns
+a second instance.
+
+**The mechanism.** `loadInitialRuleReports()` reads `infrastructure.linter_rule_validation_report`
+at boot (`src/transport/main.ts:40`; `src/composition-root.ts:347`), and `applyEligibilityToRules`
+sets each Tier-1b rule's `blockingEligible` from that report, defaulting to `false` when no row
+exists (`src/shared/linter/rule-intent.ts:80`–`:94`), producing the one rule list shared by
+`chunkDeps` and `topicDeps` (`src/composition-root.ts:408`–`:411`). The report is computed over
+`infrastructure.linter_validation_corpus`, whose `chunk_id` is a foreign key to `learning_chunks.id`
+and which carries **no ownership key** (`src/infrastructure/db/schema.ts:333`–`:362`).
+
+So a single process-wide decision — *is this rule blocking or warning-only?* — is derived from a
+table of learner-chunk references with no principal predicate, and applied to every learner.
+
+**Two differences from `F-S12-1`, and both cut in opposite directions.**
+
+| | `F-S12-1` (Tier-2 breaker) | `F-S12-9` (Tier-1b eligibility) |
+| --- | --- | --- |
+| Enabled by default? | **No** — `blockingFields` is empty and the breaker is not constructed (§7.4 bound 1) | **Yes** — the read runs at every boot unconditionally |
+| Actuated by a **learner**? | **Yes** — a learner's own rejections move the statistic | **No.** `upsertCorpusEntry` and `upsertReport` are called from **nowhere under `src/`** outside the adapter itself; the writer is the operator script `lint:corpus:seed` (`package.json:27`) |
+
+**That second row is a correction to the reviewer's own framing, made against the file.** The finding
+was put to this chapter as *"structurally identical to `F-S12-1`"*. It is not: a learner cannot write
+the corpus through any runtime path, so this is **not** an actuation channel in the sense §7.3
+defines. It is a **cross-learner control input** — one shared control derived from an unconfined
+aggregate over learner-referencing rows — which is the wider category `GATE-S12-9` and `GATE-S12-10`
+are both written over. Reporting it as learner-actuated would have overstated it in exactly the
+direction this chapter criticises elsewhere, so the distinction is drawn rather than smoothed.
+
+**It also sits directly on a caveat SUB-5 wrote and nobody had tested.** SUB-5's per-port table
+excludes `LinterValidationRepository` from owner scoping because its tables are *"keyed to a rule id,
+not to a learner"* and it is *"operator-facing machinery"* — and states the condition that would
+falsify the exclusion: *"If a corpus entry is ever found to quote learner content verbatim, this row
+is wrong and the route is a finding back to this chapter"*
+(`05_the-enforcement-point-that-confines-every-read-and-write.md:339`). **This chapter does not claim
+that condition is met** — whether a corpus row quotes learner text verbatim is not establishable from
+the schema, and no production credential exists to look. What it establishes is the weaker and
+checkable fact that the corpus *references* learner rows by foreign key and that the report over it
+drives a process-wide control. The stronger question is routed back to SUB-5's own stated trigger and
+carried as **`SPK-S12-7`**, not asserted.
+
+**Severity: medium**, below `F-S12-1`. It is live by default, which is worse; it is not
+learner-actuated, which is much better — the harm requires an operator to seed a corpus, and the
+control it moves is a content-quality rule rather than a confinement. **Owner:** `NEU-896` at
+convergence, co-named **SUB-5** (NEU-997) as the author of the exclusion whose trigger this
+approaches. **Control:** `GATE-S12-9` and `GATE-S12-10`, whose counts move from one to **two**.
 
 ---
 
@@ -575,24 +719,34 @@ the pattern SUB-15 set for its `OBJ-*` and SUB-9 for its falsifier:
 - **`S` — stand-in**, a registered assumption with a named owner and a re-validation trigger.
 - **`K` — deferred spike**, with a method and a mandatory expiry, recorded `not executed`.
 
-**`observed-in-production` is a fourth label this register is entitled to use and uses zero times.**
+**`observed-in-production` is a fourth label this register is entitled to use and applies to zero rows.** The string appears in this chapter only inside statements like this one; the claim is about the **provenance column**, and a mechanical recount of the column returns zero.
 
 **`Transport`** records where the gate can be evaluated, because §6.1 makes that a per-gate fact
-rather than a footnote: `H` = HTTP only, `H+S` = both, `—` = neither (evaluated outside the running
-process).
+rather than a footnote. **Four values, and the legend is exhaustive over the column:**
+
+| Value | Means |
+| --- | --- |
+| `H` | Evaluable on HTTP only. On STDIO the count is **undefined, not zero** (§6.1) |
+| `H+S` | Evaluable on both transports |
+| `—` | Not evaluated on a transport at all — the observation is made outside the running process (on the host, the pipeline, or a policy artifact) |
+| `— (static)` | A refinement of `—`: evaluated by reading the source tree or the schema |
+| `— (unsettable)` | A refinement of `—`: neither transport can supply the observation today. `GATE-S12-2` is the one instance, and §6.1 is why |
+
+**Counts over the column, so the legend is checkably exhaustive:** `H` 6 · `H+S` 1 · `—` 10 ·
+`— (static)` 4 · `— (unsettable)` 1 = **22**.
 
 | Id | Gap it closes | Control | Threshold | Prov. | Transport | Owner | Evidence source |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `GATE-S12-1` | `TP-S12-3`, `TP-S12-4` — the gate fails open and can be absent | The adapter refuses a `none`-kind principal **independently of the gate**, so an admitted ungated call still reaches no row | **Zero** admitted `tools/call` on a gated tool with `principal_kind = 'none'`, per 24 h | D — `SIG-S16-2`'s zero-tolerance threshold, `16_…:144` | H | **SUB-7** (NEU-1001) for the emission; **SUB-5**'s clause 3 for the refusal | `mcp_request_log` + `ME-S16-1`'s carrier |
-| `GATE-S12-2` | `TP-S12-5`, `TP-S12-12` — STDIO is ungated and unrecorded | An audit **record** on STDIO, then a principal on it; until both, STDIO refuses every gated tool when no principal is configured | Record: **exists / does not exist** — binary, not a count. Principal: **zero** gated calls admitted with no configured principal | D — `04_…:189`–`:194`; `ME-S16-2` | S (unsettable today) | **Record:** SUB-7 (NEU-1001). **Principal:** C010's `OI-S8-2`, owner `SUB-10 of C010` (NEU-984), co-named `NEU-896` | §6.1 |
+| `GATE-S12-2` | `TP-S12-5`, `TP-S12-12` — STDIO is ungated and unrecorded | An audit **record** on STDIO, then a principal on it; until both, STDIO refuses every gated tool when no principal is configured | Record: **exists / does not exist** — binary, not a count. Principal: **zero** gated calls admitted with no configured principal | D — `04_…:189`–`:194`; `ME-S16-2` | — (unsettable) | **Record:** SUB-7 (NEU-1001). **Principal:** C010's `OI-S8-2`, owner `SUB-10 of C010` (NEU-984), co-named `NEU-896` | §6.1 |
 | `GATE-S12-3` | `TP-S12-6` — `init_agent_context` is exempt and row-owning behind a fail-open | The fail-open distinguishes *refused* from *empty*; a refusal is logged as a refusal and is not returned as `null` | **Zero** occurrences of a caught `buildLearnerContext` error being returned as an empty context without a corresponding refusal event | D — `ME-S16-3`; `src/server/server-context-tools.ts:28`–`:31` | H | **SUB-5** (NEU-997) for the refusal event; **SUB-7** for the emission | `operation_event_log` |
 | `GATE-S12-4` | `TP-S12-9`…`TP-S12-11` — three unscoped global statements | The global statement **does not exist anywhere in `src/`** after the change | **Zero** occurrences — a mechanical grep, which is why SUB-5 chose it | D — `05_…:367`–`:368`, the test stated as mechanical | — (static) | **SUB-13** (NEU-1006) DDL; **SUB-7** sequencing | The source tree at the landing cutoff |
 | `GATE-S12-5` | `TP-S12-13` — the TOCTOU race | A partial unique index, proved by a **concurrent** integration test | Test **exists and is green**; `T1`–`T7` extended with a concurrency case | D — `05_…:724`–`:726` | — | **SUB-13** (the DDL binds the test's design) | `tests/integration/` |
 | `GATE-S12-6` | `TP-S12-14`, `TP-S12-15`, `F-S12-2` — the fail-open binding over an evaporating map | `verifySessionBinding` **refuses** an unknown session instead of returning `true` | **Zero** requests admitted with no binding found | D — `src/transport/http.ts:57`–`:58`; the composition is `F-S12-2` | H | **SUB-7** (NEU-1001) under OUT-3 | `mcp_request_log` |
 | `GATE-S12-7` | `TP-S12-18` — unbounded session-map growth | A TTL or size bound on the transport and binding maps | A bound **exists**; entry count stays under it. **No entry count is stated** — the per-entry footprint is unmeasured | S — `A-S12-1`, resting on `OI-S15-4`; owner the creator | H | **The creator**, as sole operator; **SUB-4** (NEU-996) for the design | `F-S15-3`; `R-S15-2` |
 | `GATE-S12-8` | `TP-S12-20`, `TP-S12-47`…`TP-S12-49` — learner content egresses to third parties | A stated lawful basis and processor position per provider, before the mechanism ships | **Every** egress destination has a named basis and a named processor role; count of destinations without one is **zero** | D — `OI-S3-1`; `F-S9-1`; `F-S5-2` | — | **The owner of `OI-S3-1`** (the creator, as sole operator); **SUB-8** (NEU-1002) under OUT-11 | The four call sites in §4.10 + `TP-S12-20` |
-| `GATE-S12-9` | `TP-S12-28` — the unkeyed aggregate discloses | The predicate applies **before** aggregation, or the table acquires an ownership key | Count of aggregates over learner-derived tables with **no** pre-aggregation predicate: target **zero**; **today it is one** | D — `05_…:591`–`:593`, `:605`–`:611` | — (static) | **`NEU-986`** (`SUB-12 of C010`), owner of `CAP-S3-3`/`CAP-S4-1`, co-named `NEU-896` | `src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`–`:42` |
-| `GATE-S12-10` | **`TP-S12-29`, `TP-S12-30`, `F-S12-1`** — the aggregate as a control input | **Either** the breaker's input is confined to the acting principal, **or** the breaker is a per-learner rather than per-process control, **or** the field set it may shrink is fixed by configuration and not by a learner-influenced statistic | Count of **cross-learner control inputs** — a control whose input aggregates over more than one learner: target **zero**; **today it is one** | D — §7, from the four code facts at `:39`–`:42` and `:59`, `:124`–`:128`, `:182`–`:187` | — (static) | **`NEU-896`** at convergence: the breaker is a product-behaviour decision, not a confinement mechanism this package may redesign. Co-named **SUB-13** (NEU-1006) if the answer is schema-shaped | §7; `DR-C11-S12-2` |
+| `GATE-S12-9` | `TP-S12-28` — the unkeyed aggregate discloses | The predicate applies **before** aggregation, or the table acquires an ownership key | Count of aggregates over learner-derived tables with **no** pre-aggregation predicate: target **zero**; **today it is two** — the Tier-2 aggregate (`F-S5-9`) and the Tier-1b eligibility report (`F-S12-9`, §7.5) | D — `05_…:591`–`:593`, `:605`–`:611` | — (static) | **`NEU-986`** (`SUB-12 of C010`), owner of `CAP-S3-3`/`CAP-S4-1`, co-named `NEU-896` | `src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`–`:42` |
+| `GATE-S12-10` | **`TP-S12-29`, `TP-S12-30`, `F-S12-1`** — the aggregate as a control input | **Either** the breaker's input is confined to the acting principal, **or** the breaker is a per-learner rather than per-process control, **or** the field set it may shrink is fixed by configuration and not by a learner-influenced statistic | Count of **cross-learner control inputs** — a control whose input aggregates over more than one learner: target **zero**; **today it is two** — `F-S12-1` (learner-actuated, HTTP only, off by default) and `F-S12-9` (operator-actuated, live by default) | D — §7, from the four code facts at `:39`–`:42` and `:59`, `:124`–`:128`, `:182`–`:187` | — (static) | **`NEU-896`** at convergence: the breaker is a product-behaviour decision, not a confinement mechanism this package may redesign. Co-named **SUB-13** (NEU-1006) if the answer is schema-shaped | §7; `DR-C11-S12-2` |
 | `GATE-S12-11` | `TP-S12-34` — confinement hides unowned rows from everyone | Every row has an owner **before** the predicate is enabled; the stage order is authored, not assumed | Count of learner-table rows with a null owner at the instant the predicate lands: **zero** | D — `05_…:636`–`:641` (`F-S5-10`); the disposition is SUB-6's | — | **SUB-7** (NEU-1001) under OUT-3 | The migration plan (SUB-13) |
 | `GATE-S12-12` | `TP-S12-46` — the web session's mapping to a principal is unfixed | The principal presented to the core is derived from the verified token, never from the web session id | The mapping is **stated in a decision record** before the API is built; count of unspecified mappings: **zero** | D — C010's negative boundary, `../C010-system-and-repository-architecture/11_web-api-scope-and-resource-inventory.md:114` | — | **`NEU-896`** at convergence — the API does not exist and no package owns it yet | C010's `11_…` |
 | `GATE-S12-13` | `TP-S12-40`, `TP-S12-48` — the egress destination is an unaudited env var | The configured destination of learner content is recorded and reviewed as a declared value | Count of learner-content egress destinations whose value is not recorded anywhere: target **zero**; **today it is at least one** (`OLLAMA_BASE_URL`) | K — **`SPK-S12-4`**: read the deployed value; **not executed** | — | **The creator**, as sole operator | `src/config/resolve-embedding-config.ts:34` |
@@ -604,10 +758,26 @@ process).
 | `GATE-S12-19` | `TP-S12-41` — audit emission is conditional and silently disableable | The deployment reports whether the audit writer is mounted | The mounted state is **observable**; today it is unobserved | K — **`SPK-S16-1`**, SUB-16's spike, **cited not re-filed**; `OI-S16-1` | H | **The creator**, as sole operator | `src/transport/http.ts:176`–`:182`; `ME-S16-7` |
 | `GATE-S12-20` | `TP-S12-42` — a deploy silently reverses a confinement gain | The paired before/after comparison across each deploy boundary | `principal_kind = 'none'` share **does not increase** across a deploy boundary; refusal rate **does not fall to zero** where the prior window was non-zero | D — `SIG-S16-4`, both limbs, `16_…:146` | H | **SUB-7** (NEU-1001) for the stages; the creator for the channel | `mcp_request_log.response_status`, which exists today |
 | `GATE-S12-21` | `TP-S12-52` — `LD-S3-31`, the class with zero members and terms that exist anyway | SUB-1's recorded terms: named owner, retention bound, destruction condition at publication, redaction discipline, quarantine path | Membership **zero**, or every member destroyed at its quarantine path by publication | D — `01_production-evidence-and-the-access-audit.md:151`–`:159`; `09_…` §7.4 | — | **The creator**, as sole operator | SUB-1's terms, read not authored |
-| `GATE-S12-22` | The **`LIFE` limb** of `TP-S12-34` and `TP-S12-47` … `TP-S12-51` — the paths whose lifecycle invariant needs a completion proof to be checkable at all. `SIG-S16-3` is handed here **by name** as a measurable gate | A `propagation_proof` row per copy class per request, conforming to `DR-C11-S16-3`'s nine fields | **Fewer than 6** distinct `copy_class` values with a complete proof at `t ≥ deadline_at` fires the signal; `deadline_at` = **30 days** (`A-S8-1`) makes it evaluable | S — `A-S8-1`, *"not observed, not calibrated, not a legal determination"*, owner SUB-8 | — | **SUB-9** (NEU-1003) for the design; the implementation charter for the store | `16_…:449`; `09_…:610`–`:612` (declared cardinality **6**) |
+| `GATE-S12-22` | The **`LIFE` limb** of `TP-S12-34` and `TP-S12-47` … `TP-S12-50` — the paths whose lifecycle invariant needs a completion proof to be checkable at all. `SIG-S16-3` is handed here **by name** as a measurable gate. **`TP-S12-51` is deliberately excluded** — see the note below the table | A `propagation_proof` row per copy class per request, conforming to `DR-C11-S16-3`'s nine fields | **Fewer than 6** distinct `copy_class` values with a complete proof at `t ≥ deadline_at` fires the signal; `deadline_at` = **30 days** (`A-S8-1`) makes it evaluable | S — `A-S8-1`, *"not observed, not calibrated, not a legal determination"*, owner SUB-8 | — | **SUB-9** (NEU-1003) for the design; the implementation charter for the store | `16_…:449`; `09_…:610`–`:612` (declared cardinality **6**) |
+| `GATE-S12-23` | `TP-S12-54` — a shipped in-repo script opens an arbitrary-CRUD GUI against production from a **credential file** the environment probe cannot see | Every production credential path is enumerated, including file-based ones, and each has a named holder | Count of production credential paths with no named holder: target **zero**; **today it is at least one** (`.env.prod`, presupposed by `package.json:29`, contents unenumerated) | K — **`SPK-S12-8`**: enumerate credential files on the host; **not executed** | — | **The creator**, as sole operator; escalates to **`NEU-896`** | `package.json:29`; `.gitignore:18`; §5.3 |
+| `GATE-S12-24` | `TP-S12-55` — a second, hand-runnable migrator entry point beside the unguarded boot migrator | Exactly one migrator path exists, or every path shares one lock | Count of independent migrator entry points: target **one**; **today it is two** (`src/transport/main.ts:27` at boot, `package.json:23` by hand) | D — read from `package.json:23` and `src/transport/main.ts:27` | — (static) | **SUB-13** (NEU-1006) under OUT-19, which authors the migration runbook | `R-S15-3` for the boot half, **cited not re-raised** |
 
-**Twenty-two gates.** Provenance: **fifteen `D`**, **three `S`**, **four `K`**. **Zero claim a
+**Twenty-four gates.** Provenance: **seventeen `D`**, **two `S`**, **five `K`**. **Zero claim a
 production observation.**
+
+**One exclusion, made because an earlier draft was internally contradictory.** `GATE-S12-22`'s
+coverage originally ran to `TP-S12-51`, the STDIO host's own application state — while §8.1
+simultaneously filed `F-S12-6` as a **blocking finding** on the ground that `TP-S12-51` has no
+measurable control. Both could not be true: the gate's fire condition requires a complete proof for
+every one of the six declared copy classes, so covering `TP-S12-51` would mean claiming a proof for a
+population the deployment cannot observe.
+
+**The blocking finding is the correct reading and the gate's coverage is narrowed.** A propagation
+proof over the STDIO host's state would be a record asserting that an *instruction* was complied
+with, which is exactly `DR-C11-S16-3`'s third negative clause — a proof may not treat absence of error
+as completion. The class still emits a proof row, because the emit-zero rule requires one; what it
+cannot do is emit a *complete* one, and that is the gap `F-S12-6` names. `TP-S12-51` therefore
+resolves to a blocking finding and **not** to `GATE-S12-22`, and §9.2 counts it that way.
 
 ### 8.1 The gaps with no measurable control — the blocking findings
 
@@ -642,8 +812,8 @@ as counts in both directions"*. Both directions are reported, and the counts are
 
 | Measure | Count |
 | --- | --- |
-| Gates in §8 | **22** |
-| Gates naming at least one `TP-S12-*` threat path | **22** |
+| Gates in §8 | **24** |
+| Gates naming at least one `TP-S12-*` threat path | **24** |
 | Gates naming no threat path | **0** |
 
 Every gate's *"Gap it closes"* column names one or more paths. There is no gate in this register that
@@ -653,21 +823,21 @@ exists for its own sake.
 
 | Measure | Count |
 | --- | --- |
-| Threat paths enumerated (`TP-S12-1` … `TP-S12-52`) | **52** |
-| Paths carrying an explicit invariant | **52** |
+| Threat paths enumerated (`TP-S12-1` … `TP-S12-56`) | **56** |
+| Paths carrying an explicit invariant | **56** |
 | **Paths carrying no invariant** | **0** — this is OUT-17's first acceptance scenario, and it is the count it asks for |
 | Paths whose verdict is `held-by-design` (no gap, so no gate owed) | **17** |
-| Paths whose verdict is `gap` or `out-of-reach` | **35** |
-| … of which resolve to a `GATE-S12-*` in §8 | **31** |
+| Paths whose verdict is `gap` or `out-of-reach` | **39** |
+| … of which resolve to a `GATE-S12-*` in §8 | **35** |
 | … of which resolve to a **registered upstream** risk, cited not re-raised | **2** — `TP-S12-31` (`R-S15-3`), `TP-S12-32` (`R-S6-2`) |
 | … of which resolve to a **blocking finding** because no measurable control exists | **1** — `TP-S12-51` (`F-S12-6`) |
 | … of which resolve to a **registered upstream open item**, cited not re-recorded | **1** — `TP-S12-43`, the backups path (`OI-S1-8`) |
 | **Gap paths resolving to nothing** | **0** |
 
-17 + 35 = 52, and 31 + 2 + 1 + 1 = 35. **Both directions close.**
+17 + 39 = 56, and 35 + 2 + 1 + 1 = 39. **Both directions close.**
 
 **One finding is deliberately outside both counts.** `F-S12-5` — the database-side execution path —
-attaches to `X-3`, the enumeration's own boundary, not to any of the 52 paths (§8.1). It is therefore
+attaches to `X-3`, the enumeration's own boundary, not to any of the 56 paths (§8.1). It is therefore
 **not** counted as a gap path resolving to a blocking finding, because it is not a path. Counting it
 as one would inflate the enumeration by an item the enumeration explicitly cannot see, which is the
 precise move §2 exists to prevent. **Blocking findings total two; gap paths resolving to a blocking
@@ -812,11 +982,11 @@ mechanism. What it contributes to the movement is different and is stated in its
 | Measure | Before this chapter | After |
 | --- | --- | --- |
 | State categories reaching `holds` on the deployment | 0 of 45 | **0 of 45** — unchanged, and no claim otherwise |
-| Paths carrying an explicit invariant | **No path-level enumeration existed** | **52 of 52** |
-| Operator paths modelled | **0** | **9**, none exempted |
-| Critical gaps with a control, a threshold, an owner and an evidence source | 0 | **22** |
+| Paths carrying an explicit invariant | **No path-level enumeration existed** | **56 of 56** |
+| Operator paths modelled | **0** | **12**, none exempted |
+| Critical gaps with a control, a threshold, an owner and an evidence source | 0 | **24** |
 | Gaps with no measurable control, named as blocking findings with owners | (not asked) | **2** |
-| Failure modes routed as amendments to `DR-C10-S5-1` | **0** across eleven chapters | **1 record, 2 items** |
+| Failure modes routed as amendments to `DR-C10-S5-1` | **0** across the twelve merged chapters | **1 record, 2 items** |
 
 **The honest headline is the last row and not the third.** Eleven chapters each recorded *"no
 amendment routed"*. That was correct for each of them, and it is the kind of unbroken run that starts
@@ -839,22 +1009,30 @@ referred to by description only, never by numeral, and the arithmetic `46 − 3 
 43 is obtained — it comes from the 13-row registration mapping at `src/server/tools.ts:17`–`:31`, per
 `F-S8-1`'s diagnosis. The two happen to agree.
 
-**But six citations in this sub-task's output do resolve to a line 42, and an earlier draft of this
-very paragraph certified that none did.** That draft sentence read *"no citation in this chapter
-resolves to a line 42"*. It was false. Extracting every `:NN` token mechanically — rather than
-asserting it, which is exactly how the previous four false certifications were produced — returns six
-occurrences:
+**But citations in this sub-task's output do resolve to a line 42, and an earlier draft of this very
+paragraph certified that none did.** That draft sentence read *"no citation in this chapter resolves
+to a line 42"*. It was false. Extracting every `:NN` token mechanically — rather than asserting it,
+which is exactly how the previous four false certifications in this package were produced — returns
+**eight occurrences at this cutoff**, and **every one of them is the same citation**:
 
-| Where | Citation |
-| --- | --- |
-| §4.6 `TP-S12-28`; §7.1 item 1; §8 `GATE-S12-9` (twice, in the threshold and evidence columns) | `src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`–`:42` |
-| `decision-records/DR-C11-S12-2_the-unconfined-aggregate-as-a-control-input.md:42` | the same range |
-| `traceability/S12_threat-model-and-gates.md:23` | the same range |
+> `src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`–`:42`
 
-**All six are the same citation**, and it is the one this chapter's headline finding rests on: the
-Tier-2 aggregate query, whose `WHERE` clause runs from line 39 to line 42. **The line number is
-benign** — a range that happens to end at 42 is not a tool-surface assertion, and the charter's rule
-requires it to be disclosed rather than avoided. It is disclosed here.
+That is the Tier-2 aggregate query whose `WHERE` clause runs from line 39 to line 42 — the evidence
+`F-S12-1` rests on. It appears in `12_…md` (§4.6 `TP-S12-28`; §7.1 fact 1; §8 `GATE-S12-9`'s
+evidence column; §8 `GATE-S12-10`'s provenance column; and twice more inside this very disclosure),
+in `decision-records/DR-C11-S12-2_the-unconfined-aggregate-as-a-control-input.md`, and in
+`traceability/S12_threat-model-and-gates.md`.
+
+**The count is stated as "at this cutoff" deliberately, and the itemisation is given as a set of
+locations rather than as a tally per section.** An earlier version of this table said
+*"`GATE-S12-9` (twice, in the threshold and evidence columns)"*, which was wrong — `GATE-S12-9`
+carries it once, and the fourth chapter occurrence is in `GATE-S12-10`'s provenance column. The total
+was right and the itemisation was not, which is the same defect one level down. **A disclosure that
+is itself self-referential — the table adds occurrences by describing them — cannot carry a stable
+per-section tally, so it does not pretend to.**
+
+**The line number is benign.** A range that happens to end at 42 is not a tool-surface assertion, and
+the charter's rule requires it to be disclosed rather than avoided.
 
 **The reason this is published rather than quietly fixed** is that it is the package's most common
 defect class occurring in the one paragraph written to guard against it. The check that caught it was
@@ -868,9 +1046,13 @@ silently exempt, so a `0 non-resolving` result over a file full of them is true 
 evidence**. A predecessor carried 23 of them, each of which had to be resolved by a separate
 verifier.
 
-**This chapter contains 46 abbreviated references**, counted mechanically rather than described as
-"a few": 3 × `04_…`, 28 × `05_…`, 2 × `08_…`, 5 × `09_…`, 3 × `11_…`, 5 × `16_…`. That is a real
-number and it is stated rather than glossed.
+**This chapter contains 53 abbreviated references at this cutoff**, counted mechanically rather than
+described as "a few": 4 × `04_…`, 29 × `05_…`, 3 × `08_…`, 6 × `09_…`, 5 × `11_…`, 6 × `16_…`. That
+is a real number and it is stated rather than glossed. **An earlier draft said 46 with a per-prefix
+breakdown that under-counted `11_…`** — the one prefix this section singles out as the ambiguous
+one — and the figure has since moved again as the chapter grew. The count is therefore stamped *at
+this cutoff*: it is a property of the document at a moment, not a standing invariant, and a reader
+recounting it should expect to recount rather than to cite it forward.
 
 Two things make them safe, and both are checkable:
 
@@ -903,15 +1085,15 @@ that defines the rule.
 | Register | Ids |
 | --- | --- |
 | Outcomes (`90_outcome-register.md`) | OUT-17's row |
-| Findings (`91_findings-register.md`) | `F-S12-1` … `F-S12-8` |
-| Risks (`92_risk-register.md`) | `R-S12-1` … `R-S12-4`. **No charter `R<n>` row** — see below |
+| Findings (`91_findings-register.md`) | `F-S12-1` … `F-S12-9` |
+| Risks (`92_risk-register.md`) | `R-S12-1` … `R-S12-5`. **No charter `R<n>` row** — see below |
 | Open items (`93_open-items-and-provisional-register.md`) | `OI-S12-1` |
 | Caps (`94_caps-and-incomplete-scope.md`) | `CAP-S12-1` |
-| Stand-ins (`95_stand-in-assumption-register.md`) | `A-S12-1` |
-| Spikes (`96_spike-register.md`) | `SPK-S12-1` … `SPK-S12-6` |
+| Stand-ins (`95_stand-in-assumption-register.md`) | `A-S12-1`, `A-S12-2` |
+| Spikes (`96_spike-register.md`) | `SPK-S12-1` … `SPK-S12-8` |
 | Completeness gate (`97_package-completeness-gate.md`) | `G-S12-1` … `G-S12-12` |
 | Decision records | `DR-C11-S12-1`, `DR-C11-S12-2`, `DR-C11-S12-3` |
-| Chapter content | `TP-S12-1` … `TP-S12-52`; `GATE-S12-1` … `GATE-S12-22`; `IN-1` … `IN-8`; `X-1` … `X-5` |
+| Chapter content | `TP-S12-1` … `TP-S12-56`; `GATE-S12-1` … `GATE-S12-24`; `IN-1` … `IN-8`; `X-1` … `X-5` |
 | Document numbers | `12_` only |
 
 **No charter `R<n>` entry is authored here, and that is a computed result rather than an omission.**
@@ -921,8 +1103,12 @@ OUT-9, OUT-16, OUT-9, OUT-18, OUT-18, OUT-20. **OUT-17 appears zero times**, whi
 assumption 48. The inherited-universe risk is **not** this sub-task's: the charter owns that row to
 OUT-20 and SUB-17 authors it; this chapter supplies only the amendment record it consumes.
 
-**Two id families are introduced by this chapter** and are recorded in `docs/GLOSSARY.md` in the same
-change: **`TP-S12-*`** for threat paths and **`GATE-S12-*`** for measurable production gates. The
+**Two id families are introduced by this chapter** — **`TP-S12-*`** for threat paths and
+**`GATE-S12-*`** for measurable production gates — and **four glossary rows** are added in the same
+change: `threat path`, `measurable gate`, `ingress closure` and `actuation channel`. The last two are
+not id families; `ingress closure` names the closure *method* of §2 and `actuation channel` names the
+failure *mode* of §7, and both needed rows because both are terms a later reader will meet without
+context. The
 second exists because `G-S12-*` is already the package-completeness-gate family in the `90`–`97`
 band; a measurable production gate and a package-completeness-gate row are different objects, and
 reusing one prefix for both would make the cross-check in §9 unreadable.
@@ -947,7 +1133,7 @@ Every occurrence of the second is written `SUB-12 of C010` or `NEU-986`.
 ## 15. What this chapter does not establish
 
 1. **Nothing about production.** No threshold here is a measurement. Zero production credentials
-   exist, zero spikes have executed package-wide, and `observed-in-production` is used zero times.
+   exist, zero spikes have executed package-wide, and `observed-in-production` is applied to zero rows of the gate register.
    `CAP-S1-1` caps this for the package; **`CAP-S12-1`** records the threat-model-specific form.
 2. **That any gate is implemented.** All 22 are specifications. Nothing in §8 runs, and the four `K`
    spikes are recorded `not executed`.
@@ -978,7 +1164,7 @@ Every occurrence of the second is written `SUB-12 of C010` or `NEU-986`.
 
 | Id | What it is | Who consumes it |
 | --- | --- | --- |
-| `TP-S12-1` … `TP-S12-52` | The path-by-path invariant matrix — 52 paths, 52 invariants, zero blanks | **SUB-13** (NEU-1006), which builds the DDL and runbook each gap implies; **SUB-14** (NEU-1007) aggregation; **SUB-17** (NEU-1008) audit; the implementation charter |
+| `TP-S12-1` … `TP-S12-56` | The path-by-path invariant matrix — 56 paths, 56 invariants, zero blanks | **SUB-13** (NEU-1006), which builds the DDL and runbook each gap implies; **SUB-14** (NEU-1007) aggregation; **SUB-17** (NEU-1008) audit; the implementation charter |
 | `GATE-S12-1` … `GATE-S12-22` | The gate register — control, threshold, owner, evidence source and transport per critical gap | **`NEU-896`** as the convergence gate that authorizes implementation; **SUB-7** (NEU-1001) and **SUB-13** as named owners of eleven of them |
 | **`F-S12-1`** | **The unconfined aggregate consumed as a control input** — a cross-learner actuation channel that survives the entire C011 mechanism | **`NEU-896`**; **`NEU-895`** via the amendment; **`NEU-986`** as owner of the log-table caps |
 | `F-S12-2` | The composition of the fail-open binding with the map that empties on every restart | **SUB-7** (NEU-1001) under OUT-3 |
@@ -988,7 +1174,7 @@ Every occurrence of the second is written `SUB-12 of C010` or `NEU-986`.
 | `F-S12-7` | A package-hygiene defect observed in passing: `docs/GLOSSARY.md`'s `write-path closure` row carries the *"four greps"* phrasing its own defining chapter explicitly repudiates. **Reported, not fixed** — the row is another sub-task's | **SUB-14** (NEU-1007) under OUT-20, the only party permitted to touch another sub-task's file; co-named **SUB-9** (NEU-1003) as the row's author |
 | `F-S12-8` | Three merged records route work to a sub-task by the **wrong tracker id** — including the record that hands *this* sub-task its `SIG-S16-3` gate. Sub-task numbers are right; the parenthesised ids are not, which is why it survived reading. **Reported, not fixed**; the obligations are honoured here regardless | **SUB-14** (NEU-1007) under OUT-20; co-named **SUB-16** (NEU-999) and **SUB-4** (NEU-996) as the authors |
 | `DR-C11-S12-2` | **The amendment to `DR-C10-S5-1`** — trigger 3, two failure modes, in the form the inherited-universe risk record consumes | **`NEU-895`** (owner of the record), co-named **`NEU-896`**; **SUB-17** (NEU-1008) as the named recipient within this package |
-| `R-S12-1` … `R-S12-4` | Residual exposures with severity, mitigation, owner and escalation route | **SUB-14** (aggregation, authors none); **SUB-17** (gate) |
+| `R-S12-1` … `R-S12-5` | Residual exposures with severity, mitigation, owner and escalation route | **SUB-14** (aggregation, authors none); **SUB-17** (gate) |
 | §9's two counts | The bidirectional cross-check, both directions closing | **SUB-17**; **SUB-14** |
 | OUT-17's outcome-register row | The outcome, its resolving evidence and its **authored success measure** | **SUB-14** (NEU-1007), which aggregates and authors none |
 
