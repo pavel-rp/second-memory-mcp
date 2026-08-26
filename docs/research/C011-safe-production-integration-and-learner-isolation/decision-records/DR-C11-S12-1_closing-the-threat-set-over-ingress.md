@@ -90,8 +90,8 @@ run that did not look.
    would settle it and is recorded `not executed`.
 3. **`IN-8` costs almost nothing to model**, because C010 already fixed that the web API holds zero
    of the 45 categories and no database credential
-   (`../../C010-system-and-repository-architecture/11_web-api-scope-and-resource-inventory.md:113`,
-   `:123`–`:125`). Consuming that boundary is what keeps the chapter from re-deciding it.
+   (`../../C010-system-and-repository-architecture/11_web-api-scope-and-resource-inventory.md:114`,
+   `:124`–`:126`). Consuming that boundary is what keeps the chapter from re-deciding it.
 4. **The enumeration must be re-run, not inherited**, on any change to
    `src/transport/main.ts`'s transport branch, on any dependency bump that could add an SDK client,
    and whenever the off-repo compose stack changes.

@@ -16,7 +16,7 @@ amendment to `DR-C10-S5-1` under that record's third revision trigger.**
 Three clauses.
 
 **Clause 1 — the finding is actuation, not disclosure.** `F-S5-9` establishes that
-`Tier2BlockingStatsRepository` aggregates a table with no ownership key, so *"an unconfined `COUNT`
+`Tier2BlockingStatsRepository` aggregates a table with no ownership key, so *"A `COUNT(*)` over an unconfined row set
 discloses a true fact about another learner's data while returning no learner data at all"*
 (`../05_the-enforcement-point-that-confines-every-read-and-write.md:592`–`:593`). That is correct and
 it is about disclosure. This record is about what happens when the same aggregate is not returned to
