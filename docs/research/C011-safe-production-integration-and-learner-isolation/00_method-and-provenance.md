@@ -353,7 +353,7 @@ and 2 further distinct targets are this chapter quoting them.
 | Bare source basenames | ~40 | `schema.ts`, `http.ts`, `chunk-tools.ts`, … — source files named by basename in prose after being introduced with a full path. Not corpus targets; the checker cannot repair them because they are not corpus files. |
 | Hyphen-range `src/` paths | 10 | `src/transport/http.ts:82-83` and nine more. **All ten files exist.** Mis-bucketed by blind spot 3 (§4.5). |
 | Gitignored charter references | 2 | `01_charter.md` (×7), `02_subtasks.md` (×2). The charter is the package's own spec and lives in gitignored `_local/`, so a reader cannot follow them. Legitimate provenance, unfollowable by design — which is *why* charter assumption 46 exists and the risk register ships. |
-| Extension-less decision-record refs | 3 | `decision-records/DR-C11-S13-1`, `…/DR-C11-S9-1`, `…/DR-C11-S9-3`. **Examined by SUB-13 and ruled not broken** — *"None of the three is a broken citation"* — noting SUB-9 established the shape. **Left as written.** |
+| Extension-less decision-record refs | 3 | `decision-records/DR-C11-S13-1`, `…/DR-C11-S9-1`, `…/DR-C11-S9-3`. SUB-13 examined **its own** (`DR-C11-S13-1`) and ruled it not a broken citation, naming SUB-9's identical shape two rows above it as the precedent. The other two are SUB-9's and were **not** individually examined by anyone. **Left as written**, on the strength of the shape being established and defended once. |
 | A by-design non-claim | 1 | See §5.2. |
 
 ### 5.2 The one thing that looks exactly like a break and must not be repaired
