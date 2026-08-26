@@ -832,20 +832,61 @@ origin/develop` lists paths only under
 Every code reference in this chapter is a **read** at cutoff `57aeba3`. No test file is created or
 modified.
 
-**`42` does not appear as a codebase fact anywhere in this chapter.** The superseded miscount is
-referred to by description only, never by numeral. **One disclosure, made because four records in
-this package previously certified this falsely:** no citation in this chapter resolves to a line 42,
-and the arithmetic `46 − 3 = 43` is *not* how the 43 is obtained — it comes from the 13-row
-registration mapping at `src/server/tools.ts:17`–`:31`, per `F-S8-1`'s diagnosis. The two happen to
-agree.
+### 13.1 The `42` disclosure, and a false certification this chapter caught in its own draft
 
-**On the `…md` citation shorthand.** This chapter writes **full filenames** in its own citations
-rather than the `05_…md` shorthand used elsewhere in the package. The shorthand is invisible to
-`scripts/check-citation-paths.ts` — such refs are silently exempt, so a `0 non-resolving` result over
-a file full of them is true but is not evidence. Writing them in full is what makes this chapter's
-own citation check load-bearing. Where the shorthand appears above it is inside a quotation of
-another chapter's text, or in a table cell abbreviating a filename already cited in full in the same
-section.
+**`42` does not appear as a codebase fact anywhere in this chapter.** The superseded miscount is
+referred to by description only, never by numeral, and the arithmetic `46 − 3 = 43` is *not* how the
+43 is obtained — it comes from the 13-row registration mapping at `src/server/tools.ts:17`–`:31`, per
+`F-S8-1`'s diagnosis. The two happen to agree.
+
+**But six citations in this sub-task's output do resolve to a line 42, and an earlier draft of this
+very paragraph certified that none did.** That draft sentence read *"no citation in this chapter
+resolves to a line 42"*. It was false. Extracting every `:NN` token mechanically — rather than
+asserting it, which is exactly how the previous four false certifications were produced — returns six
+occurrences:
+
+| Where | Citation |
+| --- | --- |
+| §4.6 `TP-S12-28`; §7.1 item 1; §8 `GATE-S12-9` (twice, in the threshold and evidence columns) | `src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`–`:42` |
+| `decision-records/DR-C11-S12-2_the-unconfined-aggregate-as-a-control-input.md:42` | the same range |
+| `traceability/S12_threat-model-and-gates.md:23` | the same range |
+
+**All six are the same citation**, and it is the one this chapter's headline finding rests on: the
+Tier-2 aggregate query, whose `WHERE` clause runs from line 39 to line 42. **The line number is
+benign** — a range that happens to end at 42 is not a tool-surface assertion, and the charter's rule
+requires it to be disclosed rather than avoided. It is disclosed here.
+
+**The reason this is published rather than quietly fixed** is that it is the package's most common
+defect class occurring in the one paragraph written to guard against it. The check that caught it was
+mechanical; the sentence it replaced was an assertion. That is the whole difference, and §2.4 records
+the same lesson from the other direction.
+
+### 13.2 The `…md` citation shorthand, counted rather than characterised
+
+The shorthand form `05_…md` is **invisible to `scripts/check-citation-paths.ts`** — such refs are
+silently exempt, so a `0 non-resolving` result over a file full of them is true but is **not
+evidence**. A predecessor carried 23 of them, each of which had to be resolved by a separate
+verifier.
+
+**This chapter contains 46 abbreviated references**, counted mechanically rather than described as
+"a few": 3 × `04_…`, 28 × `05_…`, 2 × `08_…`, 5 × `09_…`, 3 × `11_…`, 5 × `16_…`. That is a real
+number and it is stated rather than glossed.
+
+Two things make them safe, and both are checkable:
+
+1. **Every one of the six abbreviated prefixes is also cited at least once in full, in this same
+   file** — verified by grep, one full-filename form per prefix. An abbreviation whose expansion
+   appears nowhere would be the genuine hazard; none here is.
+2. **Every *cross-package* citation is written in full**, with its `../C010-…/` prefix. These are the
+   refs the checker actually resolves, and they are what makes this chapter's `0 non-resolving`
+   result load-bearing rather than vacuous. Four of them were wrong in the first commit — bare
+   `11_web-api-scope-and-resource-inventory.md` refs, class `C3-bare-upstream` — and were found by
+   running the checker against a temporarily-gated C011 rather than by reading. C011's baseline was
+   **0**, so all four were introduced by this sub-task and all four are fixed.
+
+**The `11_…` abbreviation is the one that could still mislead**, because both packages have a
+chapter `11_`. Every occurrence of it above is either written `C010's 11_…` or is the sentence in §1
+that defines the rule.
 
 ---
 

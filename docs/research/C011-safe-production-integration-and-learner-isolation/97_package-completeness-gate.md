@@ -444,20 +444,33 @@ authored, no migration is executed, and no test is written.
 credential), why (none exists in this environment), and its owner (the creator, as sole maintainer and
 sole operator), and it is capped as `CAP-S12-1` rather than left as a bare gap.
 
-**The `42` disclosure, made explicitly because four records in this package previously certified it
-falsely and one had to correct itself.** `42` appears in `12_…md` **once**, in §13, where it is named
-as *the superseded miscount* in the course of disclosing that the tool surface's 43 comes from the
-13-row registration mapping at `src/server/tools.ts:17`–`:31` rather than from `46 − 3`. **That is not
-a tool-surface assertion; it is the disclosure itself.** Separately checked: **no `file:line` citation
-in this sub-task's output lands on line 42**, established by extracting every `:NN` token
-mechanically rather than by assertion.
+**The `42` disclosure — and a false certification this sub-task caught in its own draft.** `42`
+appears in `12_…md` as a numeral only in §13.1, where it is named as *the superseded miscount* while
+disclosing that the tool surface's 43 comes from the 13-row registration mapping at
+`src/server/tools.ts:17`–`:31` rather than from `46 − 3`. **That is not a tool-surface assertion; it
+is the disclosure itself.**
 
-**The `…md` shorthand, and why this sub-task's citation check is load-bearing.** The shorthand form
-`05_…md` is **invisible to `scripts/check-citation-paths.ts`** — such refs are silently exempt, so a
-`0 non-resolving` result over a file full of them is true but is not evidence. This sub-task's own
-citations are therefore written with **full filenames**, so the checker actually resolves them.
-Occurrences of the shorthand in `12_…md` are inside quotations of another chapter's text or in table
-cells abbreviating a filename cited in full in the same section.
+**Six `file:line` citations in this sub-task's output do land on line 42, and an earlier draft
+certified that none did.** Extracting every `:NN` token mechanically — rather than asserting it,
+which is precisely how the previous four false certifications in this package were produced —
+returns six occurrences, **all of them the same citation**:
+`src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`–`:42`, the Tier-2 aggregate query whose
+`WHERE` clause ends on line 42, and the evidence `F-S12-1` rests on. The line number is **benign**;
+the charter's rule requires it to be disclosed rather than avoided, and §13.1 tabulates all six. This
+is recorded rather than quietly repaired because it is the package's most common defect class
+occurring inside the paragraph written to guard against it.
+
+**The `…md` shorthand, counted rather than characterised.** The form `05_…md` is **invisible to
+`scripts/check-citation-paths.ts`** — such refs are silently exempt, so a `0 non-resolving` result
+over a file full of them is true but is **not evidence**. `12_…md` contains **46** abbreviated
+references, counted mechanically: 3 × `04_…`, 28 × `05_…`, 2 × `08_…`, 5 × `09_…`, 3 × `11_…`,
+5 × `16_…`. Two checks make them safe and both are mechanical: **every one of the six prefixes is
+also cited at least once in full in the same file**, and **every cross-package citation is written in
+full** with its `../C010-…/` prefix. The second is what makes this sub-task's `0 non-resolving` result
+load-bearing. **Four cross-package refs were wrong in the first commit** — bare
+`11_web-api-scope-and-resource-inventory.md`, class `C3-bare-upstream` — found by running the checker
+against a temporarily-gated C011 rather than by reading; C011's baseline was **0**, so all four were
+introduced here and all four are fixed.
 
 **No QA pass.** The `qa-execution` surface is unconfigured, so the automated QA phase is a genuine
 Core Article 8 no-op. **This sub-task cites `F-S11-5` for that position rather than `CAP-S1-3`:**
