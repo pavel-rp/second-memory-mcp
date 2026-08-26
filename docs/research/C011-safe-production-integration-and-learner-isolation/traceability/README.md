@@ -46,3 +46,4 @@ two**. Source and non-research paths (`src/…`, `drizzle/…`) are written **ba
 | `S7_the-rollout-sequence.md` | SUB-7 (NEU-1001) | OUT-3, OUT-4 |
 | `S11_the-client-compatibility-contract.md` | SUB-11 (NEU-1004) | OUT-16 |
 | `S9_propagation-and-completion-proof.md` | SUB-9 (NEU-1003) | OUT-12 |
+| `S13_the-ddl-the-migration-plan-and-the-runbook.md` | SUB-13 (NEU-1006) | OUT-19 |

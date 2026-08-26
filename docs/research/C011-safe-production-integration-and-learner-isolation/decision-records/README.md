@@ -78,3 +78,6 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S9-1_the-pre-cutover-population-disposition.md` | SUB-9 (NEU-1003) | OUT-12 (and `F-S8-2`'s stated resolving event — bulk deletion at archive close, under storage limitation) |
 | `DR-C11-S9-2_the-copy-set-closure-argument.md` | SUB-9 (NEU-1003) | OUT-12 (the "no unowned copy" claim, closed over write paths with a stated falsifier) |
 | `DR-C11-S9-3_the-completion-proof-record.md` | SUB-9 (NEU-1003) | OUT-12 (the completion-proof design, asserting the field-by-field match `DR-C11-S16-3` left to SUB-9) |
+| `DR-C11-S13-1_the-constraint-shape-of-the-ownership-and-attribution-ddl.md` | SUB-13 (NEU-1006) | OUT-19 (the DDL's constraint shape; discharges `F-S5-6` and closes `R-S4-1` structurally on both carriers) |
+| `DR-C11-S13-2_the-sweep-contract-and-batching-without-a-row-count.md` | SUB-13 (NEU-1006) | OUT-19 (the migration plan's execution contract; discharges `R-S6-2`'s batched-idempotent-resumable obligation as a design) |
+| `DR-C11-S13-3_the-disable-path-control-surface.md` | SUB-13 (NEU-1006) | OUT-19 (the concrete control surface `DR-C11-S7-2`'s revision trigger names SUB-13 as publishing) |

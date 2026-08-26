@@ -340,7 +340,7 @@ The literal two-column form SUB-5 names is written here. Because `status` is con
 index's own predicate, `(user_id, status) WHERE status = 'active'` and `(user_id) WHERE status =
 'active'` are semantically identical; the two-column form is kept so the artifact matches the
 requirement as stated. `status` is `NOT NULL DEFAULT 'active'` and constrained to
-`('active','completed')` at `src/infrastructure/db/schema.ts:107` and `:123`, so the predicate is
+`('active','completed')` at `src/infrastructure/db/schema.ts:107` and `:122`, so the predicate is
 well-defined and the index is non-trivial.
 
 ### 2.4 The consent record
