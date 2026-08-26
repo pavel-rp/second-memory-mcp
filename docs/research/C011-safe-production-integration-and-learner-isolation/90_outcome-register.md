@@ -1038,7 +1038,8 @@ exempted**: nine operator paths, including direct `psql` and SSH to the single V
 gap resolves to a measurable control with a named owner and a threshold — **22 gates** — and the two
 gaps for which no measurable control exists are recorded as **blocking findings with owners** rather
 than accepted. The model covers the prospective general web API at the boundary C010's
-`11_web-api-scope-and-resource-inventory.md` fixed, consuming it and re-deciding nothing.
+`../C010-system-and-repository-architecture/11_web-api-scope-and-resource-inventory.md` fixed,
+consuming it and re-deciding nothing.
 
 **Resolving evidence.**
 

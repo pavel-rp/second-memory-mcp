@@ -57,8 +57,9 @@ would tell us?**
 **One naming hazard, disclosed once.** Both packages have a chapter `11_`. C011's
 `11_the-client-compatibility-contract.md` says nothing about a web API — a full-text search of it for
 "web" returns zero hits. The web-API boundary this chapter consumes is **C010's**
-`11_web-api-scope-and-resource-inventory.md`, and every reference to it below is written with its
-full package path. A bare `11_…` in this package means SUB-11's compatibility contract.
+`../C010-system-and-repository-architecture/11_web-api-scope-and-resource-inventory.md`, and every
+reference to it below is written with its full package path. A bare `11_…` in this package means
+SUB-11's compatibility contract.
 
 ---
 
@@ -96,7 +97,7 @@ Enumerated statically at cutoff `57aeba3`.
 | `IN-5` | **The host shell** — SSH to the single VPS, or the container runtime | Charter assumption 21; `VPS_HOST` secret | The database, the container's log files, the environment, the compose stack | **No** |
 | `IN-6` | **The delivery pipeline** — a merge to `develop` auto-deploys on green CI | `.github/workflows/cd-prod.yml`; charter assumption 21 | Whatever the merged code does, including removing a confinement predicate | **No** (the pipeline); yes (its payload) |
 | `IN-7` | **Operator-run repository scripts** — reviewable, in-repo, not wired to any transport | `pnpm db:seed` (`package.json:43`), `scripts/retention-cleanup.sql` | Direct writes and deletes against learner tables, with no principal | Partly |
-| `IN-8` | **The prospective general web API** | C010's `11_web-api-scope-and-resource-inventory.md` | **Only by calling the MCP core** — it holds no database credential and zero of the 45 categories | Does not exist yet |
+| `IN-8` | **The prospective general web API** | C010's `../C010-system-and-repository-architecture/11_web-api-scope-and-resource-inventory.md` | **Only by calling the MCP core** — it holds no database credential and zero of the 45 categories | Does not exist yet |
 
 **`IN-8` is not a new ingress to the database, and saying so is the whole content of consuming
 C010's boundary rather than re-deciding it.** Under `M-A` the API is a *client of `IN-1`*. Its threat
@@ -756,7 +757,7 @@ check ran rather than meeting silence.
 | C010 item | Checked against | Result |
 | --- | --- | --- |
 | `DR-C10-S6-1` — `M-A`, the MCP core is the exclusive writing **tier** | §4.9's web-API paths; the API holds no credential and writes nothing | **Consistent.** No amendment |
-| C010's `11_web-api-scope-and-resource-inventory.md` — the negative boundary | §4.9 consumes it and re-decides nothing; `TP-S12-46` names what it does not answer rather than answering it | **Consistent.** Naming an unanswered question is not a contradiction |
+| C010's `../C010-system-and-repository-architecture/11_web-api-scope-and-resource-inventory.md` — the negative boundary | §4.9 consumes it and re-decides nothing; `TP-S12-46` names what it does not answer rather than answering it | **Consistent.** Naming an unanswered question is not a contradiction |
 | C010's `F-S5-3` / `F-S8-1` — the 46 / 43 / 3 tool surface | §2.4 re-derived it at this cutoff and it holds; 3 prompts bring registered entry points to 49 | **Consistent.** No amendment |
 
 **An addition is not a contradiction, and a naming collision is not one either.** `F-S12-1` *extends*
