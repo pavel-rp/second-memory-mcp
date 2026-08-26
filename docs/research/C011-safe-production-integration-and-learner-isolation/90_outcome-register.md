@@ -1352,10 +1352,10 @@ the four OUT-20-owned risk entries, and the audit set. **This row is SUB-17's**,
 4. **MET.** **53 entries, `0`** missing any of the four fields, **`0`** authored in a SUB-14 section,
    **15/15** charter rows covered by their named authors, **`0`** routed gaps.
 5. **MET. 20/20** — this row is the twentieth. All twenty carry a success measure and a measured
-   result; **`0`** authored at assembly. Three measured results read NOT MET and none was restated to
-   fit its outcome.
-6. **MET.** **8/8** List B answered, **0** List A claimed, **23** touched C010 residual ids classified
-   — 16 from the charter's enumeration and 7 at assembly under the open-enumeration rule — with **`0`**
+   result; **`0`** authored at assembly. Three outcome rows carry a NOT-MET result, over six limbs in total (OUT-5, OUT-8's limb 2, and
+   OUT-2's four), and none was restated to fit its outcome.
+6. **MET.** **8/8** List B answered, **0** List A claimed, **26** touched C010 residual ids classified
+   — 16 from the charter's enumeration and 10 at assembly under the open-enumeration rule — with **`0`**
    in two classes and **`0`** in none. `DR-C10-S5-2`'s revision trigger did not fire.
 7. **MET, with a line-level residual.** The armed gate reports **0 non-resolving** over 78 files, and
    **103 of 103** distinct codebase-path targets resolve. **`42` is asserted as a tool-surface count in

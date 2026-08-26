@@ -26,7 +26,7 @@ decision record or register entry, and that routing re-opens the owning sub-task
 re-runs the affected audit against the repaired content, but never repairs it itself."* Amend
 authority was SUB-14's alone (`00_method-and-provenance.md:480`), and it has shipped.
 
-So this sub-task **appends and nothing else**. Its writes are exactly five, all additive:
+So this sub-task **appends and nothing else**. Its writes are exactly six, all additive:
 
 | Write | Where | Authority |
 | --- | --- | --- |
@@ -34,6 +34,7 @@ So this sub-task **appends and nothing else**. Its writes are exactly five, all 
 | OUT-20's outcome-register row | `90_outcome-register.md` § SUB-17 | charter assumption 47; the reserved slot at `00_method-and-provenance.md:72` |
 | This sub-task's findings | `91_findings-register.md` § SUB-17 | *"report as a finding; never absorb into prose"* |
 | The gate verdict | `97_package-completeness-gate.md` § SUB-17 | `97_`'s own header; `00_method-and-provenance.md` §2 |
+| The named residual caps (`CAP-S17-1`) | `94_caps-and-incomplete-scope.md` § SUB-17 | the convergence bound's *"recorded in the caps register as a named residual cap"* |
 | This file | the reserved `90`–`99` band | *"The audit set published into the package's reserved `90`–`99` band"* |
 
 **`git diff --numstat origin/develop` reports a deletions count of `0` on every file this sub-task
@@ -53,7 +54,7 @@ sub-task may not repair on their behalf. Every finding below therefore completes
 with its owner named — and converges no further. Under the convergence bound, a finding still standing
 after the bound is recorded as a **named residual cap with an owner and the reason it did not
 converge**; the reason is the same for all of them and is stated once here rather than repeated
-fourteen times: *the owning sub-task has shipped and this sub-task has no repair authority.*
+twenty-one times: *the owning sub-task has shipped and this sub-task has no repair authority.*
 
 This is reported rather than presented as convergence. A loop that cannot run is not a loop that ran
 clean.
@@ -97,7 +98,7 @@ Each of `C1` … `C10` was checked for a C011 claim to have closed it. **Zero ar
 consumes them: `C1` (ownership location) is consumed via `NEU-850`'s `OUT-2`; `C2`–`C4` (the invariant,
 its checks, its verdict set) are consumed as the decision procedure SUB-5 applies rather than
 re-derives; `C5` and `C6` are consumed as the *requirements* whose satisfying mechanism is `H8`;
-`C7`–`C9` are consumed as verdicts; `C10` is C010's own no-amendment record.
+`C7` is consumed as the domain-membership rule and `C8`–`C9` as verdicts; `C10` is C010's own no-amendment record.
 
 **The one place this needed care.** SUB-5 carries `SC-S3-12` to verdict `holds`
 (`05_the-enforcement-point-that-confines-every-read-and-write.md` §8) — the invariant's first positive instance. That is **applying** C010's procedure to one
@@ -179,11 +180,11 @@ unexercised against a real matrix* item, resolved inside C010 by `SUB-14 of C010
 package does not touch it. The non-classification is recorded explicitly so its absence is a stated
 decision rather than an omission.
 
-### 3.2 Seven further touched ids, classified **here** rather than inherited
+### 3.2 Ten further touched ids, classified **here** rather than inherited
 
 The charter's enumeration is *"the set of touched ids known at charter time, not a closed list"*
-(charter assumption 51). Seven touched C010 residual ids are not in it. Under the rule, each is
-classified at assembly on the same four-class test — **not** reported as a mismatch. All seven land in
+(charter assumption 51). Ten touched C010 residual ids are not in it. Under the rule, each is
+classified at assembly on the same four-class test — **not** reported as a mismatch. All ten land in
 **consumed-from**: each is cited as context or authority, and none is owned, resolved or supplied-to by
 this package.
 
@@ -196,9 +197,22 @@ this package.
 | `F-S14-1` | `I3`'s *"at or below the port boundary"* unsatisfiable for the 15 port-less categories (`:385`) | C010's SUB-14 | consumed-from |
 | `A-25` | Tutoring needs per-learner interaction state (`../C010-system-and-repository-architecture/93_stand-in-assumption-register.md:59`) | C010 | consumed-from |
 | `A-29` | Handoff as a bounded, expiring, revocable envelope (`:119`) | C010 | consumed-from |
+| C010's `F-S3-3` | Cited only to demonstrate the qualification convention (`03_learner-data-inventory-and-classification.md:52`; `08_consent-and-what-a-learner-can-export-and-erase.md:48`, `:725`; `92_risk-register.md:145`) | C010's SUB-3 | consumed-from |
+| C010's `F-S5-1` | One frozen `AppContext` shared by every MCP session, carrying no principal field (`traceability/S5_the-enforcement-point.md:29`) | C010's SUB-5 | consumed-from |
+| C010's `F-S4-5` | Cited as the precedent for an id clash resolved by qualification (`05_the-enforcement-point-that-confines-every-read-and-write.md:158`) | C010's SUB-4 | consumed-from |
 
-**Total classified: 23 ids — 16 from the charter's enumeration, 7 at assembly. `0` in two classes,
+**Total classified: 26 ids — 16 from the charter's enumeration, 10 at assembly. `0` in two classes,
 `0` in none.** No split-fidelity mismatch.
+
+**Three of the ten were missed by this audit's first pass and added after its own adversarial review.**
+The extraction excluded every mention resolving to a C011 id under the bare-id rule, which is correct —
+but a *qualified* mention of a colliding id (*C010's `F-S3-3`*) is by construction not a collision, and
+the search shape did not look for one. **`F-S5-1` was the one at risk of changing the verdict**: its
+sentence reads *"Clause 4's request-scoped construction **resolves** C010's `F-S5-1`"*, which reads as
+*resolved-here*. The disposition column of that same row settles it — it reads `consumed`, with the
+note *"Resolved in design only; nothing is applied"* — so it is consumed-from and the *0 in two
+classes* limb survives. It is recorded because a differently-shaped search extending an enumeration is
+this package's fourth-commonest defect class, and it extended this one.
 
 **`CAP-S1-3` is the consequential one, and it is a finding.** Three published statements say the id is
 *"a phantom"*, *"defined nowhere"* and *"was never defined and is void"*. **It is defined** — in C010,
@@ -214,15 +228,16 @@ at the citation above, about **exactly** the subject the four C011 records cite 
 `CAP-S1-2` is discharged: C011 is in the `GATED` list at `scripts/check-citation-paths.ts:23` (the
 array opens at `:21`). Run at this cutoff:
 
-```
-PASS  C011-safe-production-integration-and-learner-isolation
-      77 files · 0 non-resolving · 0 exempted by design
-```
+The gate reports **`PASS`** for C011 with **0 non-resolving** and **0 exempted by design**, exit `0`.
 
-Exit `0`. **This audit does not quote the gate's total-citations or total-resolving figures**, for the
-reason `00_method-and-provenance.md:280`–`:282` gives and this file inherits: they count tokens inside
-the package, so a sentence quoting them is falsified by having been written. The load-bearing number
-is **0 non-resolving**, which is stable.
+The line is described rather than reproduced in a code fence. `scripts/check-citation-paths.ts:66`–`:68`
+emits five fields — files, citations, resolve, non-resolving, exempted — and **this audit does not quote
+the total-citations and total-resolving fields**, for the reason `00_method-and-provenance.md:280`–`:282`
+gives and this file inherits: they count tokens inside the package, so a sentence quoting them is
+falsified by having been written. **An earlier revision showed a three-field fenced block as though it
+were the program's output**, which presents an edited string as a transcript; the fence is gone and the
+elision is now stated. The load-bearing number is **0 non-resolving**, which is stable, and the file
+count moves as the package grows.
 
 ### 4.2 Every codebase claim resolves — the blocking class, tested
 
@@ -235,6 +250,14 @@ Every repo-root-relative non-research path cited anywhere in the package (`src/`
 worktree at `5f8e9cb`:
 
 **103 distinct codebase-path targets cited. 103 resolve. `0` do not.**
+
+**The figure's scope, stated because it is not the whole cited surface.** It ranges over the six
+prefixes above and excludes three classes: bare directories, one glob (`src/server/*.ts`, cited in
+`12_`, `15_` and `16_`, which resolves to no single file), and **ten repo-root files** the package
+cites without a directory prefix — `package.json`, `.env.example`, `docker-compose.yml`,
+`.current-task`, `vitest.setup.ts`, `CLAUDE.md`, `.gitignore`, `drizzle.config.ts`, `vitest.config.ts`
+and `pnpm-workspace.yaml`. **All ten exist and were checked**, two of them at the line below. Widened
+to include them the figure is 113 of 113, plus the one glob disposed of here.
 
 Three load-bearing facts were additionally read at the line, not taken on citation:
 
@@ -267,7 +290,7 @@ A green summary is not evidence. All three were re-derived independently at this
    written with a range would be invisible.
 
 **Reported, not fixed.** Changing `normalizeCandidate` is a behaviour change to a shared CI gate and
-needs its own test case. It is out of scope by constraint and is routed, not repaired — `F-S17-6`.
+needs its own test case. It is out of scope by constraint and is routed, not repaired — `F-S17-14`.
 
 ### 4.4 The `MISSING-target` bucket, read entry by entry
 
@@ -285,7 +308,9 @@ pinned to a commit that predates it.
 
 **All 76 distinct targets were judged individually. Zero are unreported broken citations.** They fall
 in six classes: protocol and prose nouns (`tools/call`, `origin/develop`, `n/a`, …); bare source
-basenames named in prose after a full-path introduction; two gitignored-charter references; three
+basenames, each resolving to a real repository file — for **19** of the 42 no full-path form of that
+basename appears in the citing file, so the "introduced in full first" reading does not hold and is not
+claimed; two gitignored-charter references; three
 extension-less decision-record refs; the 13 hyphen-range `src/` targets of §4.3; and the deliberately
 wrong C010 filename of §4.5.
 
@@ -307,7 +332,7 @@ right.** `00_method-and-provenance.md:370` reports **3** under a column headed *
 *"The four extension-less decision-record references"*. Both are correct under their own units:
 **three distinct targets** (`DR-C11-S13-1`, `DR-C11-S9-1`, `DR-C11-S9-3`) across **four citation
 sites** (`90_outcome-register.md:1106`, `:1245`; `97_package-completeness-gate.md:380`;
-`13_the-ddl-the-migration-plan-and-the-runbook.md:1507`). An earlier pass of this audit read the pair
+`13_the-ddl-the-migration-plan-and-the-runbook.md:1508`). An earlier pass of this audit read the pair
 as a contradiction and **withdrew the finding on checking the units** — recorded here because a
 withdrawn accusation is as much a result as a filed one. **Verdict: leaving them was right**; the shape
 was examined and defended once, and none masks a broken corpus citation.
@@ -328,7 +353,7 @@ in that file could be normalised while this **content** id could not. A pass tha
 would have exceeded its authority to fix a one-word defect and made the boundary unauditable. The
 disclosure names the entry rather than the line number, which is the more durable form. **This audit
 inherits the routing and cannot discharge it: SUB-1 has shipped.** It becomes a named residual —
-`F-S17-7`.
+`F-S17-12`.
 
 ---
 
@@ -361,7 +386,7 @@ compatibility contract (High, OUT-16), lifecycle half (High, OUT-9). All eleven 
 assembly already agreed with charter position. Independently corroborated: SUB-12 read the charter
 directly and enumerated all fifteen owning outcomes at `92_risk-register.md:870` in the **corrected**
 order, from the charter, without seeing the index table. Two descriptive corrections, filed as
-`F-S17-8`:
+`F-S17-9`:
 
 - It is a **3-cycle**, not a transposition. `F-S3-3` itself uses the accurate word, *"permutation"*.
 - **The charter does not carry the permutation.** `00_method-and-provenance.md:167`–`:169` and `92_risk-register.md:46` both say so
@@ -375,7 +400,7 @@ order, from the charter, without seeing the index table. Two descriptive correct
 body in `91_findings-register.md` still reads live and `A-S11-1` in `95_stand-in-assumption-register.md` carries no discharge
 record, because SUB-14 could resolve the conflict without authority to rewrite the entries recording
 it, and routes it here. **This audit confirms the divergence is real and still open.** It is correctly
-declared; it is not repairable here for the same reason; it becomes a named residual, `F-S17-9`.
+declared; it is not repairable here for the same reason; it becomes a named residual, `F-S17-13`.
 
 ---
 
@@ -393,9 +418,14 @@ slot. OUT-20's row is appended by this sub-task in `90_outcome-register.md` § S
 twentieth.
 
 Every measure is recorded by the sub-task that produced the outcome — verified per row against its
-`Authored by.` line. **A measure recorded as NOT MET is still a measure**, and three are: OUT-5's
-measured result, SUB-5's limb 2 on its literal figure, and `G-S5-6`. None was restated to fit its
-outcome, which is the property this audit is checking for and the one most easily faked.
+`Authored by.` line. **A measure recorded as NOT MET is still a measure.** Three outcome rows carry one, over **six**
+limbs in total: **OUT-5**, whose measure is not met outright (`90_outcome-register.md:293`); **OUT-8**,
+whose limb 2 is met on intent and not met on its literal figure (`:730`, `:736`); and **OUT-2**, four of
+whose twenty-five traced claims are not met (`:806`, with the limbs at `:817`, `:822`, `:834`). None was
+restated to fit its outcome, which is the property this audit is checking for and the one most easily
+faked. *(An earlier revision of this paragraph said "three" and counted `G-S5-6` among them. `G-S5-6`
+is a **gate row** in `97_`, not an outcome measure, and OUT-2's four were missed. Corrected after the
+adversarial pass.)*
 
 ---
 
@@ -408,12 +438,18 @@ outcome, which is the property this audit is checking for and the one most easil
 | Ids appearing in more than one register with a **differing owner or status** | **1 declared divergence** (§5) |
 
 **Every per-register count re-derived independently at this cutoff and every one reproduces:**
-`90_` **19** (now 20), `91_` **88**, `92_` **49** (now 53), `93_` **34**, `94_` **13**, `95_` **22**,
-`96_` **33**, `97_` **149 rows**. Band total **407 entries / 406 minted ids** — reproduces.
+`90_` **19**, `91_` **88**, `92_` **49**, `93_` **34**, `94_` **13**, `95_` **22**, `96_` **33**,
+`97_` **149 rows**. Band total **407 entries / 406 minted ids** — reproduces.
+
+**Those are the figures at `5f8e9cb`, before this sub-task wrote anything**, and they are stated at
+that cutoff for the reason §4.4 gives. **As handed over**, this sub-task's five register appends take
+the band to `90_` **20**, `91_` **102**, `92_` **53**, `94_` **14**, `97_` **170 rows** — a band total
+of **448 entries / 447 minted ids**. Both figures are given because neither alone is honest: the first
+is what was audited, the second is what `NEU-896` receives.
 
 **33 spikes, zero executed — reproduces.** Every one of the 33 `Result` fields reads *not executed* or
 records no observation. **`observed-in-production` is applied to zero claims package-wide** — every one
-of its ~40 occurrences is a statement about the label's emptiness, never an application of it.
+of its **48** occurrences is a statement about the label's emptiness, never an application of it.
 **No number in this package has quietly become a measurement.**
 
 **124 C010 id collisions — reproduces exactly**, family by family: 52 `F-`, 25 flat `G-`, 19 `OI-`,
@@ -433,7 +469,7 @@ superseded miscount. The blocking condition is clear.
 
 **And the line-number claim is correctly *not* made.** A `:42` token occurs **62** times across **27**
 of the merged files. The package publishes that figure rather than denying it, which is right. One
-sentence overreaches and is `F-S17-3`.
+sentence overreaches and is `F-S17-4`.
 
 ---
 
@@ -476,7 +512,7 @@ The cold read initially reported the band total as 411 against a published 406, 
 the four reserved slots — and called the register discrepancy *"the single most damaging finding"*.
 **All five were artifacts of reading a moving tree.** Re-checked at `6d981bf`, the publication commit:
 `92_` carries **49** entries with zero `### SUB-17` section, `91_` carries **88**, and no
-`98_audit-record.md` exists. **`README.md:98`–`:109` and `00_method-and-provenance.md` §3 are
+`98_audit-record.md` exists. **`README.md:98`–`:107` and `00_method-and-provenance.md` §3 are
 accurate**, and the cold read retracted all five itself before reporting.
 
 The episode is the reason this audit pins every self-referential measurement to a **named commit that
@@ -581,6 +617,45 @@ noticing; a mechanical repair introduces defects at the rate a mechanical anythi
 gate catches the path class and nothing else** — the semantic corruption was invisible to it, exactly
 as `F-S17-17` describes.
 
+### 10.1 What the independent adversarial pass found in this audit's own output
+
+The five `wf-audit` verify-phase lenses do not fire in this registry — `resolve_registry` returns
+`git` and `linear`, and **zero** fragments match phase `verify` under contribution kind `finding`. So
+an adversarial pass was commissioned by hand over this sub-task's own four sections, with the same
+brief this audit applied to the package: assume it contains errors, test every number, check every
+`file:line`.
+
+**It found twenty-five, of which this audit accepted twenty-two and declined three.** The accepted
+ones were corrected in place — this sub-task may not edit another author's section, but it owns its
+own — and the corrections are marked where they land. The ones worth naming, because they are the
+defect classes this audit filed against others:
+
+- **The gate's own row tally did not sum.** `SUB-17 rows: 21. Met 16…` totalled 22 over 21 rows. That
+  is `F-S17-10`'s defect — an announced count contradicting the rows beneath it — in the tally written
+  to close the audit.
+- **`G-S17-19` stated the change set as three paths where it is six**, omitting `90_`, `94_` and
+  **the file the row is written in**.
+- **Five of six finding-id cross-references in this file pointed at the wrong finding**, because the
+  register grew from 14 entries to 21 after those sentences were written and they were never
+  re-synced. That is a stale self-referential pointer — the same mechanism as `F-S17-15`.
+- **The touched-id enumeration was short by three** (§3.2). A qualified mention of a colliding id is
+  by construction not a collision, and the extraction did not look for one — `F-S17-2`'s defect class
+  exactly, and it caught this audit too.
+- **§6 counted a gate row among the outcome register's NOT-MET measures** and missed OUT-2's four.
+- **A three-field fenced block was presented as the citation gate's literal output.** The elision was
+  defensible; presenting an edited string inside a code fence was not.
+
+**Three were declined, each with a citation.** That C010's `F-S5-1` should classify *resolved-here* —
+the disposition column of the same row reads `consumed` (§3.2). That `F-S17-18` should also fault the
+bare `§6` reference — read as `05_…md` §6 that clause is correct, and the finding is narrowed rather
+than withdrawn. And that `98_ §9`'s class table mis-assigns three findings — it does not; the
+assignment was checked row by row.
+
+**This is the point of the exercise and it is reported rather than absorbed.** An audit that ran a
+pass over itself and reported nothing would be claiming a standard the fifteen chapters it audits did
+not meet, and would be the twenty-second instance of this package's commonest defect rather than a
+record of it.
+
 ---
 
 ## 11. The declared exit state
@@ -600,7 +675,7 @@ discharge declaration until repaired and re-audited to clean. Each was tested, a
 given so a reader can disagree with an argument rather than an omission.
 
 **1. A split-fidelity mismatch — none.** 8/8 List B answered, 0 List A claimed, 0 ids in two classes,
-0 ids classifiable into none (§2, §3). Seven ids absent from the charter's enumeration were classified
+0 ids classifiable into none (§2, §3). Ten ids absent from the charter's enumeration were classified
 at assembly under charter assumption 51's open-enumeration rule, which the charter states explicitly is
 **not** a mismatch. `DR-C10-S5-2`'s revision trigger did not fire.
 
@@ -638,8 +713,8 @@ kind.
 > Handed to **`NEU-896`** as the convergence gate, and to **C010's `A-28` re-check**, whose trigger —
 > *"NEU-893 lands"* — is fired by this publication.
 >
-> **What is handed over checked:** the eight-register band, complete and internally unique across 406
-> minted ids; all fifteen charter § Risks rows authored by their named authors; all twenty outcome rows
+> **What is handed over checked:** the eight-register band, complete and internally unique — 406 minted ids as audited at
+> `5f8e9cb`, 447 as handed over with this sub-task's own appends (§7); all fifteen charter § Risks rows authored by their named authors; all twenty outcome rows
 > carrying a success measure recorded by its producing sub-task; 8/8 List B answered and 0 List A
 > claimed; every touched C010 residual id in exactly one of four classes; every codebase path
 > resolving; `42` asserted nowhere as a codebase fact; and a package a cold reader can reconstruct
