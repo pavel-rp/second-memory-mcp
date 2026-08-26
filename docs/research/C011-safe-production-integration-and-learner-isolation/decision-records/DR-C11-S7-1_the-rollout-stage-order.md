@@ -75,7 +75,7 @@ forward as *"a rollout fact"* belonging to OUT-3.
 
 The composition is therefore the work, and it is done as an explicit constraint-satisfaction rather
 than a narrative: twelve constraints `K1` … `K12` are enumerated with their sources, the order is
-proposed, and the order is audited against each constraint in turn. Ten of ten are satisfied.
+proposed, and the order is audited against each constraint in turn. Twelve of twelve are satisfied.
 
 **Why observe-only is the load-bearing choice.** C010 §4.3's consequence is easy to satisfy
 superficially — put the gate anywhere but last — and that satisfies the letter while missing the
@@ -147,7 +147,7 @@ the enforcement stages have landed and the operator is mid-incident.
 | The carrier's two fields, and `none` meaning "the record predates attribution" | `../16_attribution-and-detection.md:74`, `:89` |
 | The smoke job runs after the deploy | `.github/workflows/cd-prod.yml:110`–`:111` |
 | Deploys are gated on the CI workflow's conclusion, not cd-prod's own | `.github/workflows/cd-prod.yml:3`–`:7`, `:19`–`:21` |
-| Which smoke scenarios exist and which tools they call | `tests/smoke/smoke.test.ts:104`, `:111`, `:128`, `:152`, `:168`, `:206`, `:237` |
+| Which smoke scenarios exist and which tools they call — **all eight `it()` blocks** | `tests/smoke/smoke.test.ts:104`, `:111`, `:128`, `:152`, `:163`, `:200`, `:231`, `:263` |
 | `OBJ-7` (≥ 7 restarts/day) and `OBJ-8` (≤ 13 s / ≤ 65 s / ≤ 131 s, with its derivation) | `../15_operational-objectives-for-the-real-platform.md:254`, `:255` |
 | C010 §4.3's `I4`→`I5` sequencing consequence — *"the two are sequential, not parallel, and fixing the first surfaces the second"*, and *"will discover the principal-kind problem at the end"*. **No irreversibility clause.** | `../../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:494`–`:496` |
 | SUB-2's identity rule is what makes the surfaced kind answerable, and it names SUB-7's rollout directly | `../02_identity-the-learner-key-and-principal-kind.md:213`–`:216` |
