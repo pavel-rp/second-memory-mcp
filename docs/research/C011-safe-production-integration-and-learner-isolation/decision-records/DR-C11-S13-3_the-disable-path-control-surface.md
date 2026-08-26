@@ -8,7 +8,11 @@
 
 ## Decision
 
-1. **Six variables cover the six stages SUB-7 credits with a real control**, and the four stages SUB-7
+1. **Six variables cover the stages SUB-7 credits with a real control** — four behaviour toggles plus
+   two numeric parameters of the sweep, serving `T1`, `T2`'s in-flight move, `T3`, `T4`, `T6`, `T7`
+   and `T8`. *(The table below has six rows and SUB-7 credits six stages; the two counts coincide and
+   are **not** a one-to-one mapping — two toggles each serve more than one stage, and the two numeric
+   parameters disable nothing on their own.)* The four stages SUB-7
    gives a named exception get none, because manufacturing one would be the false-completeness failure
    `DR-C11-S7-2` rejected in its own alternative 4.
 

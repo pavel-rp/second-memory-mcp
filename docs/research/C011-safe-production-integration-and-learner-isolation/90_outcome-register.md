@@ -1205,7 +1205,8 @@ establish); `decision-records/DR-C11-S13-1`, `DR-C11-S13-2`, `DR-C11-S13-3`;
    numbers found exact, and the predicate forwarded **unchanged**. The `operation_event_log` probe
    `F-S6-6` names as missing is written; the other six unprobed tables are named so the residual is
    visible.
-5. **MET.** §4.1 and §5 — ten stages, six controls with defaults and per-control safe positions,
+5. **MET.** §4.1 and §5 — ten stages, six control variables (four toggles, two numeric sweep
+   parameters) with defaults and per-control safe positions,
    four named exceptions with reasons and owners, zero blanks. `DR-C11-S7-2`'s revision trigger
    fires.
 6. **MET.** Two numbers are introduced and both are registered stand-ins (`A-S13-1`), argued for

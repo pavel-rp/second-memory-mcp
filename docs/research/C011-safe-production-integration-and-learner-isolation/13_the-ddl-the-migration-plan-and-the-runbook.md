@@ -1262,7 +1262,15 @@ demonstrated**.
 | `SM_IDENTITY_GATE` | `T4`, `T6` | `off` \| `observe` \| `enforce` | `off` | **`observe`** — records, refuses nothing |
 | `SM_ADAPTER_CONFINEMENT` | `T8` | `on` \| `off` | `on` | **`on`** — fail closed |
 
-**Six controls for the six stages SUB-7 credits with one.** `T0`, `T2`'s completed move, `T5` and
+**Six variables, four of which are toggles — and the two counts are not a correspondence.** The
+table has six rows, and SUB-7 credits six stages with a real control, but the two sixes are a
+coincidence and are not mapped onto each other. Four rows are behaviour toggles
+(`SM_ISOLATION_CARRIER_WRITE`, `SM_MIGRATION_SWEEP`, `SM_IDENTITY_GATE`, `SM_ADAPTER_CONFINEMENT`);
+two are numeric parameters of the sweep (`SM_MIGRATION_SLICE_MS`, `SM_MIGRATION_SLICE_ROWS`) and
+disable nothing on their own. Two of the four toggles serve more than one stage each. The stages that
+carry a real control are `T1`, `T2` (its in-flight move only), `T3`, `T4`, `T6`, `T7` and `T8`.
+
+`T0`, `T2`'s completed move, `T5` and
 `T9` carry SUB-7's four named exceptions, reproduced in §4.1 with their reasons and owners. **Zero
 stages are blank.**
 
