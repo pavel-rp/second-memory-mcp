@@ -743,6 +743,17 @@ NOT NULL`, so a child row is *unreachable* until its parent is keyed. Running th
 does not corrupt anything — it simply affects zero rows until the parent wave has run. The ordering
 becomes a property of the SQL rather than of the reader's diligence.
 
+> **The join is written as a comma join, and that is required rather than stylistic.** In an
+> `UPDATE … FROM`, the items in the `FROM` list are joined to each other *before* the update target
+> is joined in via `WHERE`, so the target cannot be referenced from inside a `FROM … JOIN … ON`
+> clause. The natural-looking
+> `UPDATE public.learning_chunks c … FROM batch b JOIN public.learning_topics p ON p.id = c.topic_id`
+> raises `ERROR: invalid reference to FROM-clause entry for table "c"`. Every statement below
+> therefore puts both the batch predicate and the parent predicate in `WHERE`. **The first draft of
+> this section had the `JOIN … ON` form in all six statements** and is corrected here rather than
+> silently — a chapter whose whole claim is *"executable as written"* should say when a draft of it
+> was not.
+
 ```sql
 -- ============================================================
 -- S4 / T7 — backfill, wave 1: the three direct backfills.
@@ -779,24 +790,24 @@ WITH batch AS (
   ORDER BY id LIMIT :slice_rows FOR UPDATE SKIP LOCKED
 )
 UPDATE public.learning_chunks c SET user_id = p.user_id
-FROM batch b JOIN public.learning_topics p ON p.id = c.topic_id
-WHERE c.id = b.id AND p.user_id IS NOT NULL;
+FROM batch b, public.learning_topics p
+WHERE c.id = b.id AND p.id = c.topic_id AND p.user_id IS NOT NULL;
 
 WITH batch AS (
   SELECT id FROM public.session_chunks WHERE user_id IS NULL
   ORDER BY id LIMIT :slice_rows FOR UPDATE SKIP LOCKED
 )
 UPDATE public.session_chunks sc SET user_id = p.user_id
-FROM batch b JOIN public.learning_sessions p ON p.id = sc.session_id
-WHERE sc.id = b.id AND p.user_id IS NOT NULL;
+FROM batch b, public.learning_sessions p
+WHERE sc.id = b.id AND p.id = sc.session_id AND p.user_id IS NOT NULL;
 
 WITH batch AS (
   SELECT id FROM public.session_questions WHERE user_id IS NULL
   ORDER BY id LIMIT :slice_rows FOR UPDATE SKIP LOCKED
 )
 UPDATE public.session_questions sq SET user_id = p.user_id
-FROM batch b JOIN public.learning_sessions p ON p.id = sq.session_id
-WHERE sq.id = b.id AND p.user_id IS NOT NULL;
+FROM batch b, public.learning_sessions p
+WHERE sq.id = b.id AND p.id = sq.session_id AND p.user_id IS NOT NULL;
 
 -- ============================================================
 -- Wave 3: session_question_chunks and session_question_attempts (join
@@ -807,24 +818,24 @@ WITH batch AS (
   ORDER BY id LIMIT :slice_rows FOR UPDATE SKIP LOCKED
 )
 UPDATE public.session_question_chunks x SET user_id = p.user_id
-FROM batch b JOIN public.session_questions p ON p.id = x.session_question_id
-WHERE x.id = b.id AND p.user_id IS NOT NULL;
+FROM batch b, public.session_questions p
+WHERE x.id = b.id AND p.id = x.session_question_id AND p.user_id IS NOT NULL;
 
 WITH batch AS (
   SELECT id FROM public.session_question_attempts WHERE user_id IS NULL
   ORDER BY id LIMIT :slice_rows FOR UPDATE SKIP LOCKED
 )
 UPDATE public.session_question_attempts x SET user_id = p.user_id
-FROM batch b JOIN public.session_questions p ON p.id = x.session_question_id
-WHERE x.id = b.id AND p.user_id IS NOT NULL;
+FROM batch b, public.session_questions p
+WHERE x.id = b.id AND p.id = x.session_question_id AND p.user_id IS NOT NULL;
 
 WITH batch AS (
   SELECT id FROM infrastructure.linter_validation_corpus WHERE user_id IS NULL
   ORDER BY id LIMIT :slice_rows FOR UPDATE SKIP LOCKED
 )
 UPDATE infrastructure.linter_validation_corpus x SET user_id = p.user_id
-FROM batch b JOIN public.learning_chunks p ON p.id = x.chunk_id
-WHERE x.id = b.id AND p.user_id IS NOT NULL;
+FROM batch b, public.learning_chunks p
+WHERE x.id = b.id AND p.id = x.chunk_id AND p.user_id IS NOT NULL;
 
 -- ============================================================
 -- Wave 4: session_question_attempt_revisions — the only two-hop chain.
@@ -834,8 +845,8 @@ WITH batch AS (
   ORDER BY id LIMIT :slice_rows FOR UPDATE SKIP LOCKED
 )
 UPDATE public.session_question_attempt_revisions x SET user_id = p.user_id
-FROM batch b JOIN public.session_question_attempts p ON p.id = x.attempt_id
-WHERE x.id = b.id AND p.user_id IS NOT NULL;
+FROM batch b, public.session_question_attempts p
+WHERE x.id = b.id AND p.id = x.attempt_id AND p.user_id IS NOT NULL;
 ```
 
 **The exit check**, which is also `T7`'s isolation signal — every one of the ten must return zero:
