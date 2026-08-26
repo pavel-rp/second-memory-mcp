@@ -281,8 +281,9 @@ exit 0.** (The gate also prints a total-citations and a total-resolving figure. 
 not quoted here: they count tokens inside this very chapter, so any edit to a sentence quoting them
 falsifies it. The load-bearing number is **0 non-resolving**, which is stable.)
 
-That clean result is not luck. Eleven chapters record having run the checker by hand locally,
-precisely because the cap left the local run as the only enforcement.
+That clean result is not luck. **Twelve files across the package record having run the checker by
+hand** — three chapters, three registers, four traceability files and two decision records —
+precisely because `CAP-S1-2` left the local run as the only enforcement there was.
 
 **Arming it caught two real defects, and both were this chapter's.** On its first run over the
 assembled package the gate failed with two `C3-bare-upstream` findings in `00_method-and-provenance.md`
