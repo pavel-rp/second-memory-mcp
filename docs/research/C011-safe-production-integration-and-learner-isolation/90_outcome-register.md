@@ -1210,3 +1210,82 @@ implementation: no file under `src/` or `drizzle/` changes, no DDL is authored, 
 applied.
 
 **Authored by.** SUB-12 (NEU-1005).
+
+### SUB-13
+
+## OUT-19 — The DDL, the migration plan and the rollout/rollback runbook, at executable fidelity, applied nowhere
+
+**Outcome.** Concrete schema DDL, a migration plan for the existing global rows, and a
+rollout/rollback runbook exist at a fidelity an implementer executes without asking a question, and
+without re-deciding anything SUB-2, SUB-4, SUB-5, SUB-6 or SUB-7 settled. Every consumed constraint
+names its source; every divergence found against an upstream decision is a routed finding rather
+than a silent edit; and **nothing is applied** — zero files under `src/`, `drizzle/` or any
+deployment configuration change.
+
+**Success measure.** OUT-19 is judged done when all seven hold:
+
+1. The DDL is complete `CREATE`/`ALTER` text for every schema object the package requires, and
+   **all three principal states** are representable.
+2. `NEU-850`'s `OUT-2` is cited by the DDL at a resolving path, and SUB-5's `holds` derivation is
+   re-verified against the DDL as written, with any divergence routed to SUB-5.
+3. The migration plan's sweeps are **batched, idempotent and resumable**, and their batch bound is
+   derivable **without** the row counts `OI-S6-1` records as never taken.
+4. Every pre-flight predicate limb is independently re-verified against the codebase at this
+   chapter's cutoff, with `file:line` evidence stated.
+5. Every stage `T0`–`T9` carries a containment section with SUB-7's disable path — control surface,
+   operator, observable state, behaviour per position — or SUB-7's named exception with its owner,
+   presented as separately executable from the reversal. **Zero blanks.**
+6. Every duration, batch size and threshold is a cited derivation, a registered stand-in with an
+   owner and a re-validation trigger, or a deferred spike. **No invented number.**
+7. The repository audit proves zero changes to `src/`, `drizzle/` and every deployment configuration
+   file.
+
+**Verified by.** `13_the-ddl-the-migration-plan-and-the-runbook.md` §1 (the schema re-read), §2 (the
+DDL), §3 (the migration plan), §4 (the runbook), §5 (the control surface), §6 (what it does not
+establish); `decision-records/DR-C11-S13-1`, `DR-C11-S13-2`, `DR-C11-S13-3`;
+`traceability/S13_the-ddl-the-migration-plan-and-the-runbook.md`;
+`97_package-completeness-gate.md` § SUB-13.
+
+**Measured result at revision 1.**
+
+1. **MET.** §2 — the ownership key on ten tables with their indexes, both attribution carriers with
+   six `CHECK` constraints, the partial unique index, the consent table and the RLS appendix. The
+   three states are `user`, `client` and `none`, kept distinct on the log carrier; the token carrier
+   takes two, because `none` is unreachable there by construction, and the two `CHECK`s are
+   consistent rather than contradictory. `F-S5-6` discharged.
+2. **MET, with one divergence routed.** §2.1 quotes `OUT-2` from
+   `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`–`:53`;
+   §2.6 walks `DR-C11-S5-2`'s `C1` and `C5` requirement by requirement and finds **no divergence on
+   `notes`**. Four divergences are found elsewhere — `session_chunks` and the three
+   `session_questions` children — and are routed to SUB-5 as `F-S13-1`, not absorbed.
+3. **MET.** `DR-C11-S13-2`. The resume cursor is the sweep's own target predicate, so resumability
+   needs no ledger; the batch is bounded by a **wall clock**, which is self-limiting whatever the
+   table holds. **`CAP-S7-1` is not lifted** — total completion still scales with the unknown count,
+   and that residual is carried as `R-S13-1` rather than presented as closed.
+4. **MET.** §3.7 — all five limbs re-verified at `fd05ca1`, every one of SUB-7's forwarded line
+   numbers found exact, and the predicate forwarded **unchanged**. The `operation_event_log` probe
+   `F-S6-6` names as missing is written; the other six unprobed tables are named so the residual is
+   visible.
+5. **MET.** §4.1 and §5 — ten stages, six control variables (four toggles, two numeric sweep
+   parameters) with defaults and per-control safe positions,
+   four named exceptions with reasons and owners, zero blanks. `DR-C11-S7-2`'s revision trigger
+   fires.
+6. **MET.** Two numbers are introduced and both are registered stand-ins (`A-S13-1`), argued for
+   their **shape** and not their value, with `SPK-S6-2` or `SPK-S15-1` as the re-validation trigger.
+   No new spike duplicates an existing one; the single new spike, `SPK-S13-1`, asks a question no
+   existing entry asks.
+7. **MET.** `git diff --name-only origin/develop` read path by path: zero under `src/`, zero under
+   `drizzle/`, zero under `.github/`, and `docker-compose.yml` unmodified.
+
+**What this measure does not claim.** It does not claim anything in the chapter **works**. No SQL
+statement has been executed against any database, no migration applied, no stage walked, no reversal
+exercised and no control built — there is no production credential (`F-S1-2`) and the four
+repository gates that were run are evidence that the repository still builds, not evidence about any
+SQL in the chapter. It does not claim any stage fits `OBJ-8` (`CAP-S7-1`, unchanged; `CAP-S13-1`). It
+does not claim the RLS appendix is adoptable — it is published with two unmet preconditions
+(`OI-S5-1`, and the role question `F-S13-2` raises). It does not resolve `F-S9-6`: the chapter writes
+**no retention statement of any kind**, precisely so it cannot override an audited retention period
+by accident. It does not lift `CAP-S5-1`. It claims **no** production fact — no row count, no
+population size, no probe result — and `observed-in-production` is used **zero** times.
+
+**Authored by.** SUB-13 (NEU-1006).

@@ -446,3 +446,58 @@ different cap with the same id**, and C010's is always written qualified with it
 A bare `CAP-S12-1` in this package means SUB-12 of C011's. This is the collision class `F-S2-2` and
 `F-S9-3` warn about, and it is sharper here than elsewhere because `NEU-986` — C010's SUB-12 — is
 also the **named owner** of two caps this sub-task routes work to.
+
+### SUB-13
+
+> **Id-collision disclosure — five, and this register carries none of them.** This sub-task mints
+> five ids that already exist in C010, which has its own sub-task 13 about the authority matrix:
+> **`F-S13-1`** (`../C010-system-and-repository-architecture/02_findings-register.md:336`),
+> **`F-S13-2`** (`:347`), **`F-S13-3`** (`:359`) and **`F-S13-4`** (`:370`), all in
+> `91_findings-register.md` here; and **`OI-S13-1`**
+> (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:301`), in
+> `93_open-items-and-provisional-register.md` here. **`CAP-S13-1` below has no C010 counterpart** —
+> C010's caps register carries no `CAP-S13-*` — so, unlike SUB-7's case, the caps id is the one that
+> does *not* collide. `F-S13-5` … `F-S13-11`, `R-S13-1` … `R-S13-4`, `OI-S13-2`, `A-S13-1`,
+> `SPK-S13-1` and `G-S13-1` … `G-S13-7` are likewise free. `DR-C11-S13-1` … `-3` do **not** collide
+> with C010's `DR-C10-S13-1`, because the package prefix differs. Under the package-wide rule
+> `F-S2-2` establishes, a bare `F-S13-<k>` or `OI-S13-<k>` means **this** package's, and C010's is
+> always written qualified. The set is enumerated in full **both here and in `91_findings-register.md` § SUB-13**, with a
+> pointer in `93_open-items-and-provisional-register.md` § SUB-13. The duplication is deliberate and
+> is *navigational*, not a second register record of a fact — neither enumeration carries an id, a
+> severity or an owner — so a reader of any of the three registers meets the hazard without having
+> to find the others.
+
+#### `CAP-S13-1` — Every artifact this sub-task publishes is unexecuted, so the package prices no operation and validates no batch size
+
+- **Id:** `CAP-S13-1`
+- **Cap:** The DDL, the migration plan and the runbook are authored, reviewed and **applied nowhere**. Not one `CREATE`, `ALTER`, `UPDATE` or `DELETE` statement has been executed against any database — production, staging, local or synthetic. No stage has been walked, no reversal exercised, no disable path built or flipped, no probe run and no pre-flight predicate evaluated against real rows. The two batch parameters are stand-ins (`A-S13-1`) and have been validated against nothing.
+- **Why it is capped:** Two causes, and neither is closable from here. **No production credential exists** in the authoring environment — `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and `VPS_*` were probed and are all unset, which is `F-S1-2`'s condition, unchanged across all thirteen chapters. And **the sub-task's own charter forbids applying anything**: no file under `src/`, `drizzle/` or any deployment configuration may change, so even a local execution would require producing the migration this sub-task is explicitly out of scope to produce. Executing against a synthetic dataset was available and was **declined**: SUB-6 already built one and was explicit that its throwaway SQL *"is explicitly not the OUT-19 migration artifact"*, and a batch size measured against synthetic data of unknown resemblance to production would look derived without being so — which is worse than a stand-in that says what it is.
+- **What it leaves unsupported:** A reader must **not** infer that any statement in `13_the-ddl-the-migration-plan-and-the-runbook.md` executes without error, that any sweep completes, that any disable path works, that any reversal restores what it claims, or that the two slice defaults are appropriate for the real population. In particular: **`CAP-S7-1` is not lifted.** `DR-C11-S13-2` re-shapes its residual — the per-boot cost becomes bounded by construction while total completion stays unbounded — and re-shaping is not pricing. A reader must also not treat the four repository gates this sub-task ran (type-check, lint, unit tests, citation paths) as evidence about the SQL: they establish that the repository still builds, and the chapter changes no code, so they were never capable of saying anything about its content.
+- **Owner:** **The creator**, as sole operator and the only party who can execute anything against production, co-named **the implementation charter** that will run this artifact and is the first party in a position to discover that a statement is wrong.
+- **What would lift it:** A migration derived from this DDL executing against production, or against a restored copy of it, with the result recorded. Partial lifts are available and are worth naming separately, because they are cheaper: `SPK-S6-2` executing supplies the row counts and makes each stage's slice count arithmetic; `SPK-S15-1` executing supplies the restart-duration baseline and turns `A-S13-1`'s *"leaves margin"* into *"fits"* or *"does not"*; `SPK-S13-1` executing confirms whether the two PostgreSQL-12-dependent constructs are available at all. None of the three requires the migration to run.
+
+---
+
+**SUB-13 register totals at revision 1:** one cap, `CAP-S13-1`, with a named owner and an observable
+lifting condition, plus one id-collision disclosure of five ids. One cap rather than several because
+this sub-task's limits share a single cause: everything it produces is a document, and no document
+executes. What it could decide it decided — the constraint shape, the sweep contract and the control
+surface each have a decision record with rejected alternatives — and what it could verify against the
+codebase it verified, limb by limb, at a stated cutoff. The one thing it cannot do is **run** any of
+it, and that is a single limit with a single cause.
+
+**Three things that would look like caps and are filed elsewhere.** That no stage is priced against
+`OBJ-8` is **`CAP-S7-1`**, whose named owner is this sub-task; it is inherited and re-shaped, **not
+lifted**, and opening a second cap over the same fact would give SUB-14's cross-register check two
+ids for one limit. That the batch parameters may be wrong in either direction is **`R-S13-1`**, an
+exposure with a mitigation, not a bound on what the published scope establishes. That the DDL may
+never be applied at all is **`R-S13-3`**, for the same reason — a cap says no party can close a
+limit, and there is an available party here (the creator) and an observable closing event (a
+migration lands on `origin/develop`).
+
+**And one that would look like something filed elsewhere and is genuinely a cap.** It is tempting to
+read `CAP-S13-1` as merely restating `F-S1-2`, the package-wide absence of live production evidence.
+It is narrower and it bites differently: `F-S1-2` is about **evidence not gathered**, and this is
+about **an artifact not exercised**. A package could have had complete production evidence and still
+publish an unexecuted migration; the two limits are independent, and this one would survive
+`F-S1-2`'s closure entirely.

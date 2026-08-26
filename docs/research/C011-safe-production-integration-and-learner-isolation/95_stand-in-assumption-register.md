@@ -1185,3 +1185,40 @@ is *"not observed, not calibrated, and not a legal determination"* and remains S
 the reading the alert routes rest on, is what makes every `[unconfirmed]` route in `GATE-S12-1`'s
 family navigable, and remains SUB-16's. `A-33`, the backups stand-in, underlies `TP-S12-43`. **No
 second record of any of the three is raised here**, so the package keeps one id per assumption.
+
+### SUB-13
+
+## `A-S13-1` — The migration sweep's per-boot slice is five seconds and ten thousand rows
+
+- **Id:** `A-S13-1`
+- **Stand-in:** `SM_MIGRATION_SLICE_MS = 5000` and `SM_MIGRATION_SLICE_ROWS = 10000` — the wall-clock budget one boot spends on a migration sweep, and the ceiling on a single batch statement (`DR-C11-S13-2` clause 3; `13_the-ddl-the-migration-plan-and-the-runbook.md` §3.3).
+- **Why a value is needed at all:** `R-S6-2` requires the sweeps to be batched, and `DR-C11-S7-2` clause 5 makes resumability the precondition of the batch-pause control — on **`T2`, `T5` and `T7`**, the three stages that are sweeps once `F-S13-9` is applied. The clause itself says *"the two batched stages"*, counting `T3` and `T7` from a model in which the sweeps were migration files; `F-S13-11` records the re-mapping and routes it to SUB-7. A batch needs a bound, and a runbook an implementer executes without asking a question cannot leave the bound blank.
+- **What it stands in for:** Two measurements that do not exist. The **row counts** per table were never taken — SUB-6's aggregate probes were published and not executed for want of a credential (`OI-S6-1`, `SPK-S6-2`). The **baseline boot duration** of a `docker compose up -d --build` with a boot-time migration is unobserved (`OI-S15-1`, `SPK-S15-1`). Without either, the throughput that would convert a slice budget into a completion horizon is unknown in both of its factors.
+- **The argument for the shape, which is not an argument for the value:** `OBJ-8`'s tightest published allowance on a day one rollout stage lands is **11.4 s** (`07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:548`). 5 000 ms is under half of that, leaving margin for the baseline boot the deployment spends before the migrator even starts. **The claim is that it leaves margin, not that the margin is enough** — the quantity the margin must cover is precisely the one that is unmeasured. The row ceiling is a **secondary** guard, not a throughput target: the clock is checked only *between* statements, so a ceiling exists so that one pathologically slow batch cannot overrun the check. 10 000 is chosen to be small enough that the clock is consulted often, and no tighter justification is available or claimed, because row width and write rate are both unknown.
+- **What is deliberately **not** assumed:** That the slice completes any sweep, that any stage fits `OBJ-8`, or that the total migration finishes in any particular number of boots. `DR-C11-S13-2` clause 5 states the opposite explicitly, and `CAP-S7-1` is not lifted.
+- **Tolerance envelope — how wrong it can be before the design changes:** Wide in one direction and narrow in the other, which is why the *form* of the bound matters more than the number. **Too large** is bounded by construction: the worst case is one boot exceeding `OBJ-8`, and the correction is a parameter change between boots with no bookkeeping to reconcile, because the sweeps are self-cursoring. **Too small** is the direction that actually bites: `T7` failing to complete blocks `T8` indefinitely, since a confinement predicate over a partly-keyed population is `R-S5-1`. **The design itself does not change under any value** — only the schedule does — which is what makes this a stand-in rather than a load-bearing premise. If it were load-bearing, a wrong value would invalidate the sweep contract; it does not.
+- **Owner:** **The creator**, as sole operator and the only party who can execute the aggregates that would supply the counts — the same owner `CAP-S7-1` names.
+- **Re-validation trigger:** **`SPK-S6-2` executes** and the per-table counts exist, **or** **`SPK-S15-1` executes** and the restart duration is observed. Either converts *"leaves margin"* into arithmetic; both together make each stage's slice count computable and retire this entry. It additionally expires on any change to the deployment's host sizing or database instance class, either of which changes throughput without any repository change.
+- **Exposure if it is wrong:** `R-S13-1`, severity High, escalating to `NEU-896`.
+- **Id convention:** `A-S13-1`, **not** a charter-continued `A-<n>`. `DR-C11-S1-3` clause 3 fixes `A-<n>` for a stand-in that stands in for a **numbered charter assumption**; this stands in for two absent measurements, which no charter assumption asserts. The same allocation SUB-8 made for `A-S8-1` and SUB-15 for `A-S15-1`, and for the reason recorded in `decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`.
+
+---
+
+**SUB-13 register totals at revision 1:** one stand-in, `A-S13-1`, carrying two numeric defaults, with
+a named owner, a stated tolerance envelope and two independent re-validation triggers. One rather than
+several because this sub-task's other unknowns are not things its design provisionally rests on —
+they are things it declines to state. The chapter writes **no** retention window (so it cannot
+override `F-S9-6`'s conflict by accident), **no** stage duration, **no** row count, **no** completion
+date, and **no** claim about the production database role. Each of those is an open item, a spike or
+another sub-task's stand-in, and none is quietly assumed here.
+
+**One thing that would look like a stand-in and is filed as an open item.** That the production
+database role may be an owner or a superuser, which would make the published RLS layer inert, is
+**`OI-S13-2`** — the design does not rest on an answer, because the RLS appendix is published
+explicitly unrecommended until it resolves. A stand-in is a value the architecture proceeds on; this
+is a precondition the architecture refuses to proceed without.
+
+**One thing that would look like a stand-in and is a consumed upstream one.** That thirty days is the
+data-subject completion deadline is **`A-S8-1`**, SUB-8's, and it is neither restated nor adjusted
+here — the chapter writes no retention statement at all, precisely so that `F-S9-6`'s unresolved
+30-days-versus-five-weeks conflict cannot be silently settled by this artifact.

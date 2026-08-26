@@ -959,3 +959,49 @@ rather than cite it forward.
 `SPK-S9-1`, `SPK-S15-3`, `SPK-S15-4` and `SPK-S16-1` are referred to by id only. In particular
 **`SPK-S16-1` is cited, not re-filed**, as the evidence source for `GATE-S12-19`: whether the audit
 writer is mounted in production is SUB-16's question and keeps SUB-16's id.
+
+### SUB-13
+
+#### `SPK-S13-1` — What PostgreSQL major version does the production deployment run?
+
+- **Id:** `SPK-S13-1`
+- **Question:** The major version of the PostgreSQL server the production `DATABASE_URL` connects to.
+- **Why reading could not settle it:** The repository's own compose pins `pgvector/pgvector:pg16` (`docker-compose.yml:3`), and that file describes the **local development** stack. The production compose stack is **outside this repository** — `.github/workflows/cd-prod.yml:15` and `:26`–`:30` deploy by SSH into `/home/deploy/docker-services/second-memory-mcp`, whose contents are not in the tree — so nothing in the repository fixes the production image tag, and the local tag is not evidence about it. `drizzle.config.ts` names a dialect, not a version.
+- **Why it matters, specifically:** Two constructs in the published DDL require **PostgreSQL 12 or later**, and each has a materially worse fallback. **(a)** The generated column `context_tokens.learner_key` (`13_the-ddl-the-migration-plan-and-the-runbook.md` §2.2), which is what closes `R-S4-1` structurally on the token row; without it the fallback is an application-written column plus a `CHECK`, which is `DR-C11-S13-1` rejected alternative 5 and is strictly weaker, because an application-written copy can disagree with `principal_kind` on a row. **(b)** The scan-skipping three-step `SET NOT NULL` at §3.6, whose absence makes `S5` a scan under `ACCESS EXCLUSIVE` per table plus a second implicit scan, on the boot clock, ten times (`F-S13-5`).
+- **Method:** **Read-only, one statement, no mutation.** `SELECT version();` against the production database, or equivalently `SHOW server_version_num;`. Alternatively, and needing no database connection at all, the image tag recorded in the off-repo compose file, reported by the operator. Either route answers it. Nothing is created, altered or deleted; no token is minted; no row is read.
+- **Result:** **Not executed.** No production credential exists in the authoring environment — `DATABASE_URL` and `VPS_*` were probed and are unset (`F-S1-2`).
+- **Expiry:** **2026-11-26.**
+- **Expiry rationale:** The same basis as `SPK-S1-1` — the unobtainability is a property of the authoring environment, not of the deployment. This entry additionally expires on **any change to the off-repo compose stack's image tag**, which can happen with no repository change at all and which is exactly the event that would invalidate a previously-captured answer.
+- **Owner:** **The creator**, as the only party with access to the production database and to the off-repo compose stack.
+- **Why this is not a second record of an existing spike:** `SPK-S1-4` asks *whether the production schema matches the repository's migration set* — a question about applied migrations, answerable in full without knowing the engine version, and unchanged by it. `SPK-S1-9` asks about **hosting region, provider, TLS termination, monitoring and log-shipping** — the deployment's surroundings, not its database engine. Neither asks for the server version and neither's answer contains it. The overlap is in the **access** each needs, not in the question: whoever runs `SPK-S1-4` is already connected and should run this in the same session, exactly as `SPK-S16-1`'s route (b) was noted to advance `SPK-S1-5`.
+
+---
+
+**SUB-13 register totals at revision 1:** one spike, `SPK-S13-1`, **not executed**, with a read-only
+method, a mandatory expiry, an expiry rationale and a named owner. One rather than several, and
+deliberately so: this sub-task needed three production facts and **two of them were already
+registered by predecessors**, so it cites them by id and raises no competing record. The per-table row
+counts that would price `T2` and `T7` are **`SPK-S6-2`** — *"What do the per-disposition counts and
+the twelve pathology probes actually return?"* — SUB-6's, and the exact question `A-S13-1`'s first
+re-validation trigger names. The restart duration that would convert the slice budget into an
+`OBJ-8` check is **`SPK-S15-1`** — *"How long is the service unavailable across one deploy
+restart?"* — SUB-15's, and the second trigger. Designing an eighteenth or nineteenth entry to ask
+either again would have given SUB-14's cross-register check two ids for one question, which is the
+failure the one-id-per-fact rule exists to prevent.
+
+**The register's running total is already owned, and this entry adds one to it rather than
+re-counting it.** SUB-9 records the current figure as **twenty-four at its branch's HEAD**, and
+twenty-two at cutoff `ee0a750`, as **`F-S9-2`** (`09_proving-a-data-right-reaches-every-copy.md:85`)
+— together with the standing fact that **zero spikes have executed**. `SPK-S13-1` makes it
+**twenty-five**, all still unexecuted, and that increment is the only count this sub-task states.
+It raises **no second record of the total**: a re-derived tally here would give SUB-14's
+cross-register consistency check two ids for one quantity, which is the failure the one-id-per-fact
+rule exists to prevent, and `F-S9-2` is the id.
+
+Two things follow that are worth naming for **SUB-14** (NEU-1007), which aggregates. First, this file carries **several** earlier cumulative tallies — twenty, twenty-one, twenty-two and
+twenty-three among them — and **none of them is an error**. Each is scoped to the sub-tasks that had
+landed when it was written, and appending to an append-only register does not falsify a historical
+statement. They are simply easy to misread as current, and there is more than one of them, which is
+why naming a single figure would itself have been misleading. **`F-S9-2` is the entry that is
+current**, and this entry adds one to it. Second, `observed-in-production` remains applied to **zero** claims package-wide,
+and this sub-task applies it to none.
