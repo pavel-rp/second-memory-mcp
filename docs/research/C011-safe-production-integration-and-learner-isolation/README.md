@@ -152,8 +152,8 @@ Every relative citation resolves from **the directory of the file that contains 
   relative from any depth and are an **excluded class**, not a gated one.
 
 **C011 is now in the checker's gated list** (`scripts/check-citation-paths.ts`), which discharges
-`CAP-S1-2`. The gate reports the package clean: 77 files, 4,868 citations, 2,470 resolving, **0
-non-resolving**.
+`CAP-S1-2`. The gate reports the package clean across its 77 markdown files: **0 non-resolving**, 0
+exemptions claimed, exit 0.
 
 **A green run is not by itself proof, and the package says so.** The checker has three blind spots —
 the `…` shorthand is silently exempt, the `MISSING-target` bucket can never fail the gate, and
@@ -185,5 +185,13 @@ was never defined and is void — see `F-S11-5` and `00_method-and-provenance.md
 
 Every codebase claim in this package cites a real path at a stated cutoff, on a branch containing
 C010's package. The settled tool-surface figure is **46 registered / 43 gated / 3 exempt**,
-re-derived independently at this cutoff; `42` is a corrected miscount and appears nowhere as a
-codebase fact.
+re-derived independently at this cutoff.
+
+**On `42`.** It is C010's corrected miscount, which reached this charter's intake through
+`NEU-975`'s tracker description. It is **not asserted as a tool-surface fact anywhere in this
+package** — every occurrence names it as the figure that was superseded. That is a claim about `42`
+as a *count*, and it is deliberately **not** the claim that no citation resolves to line 42: 62 such
+references occur across 27 of the merged files, benignly, and an earlier revision of two chapters
+certified their absence falsely before catching itself. **No absence claim about line numbers is made
+here** — it was tested, the answer was "many", and the figure is published rather than denied. See
+`00_method-and-provenance.md` §4.3.

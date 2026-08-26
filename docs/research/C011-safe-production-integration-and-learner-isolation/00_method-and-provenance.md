@@ -196,8 +196,14 @@ Re-derived here at `d526ffe`, independently of both chapters:
   the module-by-module mapping balances.
 
 **46 registered / 43 gated / 3 exempt — confirmed at a third independent cutoff.** `42` is not
-asserted as a codebase fact anywhere in this package; every occurrence names it as the superseded
-miscount it is.
+asserted as a **tool-surface count** anywhere in this package; every occurrence names it as the
+superseded miscount it is. That is deliberately narrower than *"no citation resolves to line 42"*,
+which would be **false**: a line-42 reference occurs 62 times across 27 of the merged files,
+benignly, and two chapters record catching themselves making exactly that false certification in
+draft. **This chapter makes no absence claim about line numbers at all** — it was tested, the answer
+was "many", and the figure is reported rather than denied. (The two files this assembly authored
+raise the file count to 29, purely by discussing the matter in this paragraph and its counterpart in
+`README.md`; neither contains a line-42 *citation*.)
 
 ### 4.4 The spike total, recounted
 
@@ -242,9 +248,13 @@ SUB-16 landed) is superseded by the merged 33, and no sub-task's original line i
 is the one change this package makes outside `docs/`, it touches neither `src/` nor `drizzle/`, and
 the cap's own text named it as the closing action.
 
-**Armed, the gate reports C011 clean: 77 files · 4,868 citations · 2,470 resolve · 0 non-resolving ·
-0 exempted by design, exit 0.** That is not luck. Eleven chapters record having run the checker by
-hand locally, precisely because the cap left the local run as the only enforcement.
+**Armed, the gate reports C011 clean: 77 markdown files, 0 non-resolving, 0 exemptions claimed,
+exit 0.** (The gate also prints a total-citations and a total-resolving figure. They are deliberately
+not quoted here: they count tokens inside this very chapter, so any edit to a sentence quoting them
+falsifies it. The load-bearing number is **0 non-resolving**, which is stable.)
+
+That clean result is not luck. Eleven chapters record having run the checker by hand locally,
+precisely because the cap left the local run as the only enforcement.
 
 **Arming it caught two real defects, and both were this chapter's.** On its first run over the
 assembled package the gate failed with two `C3-bare-upstream` findings in `00_method-and-provenance.md`
@@ -426,7 +436,7 @@ is used in **eight** places. Every one is listed; every deletion is counted and 
 | # | Change | Files | Lines removed | Authority |
 | --- | --- | --- | --- | --- |
 | 1 | C011 added to the citation `GATED` list | `scripts/check-citation-paths.ts` | 1 (replaced by 4) | `CAP-S1-2`, owner SUB-14 |
-| 2 | 32 wrong `SUB-<n> (NEU-<m>)` routing ids corrected | 8 package files | **0** — all same-line substitutions | `F-S11-1`, `F-S12-8`; owner SUB-14 |
+| 2 | 31 wrong `SUB-<n> (NEU-<m>)` routing ids corrected | 7 package files | **0** — all same-line substitutions | `F-S11-1`, `F-S12-8`; owner SUB-14 |
 | 3 | 5 stray `</content>` tags removed | `15_`, `traceability/S15_`, 3 × `DR-C11-S15-*` | **5** | `F-S5-13`; owner SUB-14 |
 | 4 | 3 spike headings normalised `##` → `####` | `96_spike-register.md` | **0** — marker change only | `F-S9-2`; owner SUB-14 |
 | 5 | Risk index table rows 10–12 un-transposed, with a note | `92_risk-register.md` | **0** — 3 rows reordered in place | `F-S3-3`; owner SUB-14 |
@@ -444,7 +454,7 @@ as one deletion plus one addition, so its totals are larger than the content act
 | Kind | Lines | Where |
 | --- | --- | --- |
 | Removed and not replaced | **5** | the five stray `</content>` tags |
-| Substituted in place (equal add/delete) | **35** | 31 lines carrying 32 tracker-id corrections, 3 spike heading markers, 1 glossary clause |
+| Substituted in place (equal add/delete) | **34** | 30 lines carrying 31 tracker-id corrections, 3 spike heading markers, 1 glossary clause |
 | Expanded in place | **2 → 23** | `01_`'s cross-check re-label (1 → 9); `92_`'s three reordered rows plus the correction note (6 → 20) |
 | Superseded wholesale | **91 → 161** | `README.md`, which its own seed text designates for supersession |
 | Added | **new file** | `00_method-and-provenance.md` |
@@ -481,6 +491,16 @@ Reported, not absorbed — SUB-17 audits this list:
 - **`F-S12-8`'s own evidence table and two verbatim quotations of C010's register**, which contain
   seven wrong `SUB-<n> (NEU-<m>)` pairings *as their evidence*. Repairing them would delete the proof
   of the defect they report. They are excluded by name from the correction in row 2 above.
+- **One further wrong pairing inside a spike entry's body** — `SPK-S8-1`'s *"Routes to"* row in
+  `96_spike-register.md`. It is a genuine instance of the `F-S12-8` defect and it is **left
+  uncorrected on purpose**, because this sub-task's scope is explicit that it *"does not add, edit,
+  re-word or re-scope a spike entry, and a spike entry it believes to be wrong is routed back to
+  SUB-1 rather than corrected in place."* The register's **content** is not this pass's; its
+  **house-style placement** is, which is why the three heading markers in the same file *were*
+  normalised and this one routing id was not. **Routed to SUB-1 (NEU-993)** as the register's content
+  owner, co-named SUB-8 (NEU-1002) as the entry's author and SUB-17 (NEU-1008) for the audit. The
+  package therefore still contains **eight** wrong pairings, all of them deliberate: seven
+  quotations and this one.
 - **`97_`'s divergence** on whether SUB-15 and SUB-16 owed gate rows — adjudicated in §4.6, not
   normalised.
 - **A missing blank line before some `###` headings**, which pre-exists on `develop`. Two sub-tasks
