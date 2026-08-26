@@ -253,7 +253,19 @@ merely unobserved, and would give SUB-17's audit a permanent limit where there i
 
 ### SUB-7
 
-> **Id-collision disclosure, stated before the entry rather than after it.** C010 also has a
+> **Id-collision disclosure — all six, not one.** This sub-task mints **six** ids that already exist
+> in C010, and an earlier draft of this note disclosed only the caps one. The full set is
+> **`F-S7-1`, `F-S7-2`, `F-S7-3`, `F-S7-4`** (in `91_findings-register.md`), **`OI-S7-1`** (in
+> `93_open-items-and-provisional-register.md`) and **`CAP-S7-1`** (here). `F-S7-5`, `F-S7-6`,
+> `F-S7-7`, `A-S7-1` and `R-S7-1` have no C010 counterpart. Before this sub-task, the only S7-series
+> id present anywhere in C011 was `CAP-S7-1`, and it was always written qualified as C010's — so
+> **all six collisions are created here.** Under the package-wide rule `F-S2-2` establishes, a bare
+> `F-S7-<k>` / `OI-S7-1` / `CAP-S7-1` means **this** package's, and C010's is always written
+> qualified. Matching one-line notes appear in the `### SUB-7` sections of `91_findings-register.md`
+> and `93_open-items-and-provisional-register.md`, so a reader of either register sees the hazard
+> without having to reach this one.
+>
+> **On the caps id specifically.** C010 also has a
 > sub-task 7, and its caps register carries a `CAP-S7-1` of its own — *"The web API's erasure
 > capability cannot be scoped at all, because no row holding learner payload has a deletion owner"*,
 > at `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:277`, whose `Owner:`

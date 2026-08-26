@@ -15,7 +15,7 @@
    | | Stage |
    | --- | --- |
    | `T0` | Dispose of the deploy pipeline's smoke run |
-   | `T1` | Land the attribution carrier |
+   | `T1` | Land **SUB-2's identity rule** and the attribution carrier |
    | `T2` | `S1` — archive the pre-cutover log population |
    | `T3` | Additive schema, nullable: gate stage `A` **and** `S3` |
    | `T4` | Gate stage `B` — observe-only on both transports |
@@ -31,8 +31,17 @@
 
 3. **`T4` precedes `T5`, and `T5`'s entry condition requires `T4`'s observation to have been read.**
    `T5` is the only stage in the sequence that destroys state. Gating it on the *evidence* rather
-   than merely ordering it after the stage is what discharges §4.3's specific fear — that the defect
-   surfaces after the migration is irreversible.
+   than merely ordering it after the stage is what discharges the irreversibility concern — **which
+   is the charter's § Risks row 3, this package's `R3`, and not C010 §4.3.** §4.3's own words are
+   *"will discover the principal-kind problem at the end"*; it says nothing about irreversibility,
+   and an earlier draft of this record attributed the § Risks wording to it in quotation marks. The
+   two are now carried as separate constraints, `K9` and `K12`.
+
+3a. **SUB-2's identity rule lands at `T1`, with the carrier.** `principal_kind` *is*
+   `DR-C11-S2-2`'s determined kind, so a carrier landing before the determination has no correct
+   value to write. The first draft of this order **presupposed the determination at `T1`, `T6` and
+   `T8` without staging it**; `K11` and this clause exist because an independent adversarial pass
+   caught that omission.
 
 4. **`T0` is a stage, not a prerequisite note.** `R-S4-2` offers three mutually exclusive routes for
    the smoke run and one must be *chosen*; making it a stage with an entry condition means the choice
@@ -65,7 +74,7 @@ precisely because *"Sequencing is SUB-7's under OUT-3 and is **not fixed here**"
 forward as *"a rollout fact"* belonging to OUT-3.
 
 The composition is therefore the work, and it is done as an explicit constraint-satisfaction rather
-than a narrative: ten constraints `K1` … `K10` are enumerated with their sources, the order is
+than a narrative: twelve constraints `K1` … `K12` are enumerated with their sources, the order is
 proposed, and the order is audited against each constraint in turn. Ten of ten are satisfied.
 
 **Why observe-only is the load-bearing choice.** C010 §4.3's consequence is easy to satisfy
@@ -140,7 +149,10 @@ the enforcement stages have landed and the operator is mid-incident.
 | Deploys are gated on the CI workflow's conclusion, not cd-prod's own | `.github/workflows/cd-prod.yml:3`–`:7`, `:19`–`:21` |
 | Which smoke scenarios exist and which tools they call | `tests/smoke/smoke.test.ts:104`, `:111`, `:128`, `:152`, `:168`, `:206`, `:237` |
 | `OBJ-7` (≥ 7 restarts/day) and `OBJ-8` (≤ 13 s / ≤ 65 s / ≤ 131 s, with its derivation) | `../15_operational-objectives-for-the-real-platform.md:254`, `:255` |
-| C010 §4.3's `I4`→`I5` sequencing consequence, consumed as binding | `../../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md` §4.3 |
+| C010 §4.3's `I4`→`I5` sequencing consequence — *"the two are sequential, not parallel, and fixing the first surfaces the second"*, and *"will discover the principal-kind problem at the end"*. **No irreversibility clause.** | `../../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:494`–`:496` |
+| SUB-2's identity rule is what makes the surfaced kind answerable, and it names SUB-7's rollout directly | `../02_identity-the-learner-key-and-principal-kind.md:213`–`:216` |
+| `principal_kind` is `DR-C11-S2-2`'s determined kind, so the carrier cannot precede the determination | `../16_attribution-and-detection.md:78` |
+| The eighth smoke scenario is an HTTP `DELETE`, not a `tools/call`, and the gate's predicate covers `tools/call` only | `tests/smoke/smoke.test.ts:263`, `:266`–`:268`; `F-S11-3` in `../91_findings-register.md:959` |
 
 ---
 

@@ -904,7 +904,19 @@ the two batched stages acquire a bounded slice count.
 fields including the owner this register adds at position 1. One entry rather than several because
 this sub-task's other provisional reliances are already registered by their owners and are consumed
 by citation: that `S1` executes at or after the carrier lands is **`A-S6-2`** — which this sub-task
-**discharges** rather than restates, by placing the carrier at `T1` and the archive at `T2`; that the
+**discharges** rather than restates, by placing the carrier at `T1` and the archive at `T2`.
+
+> **`A-S6-2`'s re-validation trigger has now fired, and the status change is routed rather than
+> assumed.** Its trigger is *"SUB-7 publishes its stage sequence"*, on which the entry *"either closes
+> as confirmed or fires its invalidating outcome"* (`95_stand-in-assumption-register.md:778`–`:779`).
+> This chapter is that publication, and the sequence satisfies it: carrier at `T1`, `S1` at `T2`. But
+> `A-S6-2`'s own `Status:` line still reads `[unconfirmed]`, and **this sub-task does not edit it** —
+> no sub-task rewrites another's entry under the append-only rule. **The status change is therefore
+> handed to SUB-14 (NEU-1007)** as an aggregation action, with SUB-6 (NEU-1000) as the entry's author.
+> Recording the hand-off here is the difference between a trigger that fired and a trigger that fired
+> and was noticed.
+
+That the
 operator's own direct inspection is the only observation channel a detection signal can reach is
 **`A-S16-1`**, which is why stage `T4`'s exit condition is written as a human read; and that the
 pre-cutover learning-domain population has exactly one human principal is **`A-S6-1`**, which ten of

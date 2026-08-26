@@ -826,6 +826,12 @@ introduced a transient window without saying it was *not* a third would leave SU
 
 ### SUB-7
 
+> **Id-collision disclosure.** **`F-S7-1`, `F-S7-2`, `F-S7-3` and `F-S7-4` also exist in C010**,
+> where sub-task 7 is a different sub-task about a different subject. Under `F-S2-2`'s rule a bare
+> `F-S7-<k>` means **this** package's; C010's is always written qualified. `F-S7-5`, `F-S7-6` and
+> `F-S7-7` have no C010 counterpart. The full six-id set this sub-task collides on is listed once, at
+> `94_caps-and-incomplete-scope.md` § SUB-7.
+
 #### `F-S7-1` — The smoke break blinds the rollout rather than blocking it, because the smoke job runs after the deploy has landed
 
 - **Id:** `F-S7-1`
@@ -889,18 +895,31 @@ introduced a transient window without saying it was *not* a third would leave SU
 - **What is assumed rather than derived:** Nothing. Every declaration was read at this cutoff.
 - **Handed to:** **SUB-13** (NEU-1006), which writes the pre-flight step, and **`NEU-896`**, which per `R9` inherits the pre-flight re-run and the abort condition.
 
-#### `F-S7-8` — The risk register's own id-convention table contradicts the charter's row order for rows 10–12, and one of the three ids is already occupied
+#### `F-S7-8` — **Withdrawn before publication. The fact is already registered as `F-S3-3`.**
 
-- **Id:** `F-S7-8`
-- **Finding:** `92_risk-register.md:17` fixes the rule: *"`R<n>` is the row's position in the charter's § Risks table."* The charter's rows 10, 11 and 12 are, in order, the **legal-determination** risk (Medium, OUT-9), the **stale-tool-count** risk (High, OUT-16) and the **lifecycle-half-has-no-upstream** risk (High, OUT-9). The register's own convention table at `92_risk-register.md:33`–`:35` instead lists `R10` as the stale-tool-count row, `R11` as the lifecycle row and `R12` as the legal-determination row — a rotation of all three. SUB-3's **authored entries follow the charter**, not the table: `R10` is the legal-determination entry (`92_risk-register.md:110`) and `R12` is the lifecycle entry (`:122`).
-- **Evidence:** `92_risk-register.md:17`, `:33`–`:35`, `:110`, `:122`; charter § Risks rows 10–12 (`_local/`, gitignored, so the register's own entries at `:110` and `:122` are the readable evidence that the charter order is the one SUB-3 applied). Read at `ee0a750`, 2026-08-26.
-- **Consequence:** **`R10` is already occupied**, so the table directs a second author to an id SUB-3 has taken. A sub-task following the table rather than the rule would create a duplicate `R10` and leave `R11` empty — exactly the condition SUB-14's cross-register consistency check is defined to catch and SUB-17 treats as blocking. **The table's one live target has since resolved correctly, and the outcome is recorded rather than the prediction:** SUB-11 (NEU-1004) merged during this sub-task's own run and authored the stale-tool-count risk as **`R11`** — *"computed from the charter alone"* (`92_risk-register.md:727`) — which is the rule's answer, not the table's. The defect therefore **has not produced a collision**, and three independently authored entries (SUB-3's `R10` and `R12`, SUB-11's `R11`) now all contradict the table. **All three mis-stated rows are consequently already authored, and every one of them is authored correctly** — the five rows still outstanding (`R2` for SUB-9; `R5`, `R6`, `R7` and `R15` for SUB-17) all fall outside the affected band, so no remaining author will be misdirected by it. **The residual is therefore not a future collision but a wrong reference in a published register**: a reader — SUB-14 at aggregation most of all, which checks entries against exactly this table — could take the table as authoritative and "correct" three entries that are already right, turning a documentation defect into a real one. That is why it is filed against the aggregator rather than against any author.
-- **What is assumed rather than derived:** Nothing about the register. The charter itself is in gitignored `_local/`, so a reader of the published package alone cannot check the charter order directly — but they do not need to: the table at `:33`–`:35` is internally inconsistent with the authored entries at `:110` and `:122` regardless of which order the charter carries, and that inconsistency is visible from the published package alone.
-- **Handed to:** **SUB-14** (NEU-1007), which aggregates this register and owns its cross-register consistency check, and **SUB-17**, which audits it. **No correction is applied here** — this register is append-only and no sub-task rewrites another's content, so the defect is reported, not fixed.
+- **Id:** `F-S7-8` — **retired, not reused.** The id is recorded here so it is never minted a second
+  time; it carries no finding.
+- **Why it was withdrawn:** This sub-task drafted a finding that the risk register's id-convention
+  table at `92_risk-register.md:33`–`:35` permutes charter § Risks rows 10–12 against the charter's
+  own order. **The fact is true, and it was already registered** — `F-S3-3`
+  (`91_findings-register.md:102`–`:109`) records the same permutation, from the same evidence lines,
+  with the same consequence and the same hand-off to SUB-14 co-naming SUB-11. SUB-13's own section
+  had already encountered the ambiguity and *"cite[d] `F-S3-3` for the defect itself"* rather than
+  raising a further finding (`:393`–`:397`). Raising an eighth finding for it would have been a
+  second record of one fact, which is the exact discipline this sub-task's own totals paragraph
+  asserts two paragraphs below — so the draft entry contradicted its own register note.
+- **What the draft got wrong beyond the duplication:** it stated *"What is assumed rather than
+  derived: **Nothing** about the register."* What had not been checked was whether the register
+  already carried the record. It did.
+- **Disposition:** withdrawn. `F-S3-3` stands unchanged with its own owner and status; this sub-task
+  cites it and adds nothing. One id per fact.
+- **Found by:** this sub-task's own independent adversarial pass, before the pull request was opened.
 
 ---
 
-**SUB-7 register totals at revision 1:** eight findings, `F-S7-1` … `F-S7-8`. **Two are the findings
+**SUB-7 register totals at revision 1:** **seven** findings, `F-S7-1` … `F-S7-7`. An eighth was
+drafted and **withdrawn before publication** as a second record of `F-S3-3`; `F-S7-8` is retired
+above rather than reused. **Two are the findings
 OUT-3 and OUT-4 name by requirement**, and they share a single entry because they share a single
 cause: `F-S7-5` carries both OUT-3's *"a stage that cannot be executed under the auto-deploy /
 auto-migrate constraint"* clause — checked against all ten stages, which returned **none
@@ -913,12 +932,11 @@ with its reason and its owner"* in the stage's own row rather than reported sepa
 named exceptions appear at `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §8, none
 blank.
 
-Of the remaining six, two are platform mechanics this sub-task read first-hand and no predecessor
+Of the remaining **six**, two are platform mechanics this sub-task read first-hand and no predecessor
 had (`F-S7-1`, `F-S7-2`), two are interlocks visible only after composition and therefore invisible
 to every predecessor individually (`F-S7-3`, `F-S7-4`), one corrects the premise of another
-sub-task's risk entry without re-raising its residual (`F-S7-6`), one closes a gap in a safety
-argument this sub-task is forwarding (`F-S7-7`), and one is a package-hygiene defect found in
-passing that is live against a concurrently-running sibling (`F-S7-8`). Every entry carries an owner.
+sub-task's risk entry without re-raising its residual (`F-S7-6`), and one closes a gap in a safety
+argument this sub-task is forwarding (`F-S7-7`). Every entry carries an owner.
 
 **No amendment is routed to `NEU-895` by SUB-7.** C010 §4.3's `I4`→`I5` sequencing consequence is the
 one consumed constraint this sub-task could have contradicted, and the audit at
@@ -928,8 +946,11 @@ completion of SUB-6's safety argument and `F-S7-3`'s scoping of SUB-4's claim ar
 consumed positions rather than contradictions of them**, which is the distinction the charter's
 amendment route turns on.
 
-**Three facts are deliberately not raised here, because each is already recorded exactly once
-elsewhere and this package carries one id per fact.** The backups question is **`OI-S1-8`** — cited
+**Four facts are deliberately not raised here, because each is already recorded exactly once
+elsewhere and this package carries one id per fact.** That the risk register's id-convention table
+permutes charter § Risks rows 10–12 is **`F-S3-3`** — this sub-task drafted a duplicate of it, caught
+the duplication in its own adversarial pass, and withdrew the draft rather than shipping an eighth
+finding; see the retired `F-S7-8` above. The backups question is **`OI-S1-8`** — cited
 by id in `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §7 as the reason no reversal
 may assume a restore, with **no second record raised anywhere in this sub-task's artifacts**. That
 boot-time migration cannot be deferred and that batching converts one long availability breach into

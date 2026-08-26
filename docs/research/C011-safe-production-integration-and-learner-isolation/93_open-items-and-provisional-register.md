@@ -616,6 +616,11 @@ probe can settle it) rather than three times.
 
 ### SUB-7
 
+> **Id-collision disclosure.** **`OI-S7-1` also exists in C010**, where sub-task 7 is a different
+> sub-task about a different subject. Under `F-S2-2`'s rule a bare `OI-S7-1` means **this** package's;
+> C010's is always written qualified. The full six-id set this sub-task collides on is listed once, at
+> `94_caps-and-incomplete-scope.md` § SUB-7.
+
 #### `OI-S7-1` — Which of `R-S4-2`'s three routes stage `T0` takes has not been chosen
 
 - **Id:** `OI-S7-1`

@@ -888,8 +888,14 @@ the scenarios each actually breaks established by reading the suite rather than 
 
 **Measured result at revision 1.** **Six of six measure clauses MET.**
 
-1. **MET.** Ten constraints (`K1` … `K10`) are enumerated with their sources at §2 and audited one by
-   one at §4. **Ten of ten satisfied**, reported as a table rather than asserted.
+1. **MET.** Twelve constraints (`K1` … `K12`) are enumerated with their sources at §2 and audited one by
+   one at §4. **Twelve of twelve satisfied**, reported as a table rather than asserted. **Two of the
+   twelve were added after an independent adversarial pass**, and the measure records that rather
+   than presenting the set as complete from the start: `K11` (SUB-2's identity change lands before
+   the first stage that reads a determined kind) was **missed entirely** by the first draft, which
+   presupposed a determined kind at three stages without staging the change that produces it; and
+   `K12` was split out of `K9` because `K9`'s cited source does not contain the irreversibility
+   clause that had been attributed to it.
 2. **MET.** The transport gate is at `T4` and `T6`, with three substantive stages after it. The
    principal-kind work is at `T4`; the only irreversible stage is `T5`. The relationship is stated as
    a positional fact, not as a reassurance.
@@ -901,7 +907,7 @@ the scenarios each actually breaks established by reading the suite rather than 
 5. **MET.** §7 assesses all ten. The qualification that **no** stage can be executed at a chosen
    moment is reported as `F-S7-5` rather than written around.
 6. **MET.** §5 sequences the two causes six and eight stages after `T0` respectively, and establishes
-   by reading the suite that **exactly two of six scenarios break, and both break twice** —
+   by reading the suite that **exactly two of its eight scenarios break, and both break twice** —
    `init_agent_context` survives because `ContextTokenRepository` is deliberately unscoped
    (`05_the-enforcement-point-that-confines-every-read-and-write.md:338`).
 

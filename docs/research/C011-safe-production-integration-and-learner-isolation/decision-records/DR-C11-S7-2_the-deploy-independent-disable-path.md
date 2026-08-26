@@ -13,12 +13,14 @@
    effect on container restart. It is deploy-independent in the sense OUT-3 requires: it never
    traverses `git`, CI or the deploy pipeline.
 
-2. **The pattern is the one the repository already has, not a new mechanism.**
-   `CLASSIFIER_ENABLE` (`src/config/resolve-classifier-config.ts:22`–`:62`) is an existing env-var
-   toggle with a deprecated alias and explicit conflict detection, and
-   `docs/runbooks/classifier-blocking-activation.md` already operates it in exactly the shape OUT-4
-   asks for — `:261` flips it off *"immediately"* for containment, while `:167` and `:169` route the
-   permanent change to *"the next deploy"* for reversal.
+2. **The toggle *shape* is the one the repository already has; the deploy-independent *application*
+   of it is new.** `CLASSIFIER_ENABLE` (`src/config/resolve-classifier-config.ts:22`–`:62`) is an
+   existing env-var toggle with a deprecated alias and explicit conflict detection, operated by
+   `docs/runbooks/classifier-blocking-activation.md`. **That runbook is not a precedent for
+   deploy-independence** — its emergency path is *"Set `CLASSIFIER_ENABLE=false` … immediately"*
+   followed by *"`Deploy.`"* (`:261`–`:262`), and no path in it avoids a deploy. Applying the toggle
+   over SSH to the off-repo compose stack, bypassing the pipeline, is **unprecedented here** and is
+   specified rather than demonstrated.
 
 3. **Six of the ten stages carry such a control; four carry a named exception with a reason and an
    owner.** The exceptions are `T0` (no runtime behaviour to disable), `T2` (the move can be paused
@@ -61,12 +63,24 @@ has to improve on, and the improvement has to be real rather than nominal, becau
 45 is explicit that on a deployment where a schema change and its deployment are not separable
 events, a stage whose only undo is a deploy has *no containment step between detection and reversal*.
 
-The improvement available is small but genuine, and it comes from noticing that the repository
-already solved this once. The classifier toggle is not a research proposal — it is shipped code with
-an operator runbook, and that runbook already distinguishes the immediate flip from the permanent
-deploy-borne change. Adopting it means the disable paths this chapter specifies have a working
-precedent, a known operator procedure and a known cost, rather than being a mechanism invented in a
-research document and handed to an implementer who has never seen one.
+The improvement available is smaller than the first draft of this record claimed, and the difference
+matters. **The draft said the repository "already solved this once" and that the classifier
+runbook "already distinguishes the immediate flip from the permanent deploy-borne change." It does
+not.** That runbook's own emergency procedure is *"1. Set `CLASSIFIER_ENABLE=false` … immediately"*
+followed directly by *"2. `Deploy.`"* (`docs/runbooks/classifier-blocking-activation.md:261`–`:262`),
+and every other application point in it routes through a deploy (`:131`, `:137`, `:140`, `:185`).
+The *"next deploy"* wording at `:167`/`:169` is about `CLASSIFIER_BLOCKING_FIELDS`, a different
+variable from the one the sentence was about.
+
+**What the precedent actually supplies is the toggle *shape*** — shipped code that reads a behaviour
+switch from an environment variable at configuration-resolution time, with alias handling and
+conflict detection, and an operator runbook that treats flipping it as a normal operation. That is
+worth having: the disable paths specified here are an instance of a pattern this codebase already
+runs, not an invention. **What the precedent does not supply is deploy-independence.** Applying the
+toggle over SSH directly to the off-repo compose stack, bypassing the pipeline entirely, is
+**unprecedented in this repository**, depends on a capability only the creator holds, and has never
+been exercised. It is specified here on that footing, and `R4`'s mitigation says the same rather than
+borrowing confidence the runbook does not lend.
 
 **The cost had to be stated, not assumed away.** The obvious reading of "deploy-independent" is
 "cheap", and on this platform it is not: configuration is read at boot, and boot runs the migrator
@@ -121,8 +135,9 @@ the false-completeness failure the package has already been bitten by twice.
 | Claim | Source |
 | --- | --- |
 | An env-var feature toggle with alias handling and conflict detection already exists | `src/config/resolve-classifier-config.ts:22`–`:62` |
-| Its runbook flips it off immediately for containment | `docs/runbooks/classifier-blocking-activation.md:261` |
-| Its runbook routes the permanent change to the next deploy | `docs/runbooks/classifier-blocking-activation.md:167`, `:169` |
+| Its runbook's emergency path sets the toggle *"immediately"* and then **requires a deploy** — step 1 then step 2 | `docs/runbooks/classifier-blocking-activation.md:261`–`:262` |
+| No path in that runbook is deploy-independent | `docs/runbooks/classifier-blocking-activation.md:131`, `:137`, `:140`, `:185` |
+| The *"next deploy"* wording is about `CLASSIFIER_BLOCKING_FIELDS`, a different variable | `docs/runbooks/classifier-blocking-activation.md:167`, `:169` |
 | Configuration is resolved at boot, after the migrator | `src/transport/main.ts:27`, `:42`–`:43`; `src/composition-root.ts:377`, `:379` |
 | The migrator runs unconditionally with no guard and no lock | `src/infrastructure/db/migrate.ts:38`–`:50` |
 | The compose stack is outside this repository | `.github/workflows/cd-prod.yml:15`, `:26`–`:30` |

@@ -3,8 +3,8 @@
 **Sub-task:** SUB-7 (NEU-1001) · **Covers:** OUT-3, OUT-4
 **Written:** 2026-08-26 · **Model:** claude-opus-5[1m]
 **Codebase cutoff:** `origin/develop` @ `ee0a750`
-**Depends on:** SUB-1 (NEU-993), published at `01_production-evidence-and-the-access-audit.md`; SUB-4 (NEU-996), at `04_the-stdio-identity-gate-and-the-bound-context-token.md`; SUB-5 (NEU-997), at `05_the-enforcement-point-that-confines-every-read-and-write.md`; SUB-6 (NEU-1000), at `06_the-disposition-of-every-unowned-row.md`; SUB-15 (NEU-998), at `15_operational-objectives-for-the-real-platform.md`; SUB-16 (NEU-999), at `16_attribution-and-detection.md`
-**Consumes:** `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md` (§4.3's `I4`→`I5` sequencing consequence, binding); `../C010-system-and-repository-architecture/decision-records/DR-C10-S8-2_token-bound-identity.md` (reject-don't-grandfather); `../C010-system-and-repository-architecture/decision-records/DR-C10-S10-2_deployment-shape.md` (the deployment shape, cited not re-derived)
+**Depends on:** SUB-1 (NEU-993), published at `01_production-evidence-and-the-access-audit.md`; **SUB-2 (NEU-994), at `02_identity-the-learner-key-and-principal-kind.md`** — the determined principal kind every later stage reads; SUB-4 (NEU-996), at `04_the-stdio-identity-gate-and-the-bound-context-token.md`; SUB-5 (NEU-997), at `05_the-enforcement-point-that-confines-every-read-and-write.md`; SUB-6 (NEU-1000), at `06_the-disposition-of-every-unowned-row.md`; SUB-15 (NEU-998), at `15_operational-objectives-for-the-real-platform.md`; SUB-16 (NEU-999), at `16_attribution-and-detection.md`
+**Consumes:** `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md` (§4.3's `I4`→`I5` sequencing consequence, binding); `../C010-system-and-repository-architecture/decision-records/DR-C10-S8-2_token-bound-identity-over-per-call-identity.md` (reject-don't-grandfather); `../C010-system-and-repository-architecture/decision-records/DR-C10-S10-2_deployment-shape.md` (the deployment shape, cited not re-derived)
 **Decision records:** `DR-C11-S7-1`, `DR-C11-S7-2` · **Traceability:** `traceability/S7_the-rollout-sequence.md`
 
 ---
@@ -26,7 +26,8 @@ path OUT-3's feature-control clause requires, and the reversal position OUT-4 re
    runbook is written against. Nothing under `src/` or `drizzle/` changes here.
 3. **It measures nothing.** No production credential exists (`F-S1-2`). Every duration, cadence and
    threshold below is a cited derivation, a registered stand-in, or an explicitly unbounded quantity
-   named as such. **`observed-in-production` appears zero times in this chapter.**
+   named as such. **The evidence label `observed-in-production` is applied to zero claims in this
+   chapter** — this sentence names the label, it does not use it.
 
 ---
 
@@ -47,7 +48,8 @@ Every fact below was read first-hand at this chapter's cutoff, not inherited.
 | Transport and auth configuration are resolved **after** that, at boot. | `src/transport/main.ts:42`–`:43` |
 | Application configuration — including the existing feature toggle — is resolved in the composition root, also at boot. | `src/composition-root.ts:377`, `:379` |
 | A feature-toggle precedent already exists: `CLASSIFIER_ENABLE`, with a deprecated alias and explicit conflict detection. | `src/config/resolve-classifier-config.ts:22`–`:62` |
-| That toggle has an operator runbook which flips it off immediately and routes the permanent change to the next deploy. | `docs/runbooks/classifier-blocking-activation.md:261`, `:167`, `:169` |
+| That toggle has an operator runbook — but **its own emergency-disable path is deploy-borne**: step 1 sets `CLASSIFIER_ENABLE=false` *"immediately"* and **step 2 is `Deploy.`** | `docs/runbooks/classifier-blocking-activation.md:261`–`:262` |
+| **No path anywhere in that runbook is deploy-independent.** Its other application points route through a deploy too, and the "next deploy" wording at `:167`/`:169` is about a *different* variable, `CLASSIFIER_BLOCKING_FIELDS`. | `docs/runbooks/classifier-blocking-activation.md:131`, `:137`, `:140`, `:167`, `:169`, `:185` |
 
 Two consequences follow immediately, and both are registered rather than left in prose.
 
@@ -55,11 +57,19 @@ Two consequences follow immediately, and both are registered rather than left in
 `deploy-prod`, a smoke failure happens when the new code is already running in production. The
 deploy is not prevented and the next deploy still fires, because cd-prod is gated on the **CI**
 workflow's conclusion (`:19`–`:21`), not on its own previous smoke result. What a standing smoke
-failure destroys is the post-deploy verification — which `16_attribution-and-detection.md` §3.3
-records as the only automated limb of `SIG-S16-4`, the rollout-regression signal. This is
-**`F-S7-1`**, and it sharpens rather than contradicts `F-S5-12` and `R-S4-2`, whose wording
-("breaking the deploy on every release") describes the workflow going red rather than the deployment
-being blocked.
+failure destroys is the post-deploy verification — which `16_attribution-and-detection.md:146`
+records, in the `FM-S16-4` rollout-regression row, as *"the only automated post-deploy signal the
+platform has"*. This is **`F-S7-1`**, and it sharpens rather than contradicts `F-S5-12` and
+`R-S4-2`, whose wording ("breaking the deploy on every release") describes the workflow going red
+rather than the deployment being blocked.
+
+**Stated precisely, because the near-miss here is easy to make.** `SIG-S16-4` has exactly two limbs,
+(a) and (b), and **neither of them is the smoke run**. Limb (b) — the 401/403 refusal rate off
+`mcp_request_log.response_status` — is a database aggregate, and a red smoke job cannot make it
+uninterpretable; `16_attribution-and-detection.md:203`–`:206` records it as *"the only signal in this
+entire matrix computable from data the deployment emits today"*, which is a different claim about a
+different thing. What the smoke run uniquely supplies is the **automated post-deploy check**, and
+that alone is what a standing failure costs.
 
 **Every disable path costs a restart, and every restart re-enters the migration.** Configuration is
 read at boot (`src/transport/main.ts:42`–`:43`, `src/composition-root.ts:379`) and boot runs the
@@ -84,10 +94,12 @@ against this table row by row in §4, so the composition is auditable rather tha
 | **K4** | The ownership column, its backfill and its `NOT NULL` cannot all land in one step: `S3` → `S4` → `S5`. | `F-S5-10`; `06_the-disposition-of-every-unowned-row.md:668`–`:675` |
 | **K5** | Within `S4`, parents are keyed before children, in four waves. | `06_the-disposition-of-every-unowned-row.md:703`–`:721` |
 | **K6** | `S4` entry requires V1–V7 to pass **and** `P-ORPHAN-2` to return empty. | `06_the-disposition-of-every-unowned-row.md:684`, `:391`–`:399`, `:718`–`:721` |
-| **K7** | The enforcement predicate is live before the column is tightened to `NOT NULL`. | `05_the-enforcement-point-that-confines-every-read-and-write.md:762` |
+| **K7** | The enforcement predicate is live before the column is tightened to `NOT NULL`. **Generalised here**: SUB-5's C5 states this of `public.notes` specifically; it is applied to all ten population-A tables, which follows from `F-S5-10`'s three-step requirement holding for every one of them. | `05_the-enforcement-point-that-confines-every-read-and-write.md:762` (C5, `public.notes`); `:636`–`:641` (`F-S5-10`, general) |
 | **K8** | The smoke run's disposition precedes the first stage that ships **either** of `F-S5-12`'s two causes, because neither cause's removal unbreaks the other. | `F-S5-12`; `91_findings-register.md:610`–`:617` |
-| **K9** | The transport gate is **not last**, and the principal-kind defect must surface **before** the migration becomes irreversible. | Charter assumption 5; `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md` §4.3 |
+| **K9** | The transport gate is **not last**. Stated as *"a rollout that treats the STDIO gate as the last item will discover the principal-kind problem at the end"* — the source says **"at the end"**, and says nothing about irreversibility. | `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:494`–`:496`; charter assumption 5 |
 | **K10** | `S2` is the only irreversible stage in SUB-6's set. | `06_the-disposition-of-every-unowned-row.md:682`, `:695`–`:697` |
+| **K11** | **The two fixes are sequential, not parallel: closing the transport gate surfaces the principal-kind defect, and SUB-2's identity rule is what makes the surfaced kind *answerable* rather than an unanswerable question.** So the identity change lands at or before the first stage that reads a determined kind. | `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:494`–`:496`; `02_identity-the-learner-key-and-principal-kind.md:213`–`:216`, which names SUB-7's rollout directly |
+| **K12** | The principal-kind defect must surface **before the migration becomes irreversible**. **This is not C010 §4.3's wording** — §4.3 says "at the end". It is the charter's own § Risks row 3, i.e. this chapter's `R3`, and it is carried as a constraint in its own right rather than folded into `K9`. | Charter § Risks row 3 (`R3`, authored in `92_risk-register.md` § SUB-7) |
 
 ---
 
@@ -99,7 +111,7 @@ does; §6 carries the full per-stage content.
 | # | Stage | Why here |
 | --- | --- | --- |
 | **T0** | Dispose of the deploy pipeline's smoke run | **K8.** Must precede both `T6` and `T8`. Placed first because it is the only stage that costs no schema change and, until it is done, every later stage lands without a working post-deploy check. |
-| **T1** | Land the attribution carrier | **K3.** `S1` cannot run before it. It is also what makes `SIG-S16-1` limb 1a and `SIG-S16-4` limb (a) computable at all, so it builds the observability every later stage's isolation signal is read through. |
+| **T1** | Land **SUB-2's identity rule** and the attribution carrier | **K3** and **K11.** `S1` cannot run before the carrier, and the carrier cannot write a correct value before the determination exists — `principal_kind` *is* `DR-C11-S2-2`'s determined kind (`16_attribution-and-detection.md:78`), so the rule and its first persistence site land together for the same reason `T3` combines two nullable additions. It is also what makes `SIG-S16-1` limb 1a and `SIG-S16-4` limb (a) computable at all, so it builds the observability every later stage's isolation signal is read through. |
 | **T2** | `S1` — archive the pre-cutover log population | **K3** satisfied by `T1`. Placed before the column work so the two log tables are closed and the live tables continue from empty while the schema work proceeds. |
 | **T3** | Additive schema, nullable — gate stage `A` **and** `S3` | **K1** (`A` first), **K4** (`S3` first). Both are pure additions with no refusal behaviour, so they share one boot migration and one restart rather than spending two. |
 | **T4** | Gate stage `B` — observe-only on both transports | **K1**, **K2**, and **K9**. This is the chapter's answer to §4.3: observe-only records what *would* be refused and refuses nothing, so the `sub`/`azp` principal-kind defect surfaces here — at position 5 of 10, and **before the only irreversible stage**. |
@@ -115,7 +127,7 @@ does; §6 carries the full per-stage content.
 
 ## 4. The sequencing audit
 
-Run against §2 row by row. **Ten constraints, ten satisfied.**
+Run against §2 row by row. **Twelve constraints, twelve satisfied.**
 
 | Constraint | Where satisfied | Verdict |
 | --- | --- | --- |
@@ -127,8 +139,11 @@ Run against §2 row by row. **Ten constraints, ten satisfied.**
 | K6 V1–V7 and `P-ORPHAN-2` gate `S4` | `T7` entry condition | **Satisfied**, both named as hard entry conditions. |
 | K7 predicate live before `NOT NULL` | predicate `T8`, `NOT NULL` `T9` | **Satisfied.** |
 | K8 smoke disposition first | `T0`, before `T6` and `T8` | **Satisfied**, by six and eight stages respectively. |
-| K9 gate not last; defect before irreversibility | gate at `T4`/`T6`; three stages follow `T6`; defect surfaces `T4`; only irreversible stage is `T5` | **Satisfied with margin.** |
+| K9 gate not last | gate at `T4`/`T6`; three stages follow `T6` | **Satisfied.** The gate is not "the last item"; the defect is not discovered "at the end". |
 | K10 `S2` the only irreversible stage | `T5` | **Satisfied**, and it is the only stage §9 names irreversible. |
+| K11 identity rule at or before the first determined-kind read | identity rule at `T1`; first read of a determined kind is `T1`'s own exit | **Satisfied**, and it was **missed by the first draft of this audit** — the order presupposed a determined kind at `T1`, `T6` and `T8` without staging the change that produces it. Recorded as such rather than presented as designed-in. |
+| K12 defect before irreversibility | defect surfaces `T4`; only irreversible stage is `T5` | **Satisfied with margin**, on this chapter's own `R3` rather than on §4.3, which does not say this. |
+| **S2/S3 order** — not a constraint, a **departure** | SUB-6 numbers `S1`→`S2`→`S3`; this order runs `S1`(`T2`) → `S3`(`T4`) → `S2`(`T6`) | **Licensed, and stated rather than silent.** SUB-6 fixes only the intra-`S4` order and says *"Sequencing is SUB-7's under OUT-3 and is **not fixed here**"* (`06_the-disposition-of-every-unowned-row.md:278`). No constraint governs the `S2`/`S3` relation, so the numbering is presentational, not an ordering. `S2` is moved after the observe-only stage deliberately, per `K12`. |
 
 **On K9 specifically, because it is the binding one.** C010 §4.3's consequence is that the
 unauthenticated transport *masks* the `sub`/`azp` principal-kind defect, so closing the gate makes the
@@ -139,9 +154,22 @@ the end. This order does three things about that:
 2. **It is separated from enforcement.** `T4` is observe-only — it *reveals* the defect without
    refusing anything, which is the cheapest possible place to discover it. Enforcement is at `T6`,
    two stages later, by which time the observation exists.
-3. **It precedes the only irreversible stage.** `T5` is the single stage that destroys state
-   (`K10`). Placing `T4` before `T5` is what discharges §4.3's specific fear — that the defect
-   surfaces "after the migration is irreversible." Under this order it cannot.
+3. **The surfaced defect is answerable, not merely visible.** §4.3's consequence is that *"the two
+   are sequential… and fixing the first surfaces the second"*, and SUB-2 states the complement: its
+   identity rule is what means that *"when SUB-7's rollout advances the frontier from `I4` to `I5`,
+   there is a determined kind to read instead of an unanswerable question"*
+   (`02_identity-the-learner-key-and-principal-kind.md:213`–`:216`). That change is staged at `T1`,
+   three stages before the observation reads it. **The first draft of this chapter did not stage it
+   at all** and presupposed it at `T1`, `T6` and `T8`; `K11` exists because of that omission.
+4. **It precedes the only irreversible stage.** `T5` is the single stage that destroys state
+   (`K10`), and `T5`'s entry condition requires `T4`'s observation to have been read.
+
+**Two sources, kept separate, because conflating them would misquote one.** §4.3's own words are
+*"will discover the principal-kind problem at the end"* — it says nothing about irreversibility, and
+neither does charter assumption 5. The irreversibility clause is the charter's **§ Risks row 3**,
+which is this chapter's own `R3`. `K9` is discharged against §4.3; `K12` against `R3`. An earlier
+draft of this section attributed `R3`'s wording to §4.3 in quotation marks and then reported §4.3 as
+discharged by it; that quotation was not in the source and has been removed.
 
 **No amendment is routed to `NEU-895`.** §4.3's consequence is honoured as written; nothing in this
 chapter contradicts it, so the recorded-amendment route the charter's § Risks row 3 names is not
@@ -162,18 +190,22 @@ the run. Handling them therefore cannot be a single step.
 | **Lands at** | `T6` | `T8` |
 | **Sequenced around by** | `T0`, six stages earlier | `T0`, eight stages earlier |
 
-**Which smoke scenarios actually break, verified rather than assumed.** The suite has six scenarios.
-`GET /health` (`tests/smoke/smoke.test.ts:104`) and `GET /version` (`:111`) are plain HTTP and touch
-no principal. The MCP `initialize` handshake (`:128`) and the `initialized` notification (`:152`) are
-protocol-level. `init_agent_context` (`:168`) is one of the three gate-exempt tools, and — the part
-that has to be checked rather than assumed — the enforcement point deliberately leaves its port
-unscoped: `ContextTokenRepository` is row 6 of SUB-5's per-port table, **"Port layer, no owner
-predicate"**, because the token row is what *carries* the principal and cannot be confined by the
-principal it establishes
+**Which smoke scenarios actually break, counted rather than assumed.** The suite has **eight**
+scenarios — eight `it()` blocks in `tests/smoke/smoke.test.ts`, at `:104`, `:111`, `:128`, `:152`,
+`:163`, `:200`, `:231` and `:263`. **Six survive both causes.** `GET /health` (`:104`) and
+`GET /version` (`:111`) are plain HTTP and touch no principal. The MCP `initialize` handshake
+(`:128`) and the `initialized` notification (`:152`) are protocol-level. `session DELETE cleans up
+gracefully` (`:263`) issues an HTTP `DELETE` against the MCP endpoint (`:266`–`:268`), not a
+`tools/call`, and the gate's method predicate covers `tools/call` only (`F-S11-3`), so it is outside
+both causes. `init_agent_context` (`:163`, with its tool name at `:168`) is one of the three
+gate-exempt tools, and — the part that has to be checked rather than assumed — the enforcement point
+deliberately leaves its port unscoped: `ContextTokenRepository` is row 6 of SUB-5's per-port table,
+**"Port layer, no owner predicate"**, because the token row is what *carries* the principal and
+cannot be confined by the principal it establishes
 (`05_the-enforcement-point-that-confines-every-read-and-write.md:338`). So `init_agent_context`
 survives both causes.
 
-**Exactly two scenarios break, and both break twice:** `list_learning_items` (`:206`) and
+**Exactly two of the eight break, and both break twice:** `list_learning_items` (`:206`) and
 `session_status` (`:237`). Each is refused independently by cause 1 at `T6` and by cause 2 at `T8`.
 This is the concrete content of "unmounting one does not unbreak it" — fixing the gate leaves both
 scenarios failing at the adapter, and fixing the adapter leaves both failing at the transport.
@@ -208,16 +240,27 @@ not repeated per stage; the exposure is `R-S16-2`, cited and not re-raised.
   schema change. Baseline it here, because every later stage is read against it.
 - **Owner.** The creator, as sole operator — `R-S4-2` names no other party.
 
-### T1 — Land the attribution carrier
+### T1 — Land SUB-2's identity rule and the attribution carrier
 
 - **Entry.** `T0` exited.
-- **Exit.** Both log tables carry `principal_kind` and `learner_key`, and new rows are written with a
-  determined kind.
+- **Exit.** The `sub || azp` merge at `src/transport/jwt-middleware.ts:127` is gone and a principal's
+  kind is **determined** under `DR-C11-S2-2` rather than collapsed; both log tables carry
+  `principal_kind` and `learner_key`; and new rows are written with that determined kind.
 - **Isolation signal.** `SIG-S16-1` limb 1b becomes computable — `principal_kind = 'client'` on a
   non-exempt tool.
 - **Health signal.** Audit-write success rate; a fall indicates the writer is failing rather than the
   gate.
-- **Owner.** SUB-13 (NEU-1006) for the DDL; the creator to apply.
+- **Owner.** SUB-2 (NEU-994) for the identity rule; SUB-13 (NEU-1006) for the DDL; the creator to apply.
+
+**Why the identity rule shares this stage rather than getting its own.** It is not bundled for
+convenience. `principal_kind` is defined as *"`DR-C11-S2-2`'s determined kind"*
+(`16_attribution-and-detection.md:78`), so a carrier that lands before the determination has no
+correct value to write and would populate `none` for principals that do have a determinable kind —
+polluting exactly the column `T4`'s observation later reads. The determination and its first
+persistence site are one landing for the same reason `T3`'s two nullable additions are: they share a
+boot and separating them creates an intermediate state worse than either endpoint. The identity
+change is non-breaking on its own — it changes what is *recorded*, not what is *refused*; refusal
+arrives at `T6` and `T8`.
 
 **A note SUB-13 needs, which is a composition of two existing facts and not a new constraint.**
 `principal_kind` is `TEXT NOT NULL` (`16_attribution-and-detection.md:74`), and `F-S5-10` says a
@@ -369,12 +412,24 @@ instead.
 OUT-3 requires each stage to carry a deploy-independent disable path, or an explicit named exception
 with a reason and an owner. **Zero stages are left blank.**
 
-**The mechanism class, first, because all ten stages share it.** The project already has a
-deploy-independent control pattern: an environment variable read at configuration-resolution time,
-documented in an operator runbook — `CLASSIFIER_ENABLE` at
-`src/config/resolve-classifier-config.ts:22`–`:62`, with `docs/runbooks/classifier-blocking-activation.md:261`
-flipping it off immediately and `:167`/`:169` routing the permanent change to the next deploy. That
-is exactly the containment-versus-reversal split OUT-4 asks for, already in house practice.
+**The mechanism class, first, because all ten stages share it — and one honest correction about its
+precedent.** The project already reads behaviour toggles from environment variables at
+configuration-resolution time: `CLASSIFIER_ENABLE` at
+`src/config/resolve-classifier-config.ts:22`–`:62`, with a deprecated alias and explicit conflict
+detection, and an operator runbook at `docs/runbooks/classifier-blocking-activation.md`. **That
+precedent establishes the toggle *shape*. It does not establish deploy-independence, and an earlier
+draft of this chapter claimed it did.** The runbook's own emergency-disable procedure is
+*"1. Set `CLASSIFIER_ENABLE=false` … immediately"* followed immediately by *"2. `Deploy.`"*
+(`:261`–`:262`), and every other application point in that runbook routes through a deploy as well
+(`:131`, `:137`, `:140`, `:185`). The *"next deploy"* wording at `:167`/`:169` is about a different
+variable, `CLASSIFIER_BLOCKING_FIELDS`, not about `CLASSIFIER_ENABLE`.
+
+**So the containment-versus-reversal split OUT-4 asks for is *not* already in house practice.** What
+is in house practice is the toggle shape; what is new here is applying it **over SSH directly to the
+off-repo compose stack, bypassing the pipeline**. That application has no precedent in this
+repository, it depends on a capability only the creator has (SSH to a host outside this repo), and
+it is therefore a **specification rather than a demonstrated procedure**. `DR-C11-S7-2` records it
+with its rejected alternatives on that honest footing.
 
 Applied to this rollout the control surface is: **an environment variable set on the off-repo compose
 stack at `/home/deploy/docker-services/second-memory-mcp`, applied by the operator over SSH,
@@ -443,7 +498,7 @@ would be the failure mode `A-S16-1` guards against.
 **One stage is irreversible: `T5`.** Every other stage has a real reversal, and none of the ten
 depends on an image registry, an IaC revert, a schema down-migration or a backup.
 
-**Two stages have a reversal whose only mechanism is a deploy** — `T3` and `T9` are reversed by
+**Three stages have a reversal whose only mechanism is a deploy** — `T3` and `T9` are reversed by
 shipping a further migration, and `T0` by shipping a revert. Per OUT-4 this is **stated as the
 finding it is** rather than written as a rollback: it is part of `F-S7-5`, and it is the direct
 consequence of a platform on which a schema change and its deployment are not separable events.
@@ -545,7 +600,9 @@ independently at this chapter's cutoff:
 | --- | --- | --- |
 | `difficulty NOT BETWEEN 1 AND 10` | cited to one declaration | **Confirmed, and now over-determined.** `src/domain/types/spaced-repetition-tools.ts:102`, `src/domain/types/session.ts:147` and `src/domain/types/recommendations.ts:78` each declare `.int().min(1).max(10)`; `src/shared/constants/validation.ts:6`–`:7` sets `MIN_DIFFICULTY: 1` / `MAX_DIFFICULTY: 10`, which is what the persistence write path uses; and `src/domain/algorithms/sr-calculator.ts:191` clamps to the same range. `src/infrastructure/db/schema.ts:58` carries no `CHECK`, which is why the probe is needed at all. |
 | `ease_factor < 1.3` | cited to the default and the clamp | **Confirmed, and the gap in the derivation is closed.** SUB-6 cited `src/domain/config/algorithm.ts:76` (`clamp(easeFactor, minimumEaseFactor, Infinity)`) and `src/domain/config/algorithm-defaults.ts:7` (`minimumEaseFactor: 1.3`). Neither establishes that the floor cannot be *lowered* by configuration — and if it could, an operator setting a lower floor would produce legitimate rows below 1.3 and this limb would abort a healthy migration, which is exactly the `1–5` defect in a second place. It cannot: `src/config/resolve-algorithm-config.ts:12`–`:14` wraps the override in `Math.max(parseNumber(env.SM_MIN_EASE_FACTOR, …), DEFAULT_ALGORITHM_CONFIG.minimumEaseFactor)`, so `SM_MIN_EASE_FACTOR` can only **raise** the floor. |
-| `repetitions < 0`, `interval_days < 0`, `consecutive_failures < 0` | non-negativity | **Confirmed.** `src/domain/types/spaced-repetition-tools.ts:101` declares `repetitions` as `.int().min(0)`. |
+| `repetitions < 0` | non-negativity | **Confirmed** on the write path at `src/domain/types/spaced-repetition-tools.ts:63` (`.int().min(0)`), and again on the ranking input at `:101`. |
+| `interval_days < 0` | non-negativity | **Confirmed** at `src/domain/types/spaced-repetition-tools.ts:65`, where the tool field is spelled `interval` (`.int().min(0)`); the column it lands in is `interval_days` at `src/infrastructure/db/schema.ts:65`, which is **nullable**, so the probe's `< 0` correctly does not match an unset row. Cited separately because one citation covering three fields is the same shortcut this section exists to catch. |
+| `consecutive_failures < 0` | non-negativity | **Confirmed** at `src/domain/types/spaced-repetition-tools.ts:67`–`:70` (`.int().min(0)`). The five SM-2 columns the probe reads sit at `src/infrastructure/db/schema.ts:58` (`difficulty`), `:60` (`ease_factor`), `:61` (`repetitions`), `:62` (`consecutive_failures`) and `:65` (`interval_days`), and **not one carries a `CHECK`** — which is why the probe is needed for all five. |
 
 **The predicate is forwarded unchanged.** The `ease_factor` limb's completeness is an **addition** to
 SUB-6's derivation, not a contradiction of it, so no amendment is routed to `NEU-895` and no
@@ -577,11 +634,21 @@ safety argument had a hole is worth naming even when the conclusion survives.
    `const transportConfig = resolveTransportConfig();`, read directly. The tool surface is **46
    registered / 43 gated / 3 exempt** (`01_production-evidence-and-the-access-audit.md` §8,
    re-derived at `546ee90`); `42` is **not** a codebase fact and is not used as one anywhere above.
-2. **Every citation in this chapter is written as a full filename.** The citation checker skips any
-   target containing `…` or `...` as prose shorthand
-   (`scripts/citation-paths/checker.ts:121`), so a shorthand reference is silently exempt and a clean
-   result would not be evidence for it. This chapter contains **zero** such references, which is what
-   makes its checker result meaningful. C011 is in any case **not** in the checker's gated list
+2. **Every citation in this chapter is written as a full filename — and a clean checker result is
+   still not by itself evidence, for two separate reasons.** The first is the one this chapter
+   originally named: the checker skips any target containing `…` or `...` as prose shorthand
+   (`scripts/citation-paths/checker.ts:121`), so a shorthand reference is silently exempt. This
+   chapter contains **zero** such references. **The second was found by this chapter's own
+   adversarial pass, after it had already certified the first:** a target that resolves nowhere *and*
+   has no unambiguous corpus suffix match is pushed into `excluded` as `MISSING-target`
+   (`scripts/citation-paths/checker.ts:247`–`:266`) — counted as neither resolved nor non-resolving,
+   and absent from both the summary and the `--json` findings. C011 reported `0 non-resolving` while
+   this chapter's own `Consumes:` line carried a filename that does not exist — it named
+   `DR-C10-S8-2_token-bound-identity.md`, dropping the `-over-per-call-identity` suffix the real file
+   at `../C010-system-and-repository-architecture/decision-records/DR-C10-S8-2_token-bound-identity-over-per-call-identity.md`
+   carries. **So a plain wrong filename is
+   invisible to the gate too**, and the checker's zero is a weaker signal than the first draft of
+   this disclosure claimed. C011 is in any case **not** in the checker's gated list
    (`scripts/check-citation-paths.ts:21`) — that is `CAP-S1-2`, owned by SUB-14 — so the checker was
    run by hand rather than relied on through CI.
 
@@ -597,10 +664,10 @@ safety argument had a hole is worth naming even when the conclusion survives.
 | `F-S7-2` | Every disable path is read at boot and every restart re-runs the migrator | **SUB-13** |
 | `F-S7-3` | "Only bookkeeping after the gate" is scoped to SUB-4's own stage set and does not survive composition | **SUB-13**, **SUB-17** |
 | `F-S7-4` | `S2` and gate stage `D` are two distinct purges | **SUB-13** |
-| `F-S7-5` | No stage can be executed at a chosen moment; two stages' only reversal is a deploy | **SUB-13**, `NEU-896` |
+| `F-S7-5` | No stage can be executed at a chosen moment; three stages' only reversal is a deploy | **SUB-13**, `NEU-896` |
 | `F-S7-6` | cd-prod is serialised, so `R-S15-3`'s overlap window is conditional | **SUB-15**'s owner, **SUB-13** |
 | `F-S7-7` | The forwarded abort condition's `ease_factor` limb is safe, and why | **SUB-13**, `NEU-896` |
-| `F-S7-8` | The risk register's own id-convention table disagrees with the charter for rows 10–12 | **SUB-14**, **SUB-17** |
+| — | *(withdrawn)* The risk register's id-convention permutation for rows 10–12 is **`F-S3-3`**, already registered by SUB-3. This chapter raises no second record and cites it. | — |
 | `R3` | The Critical charter § Risks row, authored here | **SUB-14** (aggregates), `NEU-895` |
 | `R4` | The High charter § Risks row, authored here | **SUB-14** (aggregates), `NEU-896` |
 | `R-S7-1` | Accepting a known-failing smoke step blinds the rollout for its duration | the creator, `NEU-896` |
