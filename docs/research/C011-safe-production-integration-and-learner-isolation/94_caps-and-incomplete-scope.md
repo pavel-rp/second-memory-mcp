@@ -203,3 +203,48 @@ with its discharge** — C010's `CAP-S5-1`, co-owned, whose subject matter is di
 published positive instance and whose **condition is not met**. Two limits are classified as
 not-caps with their real registers named. **No cap is recorded as lifted**, and `CAP-S5-1`'s owner
 and co-owner are unchanged.
+
+---
+
+### SUB-6
+
+**Three limits are classified as not-caps, with their real registers named, so the reconciliation is
+not left guessing.**
+
+- **The unexecuted aggregate query set** is a **spike and two open items, not a cap** — `SPK-S6-2`,
+  `OI-S6-1`, `OI-S6-2`. A cap is for a limit no available party settles. This one has an available
+  party (the creator, as sole operator and sole holder of a production credential), an observable
+  resolving event (the queries run), and a complete specification waiting on nothing but execution.
+  Filing it as a cap would say no party can close it, which is false.
+- **The unperformed target-subject verification** is a **spike, not a cap** — `SPK-S6-1`. Same
+  reasoning, and additionally the design does not rest on its result: the backfill stage carries
+  V1–V7 as a hard **entry condition**, so an unverified target cannot reach production. What is
+  missing is an observation, not a decision.
+- **The `qa-execution:engine` no-op.** The automated QA phase is a genuine Core Article 8 no-op for
+  this sub-task as for every other in the package: the capability registry resolves to `git, linear`,
+  no QA execution provider is registered, **no QA pass exists and none is claimed**. **`CAP-S1-3`
+  already carries this at package level**, and a per-sub-task duplicate would make one package-wide
+  condition look like several independent ones — the same disposition SUB-5 and `SUB-6 of C010` each
+  recorded for the identical situation.
+
+**One inherited cap is touched only by citation.** `CAP-S1-2` — that C011 is absent from the citation
+checker's `GATED` list at `scripts/check-citation-paths.ts:21`, so CI will not fail on a broken C011
+citation — bears directly on this sub-task, whose chapter carries a large number of `file:line`
+claims. It is **not re-filed**: its owner is SUB-14 (NEU-1007) and it is already recorded once. This
+sub-task's response is procedural rather than registrable — the citation checker was run locally, and
+the `…md` ellipsis shorthand, which the checker discards at `scripts/citation-paths/checker.ts:121`
+and therefore cannot gate, was grepped for explicitly so that a green result is evidence rather than a
+vacuous pass.
+
+---
+
+**SUB-6 register totals at revision 1:** **zero new caps filed.** Three limits are classified as
+not-caps with their real registers named, and one inherited cap (`CAP-S1-2`) is cited rather than
+re-filed, with its owner unchanged. **No cap is recorded as lifted.**
+
+**Why this sub-task files no cap, stated rather than left as an absence.** Every limit SUB-6 hit is a
+missing *observation*, and every one of them has a named party who could take it and an event that
+would close it. None is a limit on what this package can decide — the dispositions in
+`06_the-disposition-of-every-unowned-row.md` §3 are settled, and not one of them turns on a row count
+or a probe result. A cap filed here would mis-describe the situation as unresolvable when it is
+merely unobserved, and would give SUB-17's audit a permanent limit where there is a closable one.

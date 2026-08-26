@@ -763,3 +763,93 @@ observation: no file under `src/` or `drizzle/` changes, no test file is written
 the chapter is observed in production.
 
 **Authored by.** SUB-5 (NEU-997).
+
+---
+
+### SUB-6
+
+## OUT-2 — Migration of the existing global rows: what happens to every unowned row currently in production
+
+**Outcome.** Every one of the **14** production tables — 10 `public`, 2 Drizzle-defined
+`infrastructure`, and both raw-SQL log tables — carries a stated, individually justified migration
+disposition, drawn from a five-value vocabulary and assigned by a three-way partition on *what
+evidence can attribute the table's rows*. The pre-cutover log population, which erasure cannot reach
+(`F-S8-2`) and confinement hides from everyone
+(`05_the-enforcement-point-that-confines-every-read-and-write.md:624`–`:629`), is **archived** —
+closed at the cutover instant and moved out of the confined surface, deleted by nothing — which
+resolves both failure directions without contradicting SUB-16's finding that attribution can never
+be backfilled onto those rows. The migration is **staged**, forced by `F-S5-10` rather than chosen,
+in five stages: three fully reversible, one reversible in its rows but not in its effects, and one
+irreversible that destroys only rows a consumed C010 decision has already voided.
+
+**Success measure.** OUT-2 is done when: (1) zero of the 14 tables are unaddressed and each
+disposition carries a per-table justification, with any unjustifiable table reported as a finding
+with a named owner; (2) the C010 45-category cross-check reports unmatched counts in **both**
+directions; (3) the backfill target subject is confirmed against a real production token, never
+inferred from the `sub || azp` fallback; (4) the aggregate query set is published with an explicit
+probe for each of the five named dirty-data pathology classes per table, and a pathology class with
+no writable probe is reported as a finding; (5) a generation record ties every synthetic
+distribution to its aggregate and a no-copied-rows audit confirms the dataset holds no row copied
+out of production, with the dataset recorded as excluded from the sixth copy class on SUB-3's
+derivation test at position 3; (6) the dry-run claims every row of the generated dataset or surfaces
+it as a finding, with production counts never conflated with generated counts; (7) every stage
+states what is lost on reversal and what cannot be recovered at all; and (8) the unprobed-pathology
+residual is carried in the risk register with an owner, a pre-flight probe re-run and an abort
+condition.
+
+**Verified by.** `06_the-disposition-of-every-unowned-row.md` §§0–16;
+`decision-records/DR-C11-S6-1_the-migration-disposition-scheme.md`;
+`decision-records/DR-C11-S6-2_archiving-the-pre-cutover-log-population.md`;
+`decision-records/DR-C11-S6-3_aggregate-then-generate-and-the-exclusion-evidence.md`;
+`traceability/S6_the-disposition-of-unowned-rows.md`.
+
+**Measured result at revision 1.** **Twenty-one of twenty-five traced claims MET; four NOT MET, and
+all four fail for one reason.**
+
+1. **MET.** 14 tables addressed, zero unaddressed, each with a justification derived from its own
+   schema facts rather than a uniform rule. The conditional finding — a table for which no
+   disposition can be justified — was checked against all 14 and **none was found**, so it is
+   recorded as *checked and not filed* rather than omitted.
+2. **MET.** The C010 cross-check reports **0 unmatched in both directions**: 17 persisted
+   `SC-S3-*` categories all map to a disposition, and all 14 tables map to a category, reconciled by
+   the arithmetic 14 + 2 + 1 = 17. Both zeros are **derived from a stated walk**, and they inherit
+   C010's own six falsifiers, which this sub-task did not re-derive.
+3. **NOT MET.** The target-subject verification procedure is published as V1–V7 and made a hard
+   entry condition on the backfill stage, but **it was not performed** — no `SMOKE_PROD_*`,
+   `AUTH_*` or `DATABASE_URL` exists in this environment. No target-subject value is proposed
+   anywhere, because an inferred target is the failure mode rather than a weaker form of success.
+   `SPK-S6-1`.
+4. **MET on publication, NOT MET on execution, and the two are reported separately.** Twelve probes across all five named pathology classes are published — **8 carrying executable
+   SQL, 4 structural foreclosures with nothing to run** — each with a structural-possibility
+   analysis per table — including the finding that `notes.target_id` is the
+   only orphan surface in the schema and that the SM-2 columns carry no `CHECK` at all. **None was
+   executed**; every result cell reads *not executed — no credential* and **no cell reads `0`**.
+   `SPK-S6-2`. The pathology class with no writable probe is reported as `F-S6-2`.
+5. **MET.** The generation record enumerates the generator's five inputs exhaustively and maps each
+   synthetic distribution to the aggregate that drives it. The no-copied-rows audit is performed as
+   an **input-closure argument** — no input has row type, therefore no output can contain a copied
+   row — which holds over *every* dataset the generator can emit rather than the one an empirical
+   diff would sample, and whose falsifier is stated. The exclusion SUB-3 recorded at position 3 is
+   thereby **evidenced**, and no owner, retention bound or destruction condition is set.
+6. **NOT MET.** The dataset was not generated, because three of its five inputs are the unexecuted
+   aggregates, so **no unclaimed-row count is reported.** `OI-S6-2`. The rule that production counts
+   and generated counts are never the same number is stated, and both sets are recorded as empty
+   for different reasons.
+7. **MET.** Five stages, each with its reversal position. S3, S4 and S5 are fully reversible with nothing
+   lost; S1 is reversible in its rows but **not** in its effects (the under-reported aggregate
+   window and the timestamp-separability of the two populations do not come back); S2 is the only
+   irreversible one and destroys only `context_tokens` rows already void under `DR-C10-S8-2`. S4's reversibility is a consequence of the same uniformity that makes
+   its premise risky.
+8. **MET.** `R9` is authored with its severity, mitigation, named owner, escalation route to
+   `NEU-896`, pre-flight probe re-run and abort condition.
+
+**What this measure does not claim.** It does not claim any production quantity: no row count, no
+population size, no probe result, and `observed-in-production` is used **zero** times. It does not
+claim the target subject is correct — only that the backfill cannot proceed without confirming it.
+It does not claim `F-S8-2` is discharged; that finding remains blocking and remains SUB-9's, and
+this sub-task decides only where the rows live, never what a data right does to them. It does not
+claim `A-S6-1`, the single-principal premise ten of the fourteen dispositions rest on, is true —
+`F-S6-2` records that no aggregate can settle it. And it claims no implementation: no file under
+`src/` or `drizzle/` changes, no DDL is authored, and nothing is applied.
+
+**Authored by.** SUB-6 (NEU-1000).

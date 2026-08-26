@@ -647,3 +647,177 @@ that they ran and returned empty.
 same broken release gate. They are not folded together because they are **different causes** — one
 at the transport, one at the adapter — and the whole content of `F-S5-12` is that fixing the first
 does not fix the second. Collapsing them would lose exactly the fact SUB-7 needs.
+
+---
+
+### SUB-6
+
+#### `F-S6-1` — The pre-cutover population is addressable only as a whole, and the two mechanisms fail in opposite directions for one reason
+
+- **Id:** `F-S6-1`
+- **Finding:** SUB-8 and SUB-5 describe the same rows and reach opposite conclusions — erasure
+  **under**-reaches them (`DELETE … WHERE learner_key = $1` reports success while the whole
+  pre-cutover population survives) and confinement **over**-reaches them (a per-learner predicate
+  matches none of them, so they are hidden from everyone). Neither is a defect in the other's
+  design. Both are consequences of a single fact: **both mechanisms are per-learner, and the
+  population has no per-learner structure**, because attribution is not retroactive. The two
+  failures look opposite because one is a write and the other is a read; they are the same absence.
+- **Evidence:** `08_consent-and-what-a-learner-can-export-and-erase.md:450`–`:452` and `:459`–`:463`;
+  `05_the-enforcement-point-that-confines-every-read-and-write.md:624`–`:629`;
+  `16_attribution-and-detection.md:279`–`:283`.
+- **Consequence:** A disposition cannot fix either mechanism on these rows, and any that claimed to
+  would be contradicting SUB-16. `DR-C11-S6-2` instead **closes the population** — which is the one
+  property both failures actually need and neither mechanism supplies.
+- **What is assumed rather than derived:** Nothing. All three source statements are quoted from
+  merged chapters.
+- **Handed to:** **SUB-9 (NEU-1003)** under OUT-12, which owes the population its propagation
+  action; **SUB-7 (NEU-1001)** under OUT-3, which sequences the cutover that closes it.
+
+#### `F-S6-2` — Mis-ownership is undetectable by aggregate: the pathology class for which no probe can be written
+
+- **Id:** `F-S6-2`
+- **Finding:** OUT-2 requires that a pathology class for which no probe could be written is reported
+  as a finding rather than recorded as a silent omission. This is that class. **No aggregate query
+  can detect that two human principals' rows are commingled in the pre-cutover population**, because
+  no column in any of the ten population-A tables distinguishes one principal from another — a grep
+  for every ownership-column form returns zero matches at `35f92ba`. There is no count, no grouping
+  and no `DISTINCT` that returns a different answer under one human than under two. The probe set of
+  `06_the-disposition-of-every-unowned-row.md` §6 looks for dirty data; this is not dirty data, it is
+  **absent** data, and no probe of any size reaches it.
+- **Evidence:** the zero-match grep recorded at `06_the-disposition-of-every-unowned-row.md` §1.2,
+  corroborated at
+  `../C010-system-and-repository-architecture/04_state-category-inventory.md:442`–`:443`;
+  `notes.author` is a two-value kind enum carrying no identity (`src/infrastructure/db/schema.ts:296`,
+  constrained at `:308`); `mcp_request_log.session_id` is a *learning*-session id read from tool
+  arguments (`src/transport/audit-middleware.ts:94`–`:99`), not a principal.
+- **Consequence:** `A-S6-1` — the single-principal premise on which ten of the fourteen dispositions
+  rest — **is unfalsifiable in place**. If it is false, the backfill commingles two people's data
+  under one identity, which is worse than leaving the rows unowned and is the opposite of what this
+  package exists to deliver. The premise can only be settled from knowledge outside the database.
+- **What is assumed rather than derived:** Nothing about the finding itself. The finding is precisely
+  that the *assumption* `A-S6-1` cannot be converted into a derivation by any available query.
+- **Handed to:** **The creator, as sole maintainer and sole operator** — the only party who knows
+  whether any second human ever used the deployment. Additionally **SUB-9 (NEU-1003)** and
+  **SUB-17 (NEU-1008)**, whose audits range over the premise's consequences.
+
+#### `F-S6-3` — The Tier-2 blocking aggregate under-reports for five weeks after cutover, then becomes fixable for the first time
+
+- **Id:** `F-S6-3`
+- **Finding:** `DrizzleTier2BlockingStatsRepository` aggregates `infrastructure.operation_event_log`
+  over a rolling five-week window. Archiving the pre-cutover rows removes from that window every row
+  written before the cutover, so for the five weeks immediately following it the aggregate reads a
+  truncated set and **under-reports its weekly blocking counts**. After five weeks it reads only
+  carrier-bearing rows — at which point a confinement predicate **can** be pushed below its
+  aggregation, and `F-S5-9` becomes fixable for the first time.
+- **Evidence:** the query and its five-week window at
+  `src/adapters/drizzle/tier2-blocking-stats-repository.ts:34`–`:47`, whose `WHERE` clause at
+  `:40`–`:42` filters only on event type, the window and a not-null guard, with **no ownership
+  predicate** because the table has no ownership column; SUB-5's registration of the same query as
+  `F-S5-9`.
+- **Consequence:** A live code path changes behaviour for a bounded period as a direct result of this
+  sub-task's disposition. It is **not fixed here** — nothing in this sub-task touches `src/` — and
+  the under-reporting is transient and self-correcting, but a consumer reading those counts across
+  the cutover would see an unexplained dip.
+- **What is assumed rather than derived:** That the archive removes the rows from the table the
+  aggregate reads. That is what `archive` means in `DR-C11-S6-2`, but the mechanism by which the rows
+  leave — a move to a separate table, a partition detach — is SUB-13's to choose, and a choice that
+  left them readable by this query would make the finding moot.
+- **Handed to:** **SUB-7 (NEU-1001)** under OUT-3 for the sequencing, and **SUB-13 (NEU-1006)** under
+  OUT-19, which writes the migration and chooses the mechanism.
+
+#### `F-S6-4` — `LD-S3-32` does not exist at position 8 either: a classified artifact that has still never been produced
+
+- **Id:** `F-S6-4`
+- **Finding:** SUB-3 inventoried the aggregate result set as `LD-S3-32`, classified it *not personal
+  data*, and recorded that it "does not exist at position 3". SUB-5 restated it as SUB-6's to
+  produce. **SUB-6 could not produce it.** The queries are specified and published; their values
+  require a credential that does not exist. The package therefore carries a classified artifact that
+  has now failed to appear at two consecutive positions, and would carry it silently if this were not
+  recorded.
+- **Evidence:** `03_learner-data-inventory-and-classification.md:473`–`:476` (the classification and
+  the "does not exist at position 3" note);
+  `05_the-enforcement-point-that-confines-every-read-and-write.md:613`–`:614` (SUB-5 naming it as
+  SUB-6's); `06_the-disposition-of-every-unowned-row.md` §6.4, where every result cell reads *not
+  executed — no credential*.
+- **Consequence:** SUB-3's classification is correct and stays correct — it is a correct
+  classification of something that does not exist. But OUT-20's band reconciliation would otherwise
+  find an inventoried category with no producing artifact and no explanation.
+- **What is assumed rather than derived:** Nothing. The non-existence is a fact about this
+  environment, recorded rather than inferred.
+- **Handed to:** **SUB-14 (NEU-1007)** under OUT-20 for the band reconciliation, and
+  **SUB-17 (NEU-1008)** for the completeness audit. Tracked as `OI-S6-1`.
+
+#### `F-S6-5` — The archive stage opens a transient write-unavailability window on both log tables — and it is not a third cause of the smoke-run break
+
+- **Id:** `F-S6-5`
+- **Finding:** Stage S1 moves the pre-cutover rows of both log tables. During the move, the audit and
+  event transports' batch inserts can fail. This is a **transient** window bounded by the stage's
+  duration, not a standing refusal, so it is **not a third independent cause** of the deploy-pipeline
+  smoke-run break `F-S5-12` records — that break still has exactly the two causes SUB-4 and SUB-5
+  identified. It is nonetheless a new sequencing input that SUB-7 does not otherwise have.
+- **Evidence:** the two raw batch inserts at `src/transport/pg-audit-transport.ts:117`–`:118` and
+  `src/transport/pg-event-transport.ts:109`–`:110`; `F-S5-12` at
+  `05_the-enforcement-point-that-confines-every-read-and-write.md:1217`–`:1221`; the per-stage
+  analysis at `06_the-disposition-of-every-unowned-row.md` §10.
+- **Consequence:** Both transports buffer and drop rather than crash, so the failure mode is lost
+  audit entries within `OBJ-10`'s stated allowance rather than a failed deploy or a crashed process.
+  SUB-7 must nonetheless place S1 where that loss is acceptable.
+- **What is assumed rather than derived:** That the drop-rather-than-crash behaviour holds under this
+  particular failure. The transports' circuit-breaker path is designed for a failing sink, and a
+  missing or locked table is within that class, but no test exercises this specific case.
+- **Handed to:** **SUB-7 (NEU-1001)** under OUT-3.
+
+#### `F-S6-6` — Seven of the fourteen tables carry no pathology probe, and `operation_event_log` is the one that matters
+
+- **Id:** `F-S6-6`
+- **Finding:** OUT-2 asks for a probe per named pathology **per table**. The published set does not
+  deliver 5 × 14. `06_the-disposition-of-every-unowned-row.md` §6.3 resolves every pathology, for
+  every table, to **probed**, **foreclosed by constraint or type**, or **not probed** — and seven
+  tables fall in the third state: `session_chunks`, `session_question_chunks`,
+  `session_question_attempt_revisions`, `context_tokens`, `linter_validation_corpus`,
+  `linter_rule_validation_report` and `operation_event_log`.
+- **Evidence:** the coverage table at `06_the-disposition-of-every-unowned-row.md` §6.3, derived from
+  the probe set at §6.2 by resolving each of the twelve probes against each of the fourteen tables in
+  §3.
+- **Consequence:** Six of the seven are defensibly low-consequence — five carry only `NOT NULL`
+  scalars behind constraint-backed foreign keys and take `backfill-by-join`, and
+  `linter_rule_validation_report` takes `no-key-owed` and is read by no stage.
+  **`operation_event_log` is not.** It takes `archive`, it holds learner free text, it is the table
+  the one unconfinable aggregate reads (`F-S5-9`), and it is named inside `P-ENC-1`'s column list
+  without a discovery query of its own. A pathology in it would reach the archive unexamined.
+- **What is assumed rather than derived:** That the six low-consequence tables really are low
+  consequence. That rests on their columns being constraint-covered scalars, which is read from the
+  schema, and on their dispositions not reading any un-probed column, which is read from §9.2 — but
+  neither has been exercised against real rows, because no probe has run at all.
+- **Handed to:** **SUB-13 (NEU-1006)** under OUT-19, which inherits the pre-flight probe re-run
+  `R9` requires and is the party that would write the missing `operation_event_log` probe before
+  execution.
+
+---
+
+**SUB-6 register totals at revision 1:** six findings, `F-S6-1` … `F-S6-6`. **Two are the findings
+OUT-2 names by requirement**: `F-S6-2` is the pathology class for which no probe can be written, and
+the companion requirement — a table for which no disposition can be justified — was checked against
+all fourteen and returned **none**, so it is recorded as *checked and not filed* at
+`06_the-disposition-of-every-unowned-row.md` §3 rather than filed as an empty entry, and `F-S6-6`
+records the residual on the *other* half of that clause — the literal "per table" reading the probe
+set does not fully satisfy. Of the remaining four, one reconciles two predecessors' opposite
+conclusions (`F-S6-1`), one is a behavioural consequence of this sub-task's own disposition on a live
+code path (`F-S6-3`), one is a package-hygiene defect found in passing (`F-S6-4`), and one is a
+sequencing input with an explicit statement of what it is **not** (`F-S6-5`). Every entry carries an
+owner.
+
+**No contradiction with C010 was found by SUB-6, and no amendment is routed to `NEU-895`.** Seven
+C010 items were checked one by one at `06_the-disposition-of-every-unowned-row.md` §13 and the check
+returned empty. The three candidates that might have routed one did not. The `A-28` envelope check
+places every disposition **inside** the envelope, and `no-key-owed` — the one value the envelope does
+not name — is inside under **both** readings of its scope, so the invalidating outcome did not fire.
+`SC-S3-45` is a category this migration **creates**, which is an addition to a C010 pricing rather
+than a contradiction of one. And the 46 / 43 / 3 tool surface was re-counted independently at this
+cutoff and **agreed** with `F-S5-3`; `42` is not repeated as a codebase fact anywhere.
+
+**One finding is deliberately framed by what it excludes.** `F-S6-5` exists as much to state that
+this sub-task adds **no third cause** to `F-S5-12` as to record the window it does add. SUB-5 was
+explicit that the whole content of `F-S5-12` is that fixing one cause does not fix the other; a
+sub-task that quietly introduced a third would destroy that fact's usefulness to SUB-7, and one that
+introduced a transient window without saying it was *not* a third would leave SUB-7 to work it out.
