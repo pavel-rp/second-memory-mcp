@@ -72,6 +72,8 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S6-1_the-migration-disposition-scheme.md` | SUB-6 (NEU-1000) | OUT-2 |
 | `DR-C11-S6-2_archiving-the-pre-cutover-log-population.md` | SUB-6 (NEU-1000) | OUT-2 (the disposition of the population `F-S8-2` and `R-S16-1` route to SUB-9 for its *propagation* action) |
 | `DR-C11-S6-3_aggregate-then-generate-and-the-exclusion-evidence.md` | SUB-6 (NEU-1000) | OUT-2 (and the evidence SUB-3 named SUB-6 to supply for the exclusion recorded at position 3) |
+| `DR-C11-S7-1_the-rollout-stage-order.md` | SUB-7 (NEU-1001) | OUT-3 (the total order, and the audit that the transport gate is not last) |
+| `DR-C11-S7-2_the-deploy-independent-disable-path.md` | SUB-7 (NEU-1001) | OUT-3 (the per-stage disable path) and OUT-4 (containment separately exercisable from reversal) |
 | `DR-C11-S11-1_the-client-compatibility-contract.md` | SUB-11 (NEU-1004) | OUT-16 |
 | `DR-C11-S9-1_the-pre-cutover-population-disposition.md` | SUB-9 (NEU-1003) | OUT-12 (and `F-S8-2`'s stated resolving event — bulk deletion at archive close, under storage limitation) |
 | `DR-C11-S9-2_the-copy-set-closure-argument.md` | SUB-9 (NEU-1003) | OUT-12 (the "no unowned copy" claim, closed over write paths with a stated falsifier) |

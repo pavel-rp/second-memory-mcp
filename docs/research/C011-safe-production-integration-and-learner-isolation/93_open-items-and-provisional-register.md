@@ -611,6 +611,42 @@ inside the `OBJ-1` check rather than re-raised, and the single-principal questio
 stand-in `A-S6-1` plus the finding `F-S6-2` rather than additionally as an open item — one id per
 fact, and that fact is already carried twice for two different reasons (what is assumed, and why no
 probe can settle it) rather than three times.
+
+---
+
+### SUB-7
+
+> **Id-collision disclosure.** **`OI-S7-1` also exists in C010**, where sub-task 7 is a different
+> sub-task about a different subject. Under `F-S2-2`'s rule a bare `OI-S7-1` means **this** package's;
+> C010's is always written qualified. The full six-id set this sub-task collides on is listed once, at
+> `94_caps-and-incomplete-scope.md` § SUB-7.
+
+#### `OI-S7-1` — Which of `R-S4-2`'s three routes stage `T0` takes has not been chosen
+
+- **Id:** `OI-S7-1`
+- **Item:** `R-S4-2` names three mutually exclusive routes for the deploy pipeline's smoke run — re-scope the suite, re-provision the smoke principal as a user-kind principal, or accept a known-failing step. They have materially different consequences: the first two preserve `SIG-S16-4`'s only automated limb, the third leaves it dark for four subsequent stages. **No party has chosen.** Stage `T0` cannot be entered until one is chosen and recorded, and `T0` gates the two stages that break the suite (`T6` and `T8`).
+- **Status:** Open.
+- **Source:** `92_risk-register.md:269`–`:278` (`R-S4-2`, which names the three routes); `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §5 and §6, where `T0`'s entry condition is the choice.
+- **Consumer:** SUB-13 (NEU-1006), which cannot write `T0`'s runbook step without knowing which route it describes. OUT-3 and OUT-4.
+- **Owner:** **The creator**, as sole operator — the only party who can re-scope the smoke suite, re-provision its principal in the IdP, or accept a standing red step. The same owner `R-S4-2` names.
+- **Resolving event:** The operator records a route, and a cd-prod run completes with its smoke job green under that route (or, on the third route, with the two affected scenarios explicitly marked expected-failing).
+- **Why not a stand-in:** It is an unmade decision with three named, obtainable answers, not an assumption the architecture provisionally rests on. The sequence does not assume any particular route — it is correct under all three, and only the observability consequence differs, which is why the exposure is carried separately as `R-S7-1` rather than as a tolerance envelope here.
+- **Why this is not a second record of `OI-S4-2`:** SUB-4's `OI-S4-2` asks *whether the smoke suite can be re-scoped without losing regression value* — a question about the merits of **one** of the three routes, and an input to this decision. This item is the **decision itself**, which exists whether or not `OI-S4-2` resolves: even a definitive "yes, it can be re-scoped safely" leaves the operator to actually choose and record a route before `T0` can be entered. `OI-S4-2` is cited here and not restated, and it keeps its own owner and resolving event.
+
+---
+
+**SUB-7 register totals at revision 1:** one open item, `OI-S7-1`, **open**, with a named owner and
+an observable resolving event. One item rather than several because this sub-task's other unknowns
+are not questions of its own: the backups question is **`OI-S1-8`** (cited by id in
+`07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §7 as the reason no reversal may assume
+a restore, with **no second record raised**), the unrouted-alert question is **`OI-S1-9`** under
+stand-in `A-S16-1`, the missing row counts that leave two stages' durations unbounded are
+**`OI-S6-1`**, and whether the Drizzle migrator takes an internal advisory lock is the bounded reading
+gap **`R-S15-3`** already records. Each is consumed by citation and none is re-raised.
+
+**Zero dispositions of another package's items are recorded here.** This sub-task consumes C010's
+§4.3 sequencing consequence as a binding constraint and honours it (`07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §4);
+it takes no reading of any C010 residual id and closes none.
 ### SUB-11
 
 #### `OI-S11-1` — Nothing keeps the gate's exclusion set and the empty-schema tool set in agreement, so the exempt figure of 3 is true at a cutoff rather than enforced
