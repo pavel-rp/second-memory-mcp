@@ -1147,3 +1147,66 @@ is a specification. And it claims no implementation: no file under `src/` or `dr
 DDL is authored, and nothing is applied.
 
 **Authored by.** SUB-9 (NEU-1003).
+
+---
+
+### SUB-12
+
+## OUT-17 — A security, privacy, ownership and data-lifecycle threat model, resolved into measurable production gates with owners
+
+**Outcome.** Threats are enumerated across every MCP and prospective general-web-API read, write,
+session, retrieval, context-token, analytics, migration and **operator** path — **56 paths across eleven
+classes (A–K)** — and each carries an explicit isolation or lifecycle invariant. **No cross-learner access
+is left to convention, and zero paths lack an invariant.** Operator access is **modelled, not
+exempted**: twelve operator paths, including direct `psql`, SSH to the single VPS. Every critical
+gap resolves to a measurable control with a named owner and a threshold — **26 gates** — and the two
+gaps for which no measurable control exists are recorded as **blocking findings with owners** rather
+than accepted. The model covers the prospective general web API at the boundary C010's
+`../C010-system-and-repository-architecture/11_web-api-scope-and-resource-inventory.md` fixed,
+consuming it and re-deciding nothing.
+
+**Resolving evidence.**
+
+| Acceptance condition | Where it is discharged |
+| --- | --- |
+| Path-by-path invariant matrix, zero paths lacking an invariant | `12_threat-model-and-the-gates-that-authorize-implementation.md` §4–§6; the count is §9.2 — **56 of 56** |
+| Adversarial review of the operator path specifically | §5 — twelve paths (`TP-S12-35` … `TP-S12-43`, `TP-S12-54` … `TP-S12-56`), each with an invariant and an owner; §5.1's `F-S12-4`; §5.2's scope statement |
+| Gate register: control, threshold, owner and evidence source per critical gap | §8 — 22 rows, four populated columns each, plus a provenance label and a transport column |
+| A gap without a measurable control recorded as a blocking finding | §8.1 — `F-S12-5`, `F-S12-6` |
+| Cross-check: every gate to a threat and every critical threat to a gate, as counts in both directions | §9.1 (**26 of 26**) and §9.2 (**42 gap paths: 38 + 2 + 1 + 1, zero unrouted**) |
+| The amendment to `DR-C10-S5-1`, in a form the inherited-universe risk record consumes, naming SUB-17 | §10; `decision-records/DR-C11-S12-2_the-unconfined-aggregate-as-a-control-input.md` |
+| Decision records with rejected alternatives | `DR-C11-S12-1` (5 rejected), `DR-C11-S12-2` (5 rejected), `DR-C11-S12-3` (4 rejected) |
+| Traceability | `traceability/S12_threat-model-and-gates.md` |
+
+**Success measure — the measure by which OUT-17 was judged done.** Authored here, not derived, and
+stated as four numbers plus one event, each mechanically checkable by a reader holding only the
+published package:
+
+1. **Paths lacking an invariant: 0**, out of 56 enumerated. *(Met.)*
+2. **Operator paths modelled: 12, exempted: 0.** *(Met.)* Before this chapter the count of modelled
+   operator paths was zero, in both packages.
+3. **Critical gaps with all four of a control, a threshold, an owner and an evidence source: 26.**
+   Gaps with none, recorded as blocking findings with owners: **2**. Gaps resolving to nothing: **0**.
+   *(Met.)*
+4. **The cross-check closes in both directions**, with the arithmetic shown rather than asserted:
+   14 + 42 = 56 and 38 + 2 + 1 + 1 = 42. *(Met.)*
+5. **The amendment route fired at least once.** *(Met — once, `DR-C11-S12-2`, under trigger 3.)*
+   This is the event rather than a number, and it is the measure that matters most: eleven merged
+   chapters each recorded *"no amendment routed"*, which is the kind of unbroken run that begins to
+   read as evidence that the check does not fire.
+
+**What the success measure deliberately does not include.** It sets **no threshold on the number of
+gaps found**, because a threat model that found fewer gaps would not thereby be better, and a target
+would create a reason to under-report. It also **claims no movement on C010's `F-S5-4` census** —
+0 of 45 categories reach `holds`, unchanged, and §12 says so.
+
+**What this outcome does not claim.** It claims no production fact: no threshold in the gate register
+is a measurement, no gate is implemented, and `observed-in-production` is used **zero** times. It
+does not claim the ingress set is closed in fact — `F-S12-5` records the one shape no reading of this
+repository can close. It does not claim any modelled threat has occurred, in particular that
+`F-S12-1` has ever been exercised (`SPK-S12-3`, not executed) or that the operator has performed any
+of §5's twelve paths. It does not claim `NEU-895` will accept the routed amendment. And it claims no
+implementation: no file under `src/` or `drizzle/` changes, no DDL is authored, and nothing is
+applied.
+
+**Authored by.** SUB-12 (NEU-1005).

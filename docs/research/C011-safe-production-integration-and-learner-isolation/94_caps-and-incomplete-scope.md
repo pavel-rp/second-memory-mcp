@@ -388,3 +388,61 @@ has an available party (the creator, as sole operator) and an observable resolvi
 deletion runs). A cap says no party can close a limit; filing either as one would mis-describe an
 unperformed action as an unresolvable gap, and would hand SUB-17's audit a permanent limit where
 there is a closable one — the reasoning SUB-6 recorded for the same choice.
+
+---
+
+### SUB-12
+
+One cap.
+
+#### `CAP-S12-1` — Every gate in the register is a specification, and not one has ever been evaluated
+
+- **Cap.** The gate register (`12_threat-model-and-the-gates-that-authorize-implementation.md` §8)
+  states 26 controls with thresholds, owners and evidence sources. **None is implemented, none has
+  been evaluated, and no threshold is a measurement.** Provenance across the register is 19 derived,
+  2 stand-in, 5 deferred spike, and **zero production observations** — the label
+  `observed-in-production` is available to this chapter and used zero times.
+- **Why it is a cap and not an open item or a risk.** No party inside this package can close it. A
+  gate is evaluated by observing the running deployment, and **no production credential of any kind
+  exists** in the environment this package was written in (`F-S1-2`, independently re-probed at
+  cutoff `57aeba3`). It is not an unanswered question with a resolving event this package could
+  reach, and it is not a residual exposure — it is a limit on what the artifact can be.
+- **Relation to `CAP-S1-1`.** SUB-1's cap records that the package carries **no live production
+  evidence** at all. This is the gate-specific form of that limit, and it is filed separately for the
+  same reason SUB-15 filed `CAP-S15-1` rather than folding into `CAP-S1-1`: a reader of the gate
+  register needs the cap attached to the artifact they are reading. **The general fact is cited, not
+  restated** — no second record of the credential absence is raised here.
+- **Owner.** **The creator, as sole maintainer and sole operator**, for the credential; **`NEU-896`**
+  as the convergence gate that would authorize implementation on the strength of unevaluated gates.
+- **Lifting condition.** A production credential exists, and at least one gate in §8 is evaluated
+  against the running deployment and its result recorded. **The cap narrows per gate rather than
+  lifting all at once**, since the 22 have different owners and different evidence sources; it lifts
+  entirely when every gate has been evaluated at least once.
+- **Status:** **open**.
+
+**Why this sub-task files exactly one cap, stated rather than left as an absence.** Two other limits
+were tested against the cap definition and both failed it. **`F-S12-5`** — that a database-side
+execution path cannot be ruled out — looks like a cap and is filed as a **blocking finding** instead,
+because it has an available party (the creator, who can connect to the database) and an observable
+resolving event (`SPK-S12-2` runs), and a cap says *no party can close this limit*. **`F-S12-6`** —
+the unobservable propagation instruction to an MCP host — is likewise a blocking finding with
+`NEU-896` as its available party at convergence. Filing either as a cap would hand SUB-17's audit a
+permanent limit where a closable one exists, which is the reasoning SUB-6 and SUB-9 each recorded for
+the same choice.
+
+**One cap this sub-task cites and does not re-file, and one it declines to cite.** C010's
+`CAP-S3-3` and `CAP-S4-1` — the log-table retention-and-deletion caps, owner `NEU-986`, co-named
+`NEU-896` — are where `GATE-S12-9` and `GATE-S12-18` route; they stay with their owner and are
+**recorded by disposition, not absorbed**. The cap this sub-task **declines to cite is `CAP-S1-3`**:
+SUB-11 established that the id is referenced package-wide but **has no register entry anywhere**
+(`F-S11-5`, this register at `:271`–`:281`), so this sub-task cites **`F-S11-5`** for the QA no-op
+position instead. Citing a phantom id would be precisely the unchecked inheritance
+`12_threat-model-and-the-gates-that-authorize-implementation.md` is about.
+
+**On the two `CAP-S12-1`s.** **C010 has its own `CAP-S12-1`** — *"the seven questions that block an
+independent reader cannot be answered inside this charter"*
+(`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:422`). It is **a
+different cap with the same id**, and C010's is always written qualified with its full package path.
+A bare `CAP-S12-1` in this package means SUB-12 of C011's. This is the collision class `F-S2-2` and
+`F-S9-3` warn about, and it is sharper here than elsewhere because `NEU-986` — C010's SUB-12 — is
+also the **named owner** of two caps this sub-task routes work to.
