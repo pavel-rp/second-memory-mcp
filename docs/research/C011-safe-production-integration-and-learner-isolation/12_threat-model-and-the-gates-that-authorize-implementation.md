@@ -879,10 +879,18 @@ Two things make them safe, and both are checkable:
    appears nowhere would be the genuine hazard; none here is.
 2. **Every *cross-package* citation is written in full**, with its `../C010-…/` prefix. These are the
    refs the checker actually resolves, and they are what makes this chapter's `0 non-resolving`
-   result load-bearing rather than vacuous. Four of them were wrong in the first commit — bare
-   `11_web-api-scope-and-resource-inventory.md` refs, class `C3-bare-upstream` — and were found by
-   running the checker against a temporarily-gated C011 rather than by reading. C011's baseline was
-   **0**, so all four were introduced by this sub-task and all four are fixed.
+   result load-bearing rather than vacuous. Four of them were wrong in the first commit — references
+   to C010's web-API chapter written as a **bare filename with no `../C010-…/` prefix**, class
+   `C3-bare-upstream` — and were found by running the checker against a temporarily-gated C011 rather
+   than by reading. C011's baseline was **0**, so all four were introduced by this sub-task and all
+   four are fixed.
+
+   **A recursive instance, worth one sentence.** The first version of this very paragraph *quoted*
+   the offending bare filename as an example, and the checker flagged it — correctly, because a
+   checker cannot tell a citation from a specimen of a bad citation. Two more non-resolving refs were
+   introduced by the paragraph documenting the four. The wrong form is therefore described here
+   rather than reproduced, and the episode is left in because it is the same lesson as §2.4: the
+   mechanical check found what the careful reading had just missed, twice in the same section.
 
 **The `11_…` abbreviation is the one that could still mislead**, because both packages have a
 chapter `11_`. Every occurrence of it above is either written `C010's 11_…` or is the sentence in §1

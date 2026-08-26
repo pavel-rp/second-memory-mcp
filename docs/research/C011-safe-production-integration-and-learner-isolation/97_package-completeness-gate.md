@@ -467,10 +467,14 @@ references, counted mechanically: 3 × `04_…`, 28 × `05_…`, 2 × `08_…`, 
 5 × `16_…`. Two checks make them safe and both are mechanical: **every one of the six prefixes is
 also cited at least once in full in the same file**, and **every cross-package citation is written in
 full** with its `../C010-…/` prefix. The second is what makes this sub-task's `0 non-resolving` result
-load-bearing. **Four cross-package refs were wrong in the first commit** — bare
-`11_web-api-scope-and-resource-inventory.md`, class `C3-bare-upstream` — found by running the checker
-against a temporarily-gated C011 rather than by reading; C011's baseline was **0**, so all four were
-introduced here and all four are fixed.
+load-bearing. **Four cross-package refs were wrong in the first commit** — references to C010's
+web-API chapter written as a bare filename with no `../C010-…/` prefix, class `C3-bare-upstream` —
+found by running the checker against a temporarily-gated C011 rather than by reading; C011's baseline
+was **0**, so all four were introduced here and all four are fixed. **Two further ones were then
+introduced by the paragraph documenting the four**, because it quoted the offending bare filename as
+a specimen and the checker cannot distinguish a citation from an example of a bad citation. The wrong
+form is now described rather than reproduced. The episode is recorded rather than tidied away: the
+mechanical check caught what a careful reading had just missed, twice in the same section.
 
 **No QA pass.** The `qa-execution` surface is unconfigured, so the automated QA phase is a genuine
 Core Article 8 no-op. **This sub-task cites `F-S11-5` for that position rather than `CAP-S1-3`:**
