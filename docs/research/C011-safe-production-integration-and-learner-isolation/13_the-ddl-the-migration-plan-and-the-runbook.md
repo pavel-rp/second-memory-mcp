@@ -63,7 +63,7 @@ upstream chapter's citation alone, because the DDL below is written against it.
 | `infrastructure.linter_validation_corpus` | `id` (bigserial) | `src/infrastructure/db/schema.ts:333`–`:362`, key at `:336` |
 | `infrastructure.linter_rule_validation_report` | `rule_id` | `src/infrastructure/db/schema.ts:364`–`:378`, key at `:367` |
 
-The two log tables are **not** in `schema.ts`. They exist only as raw SQL:
+The two log tables are **not** in `src/infrastructure/db/schema.ts`. They exist only as raw SQL:
 `infrastructure.mcp_request_log` at `drizzle/0010_create_infrastructure_mcp_request_log.sql:3`,
 extended by `drizzle/0012_extend_mcp_request_log.sql:1`–`:3`; and
 `infrastructure.operation_event_log` at `drizzle/0013_create_operation_event_log.sql:1`. Both key on
@@ -78,7 +78,7 @@ extended by `drizzle/0012_extend_mcp_request_log.sql:1`–`:3`; and
 **The boot order, which prices everything in §4 and §5.** `src/transport/main.ts:27` calls
 `initializeDatabase()` on **both** transports; `src/infrastructure/db/migrate.ts:44`–`:48` resolves
 the migrations folder and runs the Drizzle migrator. Configuration resolves *after*, at
-`src/transport/main.ts:42`–`:43` and `src/composition-root.ts:379`. There are twenty-five `.sql`
+`src/transport/main.ts:42`–`:43` and `src/composition-root.ts:379`. There are twenty-five SQL
 files under `drizzle/` and the journal's last entry is `idx: 24`, tag
 `0024_add_attempt_scheduling_snapshot`, so the first migration this plan describes would be `0025`.
 
@@ -1285,11 +1285,27 @@ implementation charter builds them, every "off" position in this chapter is a sp
    (`scripts/citation-paths/checker.ts:247`–`:266`) — the excluded bucket was read entry by entry.
    C011 is **not** in the gated list (`scripts/check-citation-paths.ts:21`); that is `CAP-S1-2`,
    owned by SUB-14, so the checker was run by hand.
-3. **The spike register holds twenty-four entries at this cutoff**, not the twenty an earlier tally
-   records: nine `SPK-S1-*`, four `SPK-S15-*`, three `SPK-S2-*`, two `SPK-S4-*`, two `SPK-S6-*`, one
-   each of `SPK-S16-1`, `SPK-S8-1`, `SPK-S11-1` and `SPK-S9-1`. The earlier tallies were correct when
-   written and are scoped to their own sub-tasks' sections; the **current** total is stated here once,
-   counted at `fd05ca1`, for SUB-14's aggregation. `SPK-S13-1` makes twenty-five.
+
+   **The `MISSING-target` bucket was read entry by entry rather than trusted to be empty, and it is
+   not empty.** C011 carries 28 `repo-root-corpus` and 1 914 `repo-root-source` exclusions, plus a
+   `MISSING-target` set that pre-exists this chapter. **Four entries this chapter contributed were
+   repaired** — three bare `schema.ts` references and one bare `.sql`, all rewritten to resolve or
+   reworded. **Three remain, and each is disclosed rather than removed**, because each is
+   deliberate and each matches an existing convention in the package: `pgvector/pgvector:pg16` (a
+   container image tag, not a path), `/home/deploy/docker-services/second-memory-mcp` (a host path
+   outside this repository, identical to the one at `DR-C11-S7-2`'s clause 1), and
+   `decision-records/DR-C11-S13-1` in the outcome register's *"Verified by"* line (an
+   extension-less reference in the shape SUB-9 already uses at `97_package-completeness-gate.md:380`).
+   **None of the three is a broken citation**; all three are strings the normalizer takes for paths.
+   They are named here because the checker's zero is a weaker signal than it looks, and an
+   undisclosed bucket entry is how the last false certification happened.
+3. **The spike register's running total is not re-counted here, because it is already owned.**
+   `F-S9-2` records it as **twenty-four** at SUB-9's branch HEAD (`09_proving-a-data-right-reaches-every-copy.md:85`),
+   with zero executed. `SPK-S13-1` makes **twenty-five**, and that increment is the only count this
+   chapter states. A fresh tally was drafted here and removed: it would have been a **second register
+   record of one quantity**, which is exactly what the one-id-per-fact rule forbids and what this
+   chapter criticises elsewhere. Earlier tallies in the register totalling twenty are scoped to the
+   sub-tasks that had landed when they were written and are not errors.
 
 **On C010.** No contradiction with a C010 decision was found by SUB-13. `DR-C10-S8-2`'s
 reject-don't-grandfather rule is consumed and is what makes `T5` and gate `D` two separate purges;
@@ -1314,7 +1330,7 @@ does `CAP-S7-1`; every reference above is to the **C011** entry unless the path 
 | `F-S13-3` | SUB-7's ten stages carry no stage for the consent table SUB-8 routes here | **SUB-7** (NEU-1001), **SUB-8** (NEU-1002), `NEU-896` |
 | `F-S13-4` | The ten population-A tables span two schemas, so `S3`/`S5` cannot be one `public` loop | the implementation charter |
 | `F-S13-5` | The three-step `SET NOT NULL` removes a lock and a scan, and buys no `OBJ-8` compliance | **SUB-7**'s owner, the implementation charter |
-| `F-S13-6` | Two of the three carrier sites are raw-SQL tables with no Drizzle definition, and one is not — the implementation charter must keep `schema.ts` in step for exactly one of them | the implementation charter |
+| `F-S13-6` | Two of the three carrier sites are raw-SQL tables with no Drizzle definition, and one is not — the implementation charter must keep `src/infrastructure/db/schema.ts` in step for exactly one of them | the implementation charter |
 | `F-S13-7` | The archive predicate must be the recorded cutover timestamp, never `principal_kind = 'none'` | the implementation charter, **SUB-17** |
 | `F-S13-8` | `F-S7-4` says `T5` and `T9` are *"six stages apart"* in two places; they are four. The finding's conclusion is unaffected | **SUB-7** (NEU-1001), **SUB-14** (which aggregates the register), **SUB-17** |
 | `R-S13-1` | The batch bound is a stand-in, so the sweep's completion horizon is unknown in both directions | the creator, `NEU-896` |

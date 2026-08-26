@@ -743,3 +743,56 @@ open item: an open item records an unanswered question with an observable resolv
 is an **answered** one — the enumeration found the call sites and named them. What is unanswered is
 the *terms* the receiving provider applies, and that is `SPK-S9-1`, a spike with a method and an
 expiry. The exposure is a finding, the unknown is a spike, and neither is an open item.
+
+---
+
+### SUB-13
+
+> **Id-collision disclosure.** **`OI-S13-1` also exists in C010**
+> (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:301`), where
+> sub-task 13 is a different sub-task about the authority matrix. Under `F-S2-2`'s rule a bare
+> `OI-S13-1` means **this** package's; C010's is always written qualified. The full five-id set this
+> sub-task collides on is listed once, at `94_caps-and-incomplete-scope.md` § SUB-13.
+
+#### `OI-S13-1` — Which rollout stage lands the consent record's table has not been decided
+
+- **Id:** `OI-S13-1`
+- **Item:** SUB-8 routes the consent record's DDL to this sub-task (`08_consent-and-what-a-learner-can-export-and-erase.md` §5, `LD-S8-1`), and the DDL is authored (`13_the-ddl-the-migration-plan-and-the-runbook.md` §2.4). **SUB-7's ten-stage total order contains no stage that lands it.** The cause is positional and blameless — SUB-8 sits at dependency position 10 and SUB-7 at position 9, so SUB-7 sequenced the five sweeps and four gate stages it was handed. Adding an eleventh stage, or attaching the table to an existing one, is a change to the published order and therefore a re-decision of OUT-3, which this sub-task is out of scope to make.
+- **Status:** Open.
+- **Source:** `F-S13-3` in `91_findings-register.md`; `DR-C11-S7-1`'s ten-row stage table; `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §6, checked stage by stage.
+- **Consumer:** The implementation charter, which cannot schedule the consent table's migration without it; **SUB-8** (NEU-1002), whose `LD-S8-1` acquires a rollout dependency it did not have when it was designed.
+- **Owner:** **SUB-7's owner (NEU-1001)**, as the party that owns OUT-3 and the stage set. Co-named **`NEU-896`** at convergence, since the consent record's timing is also a cross-package question about when consent capture begins.
+- **Resolving event:** SUB-7's owner names the stage — an existing one or a new one — and states it against the published order.
+- **Why not a stand-in:** Nothing in the DDL, the migration plan or the runbook rests provisionally on an answer. The table's DDL is correct and self-contained whenever it lands; what is missing is a scheduling decision with an available decider, which is the definition of an open item rather than of a tolerance envelope.
+
+#### `OI-S13-2` — Whether the production database role is a non-owner, without which the published RLS layer is inert
+
+- **Id:** `OI-S13-2`
+- **Item:** `F-S13-2` establishes from the repository that the boot migrator and the application share one pool, one `DATABASE_URL` and therefore one database role, so that role **owns** the tables it created — and PostgreSQL exempts a table's owner from its RLS policies unless `FORCE ROW LEVEL SECURITY` is set. `FORCE` closes the owner case; it does **not** close the superuser case, and a superuser bypasses RLS regardless. The repository's own compose runs Postgres as `postgres`, the cluster superuser (`docker-compose.yml:6`), but **the production compose stack is off-repo** (`.github/workflows/cd-prod.yml:15`, `:26`–`:30`), so the production role's identity and privileges are unobserved. Until they are known, the RLS appendix at `13_the-ddl-the-migration-plan-and-the-runbook.md` §2.5 cannot be said to filter anything.
+- **Status:** Open.
+- **Source:** `F-S13-2`; `src/infrastructure/db/migrate.ts:45`; `src/infrastructure/db/client.ts:37`–`:53`; `docker-compose.yml:6`.
+- **Consumer:** **SUB-5** (NEU-997) as `OI-S5-1`'s raiser — this is the **second** obstacle to that open item's RLS layer, alongside the transaction cost it already records; the implementation charter, which must not adopt the appendix before this resolves.
+- **Owner:** **The creator**, as the only party with access to the off-repo compose stack and its environment.
+- **Resolving event:** The role the production `DATABASE_URL` authenticates as is reported, together with whether it is a superuser and whether it owns the `public` and `infrastructure` schemas. Read-only; no mutation; the same acquisition class as `SPK-S4-1`.
+- **Why not a spike:** It is very close to one, and it is filed as an open item because the question is answerable by the operator from knowledge they already hold, without designing a procedure or connecting to anything. A spike here would duplicate the access `SPK-S1-4` and `SPK-S1-9` already need without asking a question either of them asks.
+- **Why not a second record of `OI-S5-1`:** `OI-S5-1` asks whether wrapping every row-owning read in a transaction is affordable against `OBJ-1` — a **cost** question about a mechanism. This asks whether the mechanism has any effect at all under this deployment's role — an **efficacy** question, which is prior to the cost one and which stays open even if the cost turns out to be negligible. `OI-S5-1` is cited and not restated, and keeps its own owner and resolving event.
+
+---
+
+**SUB-13 register totals at revision 1:** two open items, both **open**, each with a named owner and
+an observable resolving event. Two rather than more because this sub-task's other unknowns are not
+questions of its own: the missing row counts that leave two stages unpriced are **`OI-S6-1`** with
+`SPK-S6-2`; the unmeasured restart duration is **`OI-S15-1`** with `SPK-S15-1`; which route `T0`
+takes is **`OI-S7-1`**; the absence of any configuration surface for the STDIO principal is
+**`OI-S4-1`**, which `DR-C11-S13-3` is careful not to encroach on by publishing a rollout control
+surface rather than a principal one; and whether backups exist is **`OI-S1-8`**. Each is consumed by
+citation and none is re-raised.
+
+**One thing that would look like an open item and is filed as a spike.** The production PostgreSQL
+major version is **`SPK-S13-1`**, not an open item, because two DDL constructs depend on it and the
+answer requires a query (`SELECT version();`) rather than a decision — a method and an expiry, which
+is a spike's shape and not an open item's.
+
+**Zero dispositions of another package's items are recorded here.** This sub-task consumes C010's
+`NEU-850` `OUT-2` as a constraint to realize and takes no reading of any C010 residual id.
+`F-S13-2` **adds** to C011's own `OI-S5-1` without closing it, and closes none of C010's.

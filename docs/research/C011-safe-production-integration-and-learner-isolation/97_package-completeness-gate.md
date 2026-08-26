@@ -420,3 +420,37 @@ pass** — the
 `qa-execution` surface is unconfigured, so the automated QA phase is a genuine Core Article 8 no-op,
 carried at package level as `CAP-S1-3`. No file under `src/` or `drizzle/` changes, no DDL is
 authored, no migration is executed, and no test is written.
+
+---
+
+### SUB-13
+
+| # | Item | Disposition | Evidence / cap |
+| --- | --- | --- | --- |
+| `G-S13-1` | The DDL is **complete text** for every schema object the package requires, and represents **all three principal states** without folding any two together. | **met** | `13_the-ddl-the-migration-plan-and-the-runbook.md` §2 — the ownership key on ten tables with ten indexes; the log carrier (two columns, three-valued kind); the token carrier (three columns, two-valued kind, plus a generated `learner_key`); the partial unique index; the consent table; the RLS appendix. Six `CHECK` constraints. `user`, `client` and `none` stay distinct on the log carrier per `DR-C11-S16-1` decision 4; the token carrier takes two because `none` is unreachable there by construction, and the two `CHECK`s are consistent rather than contradictory on SUB-5's own reconciliation. `F-S5-6` discharged. |
+| `G-S13-2` | `NEU-850`'s `OUT-2` is **cited by the DDL** at a resolving path, and SUB-5's `holds` derivation is re-verified against the DDL **as written**, with any divergence routed to SUB-5 rather than fixed here. | **met** | §2.1 quotes `OUT-2` from `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`–`:53`, with its *"converged but unimplemented"* status at `:65`–`:66`. §2.6 walks `DR-C11-S5-2`'s `C1` and `C5` requirement by requirement: **no divergence on `notes`**, the category the derivation is about. One divergence found **elsewhere** — `session_chunks` — routed as **`F-S13-1`** to SUB-5 (NEU-997), with the choice and its three reasons recorded in `DR-C11-S13-1` rejected alternative 6. `CAP-S5-1` is **not** claimed lifted. |
+| `G-S13-3` | The sweeps are **batched, idempotent and resumable**, and the batch bound is derivable **without** the row counts `OI-S6-1` records as never taken. | **met** | `DR-C11-S13-2`; §3.2–§3.6. Idempotent at the statement level (`WHERE user_id IS NULL`, `WHERE "timestamp" < :cutover`); resumable with **no progress ledger**, because the resume cursor is the target predicate itself; batched by a **wall clock** with a row ceiling as a secondary guard, which needs no throughput estimate to be safe; `FOR UPDATE … SKIP LOCKED` on every batch against `R-S15-3`'s overlap. The archive move is one atomic `DELETE … RETURNING … INSERT` so a row is never in both tables or neither. |
+| `G-S13-4` | Every **pre-flight predicate limb** is independently re-verified against the codebase at this chapter's own cutoff, with `file:line` evidence, and any correction is routed rather than applied silently. | **met** | §3.7 — five limbs, re-read at `fd05ca1`, **every one of SUB-7's forwarded line numbers found exact**: difficulty `1–10` over-determined at five sites; the `ease_factor` floor unlowerable via `Math.max` at `src/config/resolve-algorithm-config.ts:12`–`:14`; three non-negativity limbs. **The predicate is forwarded unchanged and no correction is routed** to SUB-6 or SUB-7. The `operation_event_log` probe `F-S6-6` names as missing is **written** (`P-ENC-3`); the other **six** unprobed tables are named so the residual stays visible rather than being read as closed. |
+| `G-S13-5` | Every stage `T0`–`T9` carries a containment section with SUB-7's disable path — control surface, operator, observable state, behaviour per position — or SUB-7's **named exception with its owner**, presented as separately executable from the reversal. **Zero blanks.** | **met** | §4.1 (ten stage sections, each with Entry / Apply / Verify / Contain / Reverse) and §5 (the control surface). **Six controls** — `SM_ISOLATION_CARRIER_WRITE`, `SM_MIGRATION_SWEEP`, `SM_MIGRATION_SLICE_MS`, `SM_MIGRATION_SLICE_ROWS`, `SM_IDENTITY_GATE`, `SM_ADAPTER_CONFINEMENT` — with defaults and a **per-control** safe position, since the safe direction is opposite for a sweep and for the enforcement predicate. **Four named exceptions** with reasons and owners: `T0`, `T2`'s completed move, `T5`, `T9`. `DR-C11-S7-2`'s revision trigger fires. **None of the six exists** — every position is a specification, stated at each use. |
+| `G-S13-6` | The repository audit proves **zero** changes to `src/`, `drizzle/` and every deployment configuration file. | **met** | `git diff --name-only origin/develop`, read path by path: zero under `src/`, zero under `drizzle/` (no file added, `drizzle/meta/_journal.json` untouched, no migration created), zero under `.github/`, `docker-compose.yml` unmodified, `pnpm-workspace.yaml` unmodified. The chapter's SQL is document text. |
+| `G-S13-7` | Every number is a cited derivation, a registered stand-in with an owner and a re-validation trigger, or a deferred spike with a method and an expiry — and the **citation check** covers the checker's two blind spots rather than trusting its summary. | **met** | Two numbers are introduced and both are `A-S13-1`, argued for **shape** and not value, re-validated by `SPK-S6-2` or `SPK-S15-1`. Zero duplicate spikes: the counts are `SPK-S6-2`, the restart duration `SPK-S15-1`, both cited by id; the one new entry, `SPK-S13-1`, asks a question neither `SPK-S1-4` nor `SPK-S1-9` asks. The running spike total is **not** re-counted — `F-S9-2` owns it. On citations: the checker was run by hand (C011 is not in the gated list — `scripts/check-citation-paths.ts:21`, `CAP-S1-2`, SUB-14's), **plus** a direct grep for `…`/`...` shorthand targets in the new files (`scripts/citation-paths/checker.ts:121`) returning zero, **plus** an entry-by-entry read of the `MISSING-target` bucket (`:247`–`:266`), which the summary does not show. |
+
+---
+
+**SUB-13 gate totals at revision 1:** seven items, **seven met, zero met-with-cap, zero unmet.** The
+absence of a met-with-cap row is not a claim of completeness — `CAP-S13-1` bounds the whole set from
+outside it: **every artifact above is unexecuted**, so each row certifies that the artifact *says*
+what it must, never that what it says is *true of a running system*. The four repository gates this
+sub-task ran are evidence that the repository still builds, and the chapter changes no code, so they
+were never capable of saying anything about the SQL; no row above cites them.
+
+**What this gate does not establish.** Nothing about applied behaviour: no `CREATE`, `ALTER`,
+`UPDATE` or `DELETE` has been executed, no stage walked, no reversal exercised and no control built.
+Nothing about `OBJ-8`: `CAP-S7-1` is inherited, re-shaped and **not lifted**, and `G-S13-3` certifies
+that the batch bound is *derivable*, not that any stage fits. Nothing about the RLS appendix's
+efficacy, which rests on `OI-S13-2`. Nothing about the retention conflict: the chapter writes **no**
+retention statement, so `F-S9-6` is untouched by design rather than by omission. Nothing about where
+the consent table lands (`F-S13-3`, `OI-S13-1`). And **no QA pass** — the `qa-execution:engine`
+surface is unconfigured, so the automated QA phase is a genuine Core Article 8 no-op, carried at
+package level as `CAP-S1-3`; the five `wf-audit` verify-phase lenses likewise did not fire, which is
+why an independent adversarial pass was run by hand and its findings folded in before publication.

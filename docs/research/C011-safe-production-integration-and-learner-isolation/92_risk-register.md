@@ -846,3 +846,85 @@ allocation matches this register's own id-convention table.
 **One risk is deliberately not raised.** That production database backups may hold learner data no erasure reaches is **`OI-S1-8`**'s subject, and this sub-task's scope forbids a second register record of the backups fact in any register, this one included. `R2`'s escalation route carries that item's owner across by citation instead. A separate risk entry would give SUB-14's cross-register consistency check two ids for one question.
 
 **No amendment is routed to `NEU-895` by SUB-9.** `F-S9-3` records a naming collision between two independent id spaces, which is not a contradiction of a C010 decision; `CAP-S7-1` is discharged by supplying the lifting condition its own entry names, which its entry invites. `A-28`'s tolerance envelope is not reached: nothing in this sub-task finds that safe isolation requires a separate deployment or datastore.
+
+---
+
+### SUB-13
+
+> **No charter § Risks row names OUT-19 as its owning outcome** (charter assumption 48), so this
+> sub-task authors **no `R<n>` entry**. All four below are `R-S13-<k>`. In particular the
+> `NEU-896`-overlap row is **not** one of them — the charter owns that row to OUT-20 and SUB-17
+> authors it.
+
+## `R-S13-1` — The migration's completion horizon is unknown in both directions, because its batch bound is a stand-in over a row count nobody has taken
+
+- **Risk:** `DR-C11-S13-2` bounds each sweep's **per-boot** cost by a wall clock rather than by a row target, which is what makes the bound derivable at all without the counts `OI-S6-1` records as never executed. What it cannot bound is **total** completion: the number of boots still scales with the row count. So the two default values (`SM_MIGRATION_SLICE_MS = 5000`, `SM_MIGRATION_SLICE_ROWS = 10000`, both `A-S13-1`) can be wrong in **either** direction and neither error announces itself. Too large and a boot breaches `OBJ-8` — on a stage-landing day the allowance is 11.4 s, and the baseline boot duration is itself unmeasured (`OI-S15-1`), so 5 000 ms is *"leaves margin"* and not *"fits"*. Too small and `T2` or `T7` never completes: at `OBJ-7`'s ≥ 7 restarts a day the sweep advances only as fast as the deploy cadence, and a `T7` that has not finished blocks `T8` indefinitely, because a predicate over a partly-keyed population is `R-S5-1`.
+- **Severity:** **High** — it does not create an exposure of its own, but it can stall the rollout at the stage immediately before confinement goes live, or breach the one availability objective the package sets, and the operator cannot tell which is happening without running a count query by hand.
+- **Owning outcome:** **OUT-19**, which owns the migration plan and therefore its batching.
+- **Named owner:** **The creator**, as sole operator and the only party who can execute the aggregates that would supply the counts — the same owner `CAP-S7-1` names for the same reason.
+- **Escalation route:** **`NEU-896`** at convergence, where a migration with no computable completion horizon is a program-level acceptance rather than a defect this package can close.
+- **Mitigation:** The bound is chosen so that the **failure it produces is the survivable one**. A clock-bounded slice cannot produce an unbounded outage; the worst it produces is a long migration. The sweeps are self-cursoring, so a stalled sweep is resumable from any boot and an operator can raise `SM_MIGRATION_SLICE_MS` between boots without any bookkeeping to reconcile. The two values are **parameters, not constants**, precisely so the correction needs no code change. And both are registered as `A-S13-1` with an explicit re-validation trigger rather than presented as derived.
+- **Mitigation status:** **Partially mitigated.** The direction of the residual failure is controlled; its magnitude is not. It closes only when `SPK-S6-2` supplies the per-table counts **or** `SPK-S15-1` supplies the restart-duration baseline — with both, the slice count per stage becomes arithmetic. Neither has been executed, and neither can be from an environment with no production credential (`F-S1-2`).
+
+---
+
+## `R-S13-2` — Every per-stage control needs SSH to an off-repo host that exactly one person can reach
+
+- **Risk:** All six disable paths `DR-C11-S13-3` publishes are environment variables on the compose stack at `/home/deploy/docker-services/second-memory-mcp`, which is **outside this repository** (`.github/workflows/cd-prod.yml:15`, `:26`–`:30`). Applying one requires SSH to that host, which is a capability only the creator holds. So the containment step that stands between detecting a regression and reverting a deploy — the whole point of OUT-4's containment-versus-reversal split — is unavailable to anyone else, at any hour, for any stage. A rollout with one operator has no containment at all whenever that operator is unreachable.
+- **Severity:** **High** — it does not make a failure more likely, and it makes every failure's containment window depend on one person's availability, across a ten-stage sequence in which one stage is irreversible and three cannot be entered from their predecessor's disable position.
+- **Owning outcome:** **OUT-19**, which owns the runbook and is the artifact that must state the capability it needs.
+- **Named owner:** **The creator**, as sole operator — the only party who currently has the access, and therefore the only party who can delegate it.
+- **Escalation route:** **`NEU-896`** at convergence, alongside `R4`, whose residual this sharpens: `R4` records that the isolation mechanism may not be rollable-out or rollable-back on the real deployment; this entry names the specific single point of failure in the containment half.
+- **Mitigation:** The runbook states the prerequisite **once, prominently, before the first stage** (`13_the-ddl-the-migration-plan-and-the-runbook.md` §4.0) rather than per stage, so it cannot be read as an incidental detail of one step. The one control that needs **no** SSH — disabling the `CD Prod` workflow in the GitHub Actions UI — is recorded separately and explicitly **not** credited to any individual stage, so that "every stage has a disable path" is not quietly satisfied by a switch that stops everything and changes nothing about a running container. Beyond that, this sub-task cannot mitigate it: provisioning a second operator is not a documentation act.
+- **Mitigation status:** **Open.** The prerequisite is disclosed; the access is not broadened. It closes when a second party holds the access, or when the compose stack enters the repository and the control class changes entirely — which is `DR-C11-S13-3`'s last revision trigger.
+
+---
+
+## `R-S13-3` — The DDL is published and never applied, so the schema stays ownership-free and the package's confinement remains a specification
+
+- **Risk:** This sub-task's deliverable is documentation by hard constraint: zero files under `src/` or `drizzle/` change, no migration is created, nothing is executed. The same was true of every one of the twelve chapters before it. **Nothing in the program obliges anyone to run any of it**, and the failure mode is silent — a package that reads as complete, a schema that still has no ownership column, and a running system that is exactly as unconfined as it was before C011 started. C010 already produced this shape once: `NEU-850`'s `OUT-2` has been *"converged but unimplemented"* since before this charter opened.
+- **Severity:** **High** — the exposure it leaves standing is the one the whole charter exists to close, and its likelihood is not low: the precedent is one prior converged-and-unimplemented ownership decision.
+- **Owning outcome:** **OUT-19**.
+- **Named owner:** **The creator**, as the only party who can merge an implementation charter's work to `develop` — the same party `R-S9-1` names for the analogous unexecuted disposal.
+- **Escalation route:** **`NEU-896`** at convergence, which owns the go / conditional-go decision and is the correct place to decide whether an unimplemented package is an acceptable terminus.
+- **Mitigation:** The artifact is written to be executable rather than indicative — complete SQL text, per-stage operator steps, named parameters and stated preconditions — so that the cost of executing it is as close to zero as a document can make it, and so that no implementation charter has to re-decide anything in order to start. The runbook additionally names, per step, the capability the deployment lacks, so a step that cannot be run is visible as a blocked step rather than as a vague one.
+- **Mitigation status:** **Open, and this entry is the honest statement that it cannot be closed here.** It closes when a migration derived from this DDL lands on `origin/develop`. This sub-task is forbidden from producing one, so no action available to it advances the mitigation.
+
+---
+
+## `R-S13-4` — The `iff` rule is structural on the two carriers and unenforceable on the ten owned tables, and a reader may take it as closed everywhere
+
+- **Risk:** `R-S4-1` is the risk that a consumer reads `principal_id` without `principal_kind` and rebuilds the `sub || azp` collapse one layer down. `DR-C11-S13-1` closes it **structurally** on both carriers — a `CHECK` on the two log tables, a generated `learner_key` column on `context_tokens`. On the **ten owned tables** it cannot be closed at all: `user_id` is stored with no `principal_kind` beside it, so no constraint there can check that the writer was a `user`. The guarantee is entirely upstream, at the adapter (`DR-C11-S5-1` clause 3). **The risk is that the DDL's visible strength on the carriers is read as strength everywhere** — a reviewer who sees `chk_mcp_request_log_learner_key_iff_user` and the generated column may reasonably conclude the schema enforces ownership integrity, and the ten tables holding all the learner content are exactly where it does not.
+- **Severity:** **Medium** — it creates no new exposure; it creates a false impression of one being closed, and false impressions of closure are this package's most-cited defect class.
+- **Owning outcome:** **OUT-19**, which owns the DDL and therefore what the DDL can and cannot be read to establish.
+- **Named owner:** **SUB-5 (NEU-997)**, which owns the enforcement point that supplies the missing guarantee and which registered `R-S4-1`'s settlement at the port boundary, co-named **the implementation charter** that must not weaken the adapter's refusal on the assumption that the schema is covering it.
+- **Escalation route:** **`NEU-895`**, which owns C010's check `I5` — the check that would fail if the guarantee were lost — co-named **`NEU-896`** at convergence.
+- **Mitigation:** Stated three times, in the three places a reader arrives from: in the DDL itself, immediately under the generated column (`13_the-ddl-the-migration-plan-and-the-runbook.md` §2.2, *"What this does and does not close"*); in `DR-C11-S13-1` clause 5, which names it as the thing the schema cannot enforce; and in the glossary row for `generated learner key`, which ends on the limitation rather than on the mechanism. The asymmetry is a property of where the facts live, not a gap in the DDL — a constraint cannot check a column that is not in the row — so there is no stronger mitigation available at this layer.
+- **Mitigation status:** **Partially mitigated.** The limitation is disclosed wherever the strength is claimed. It would close only if the ten tables also carried the writer's kind, which would duplicate a fact the adapter already holds and which no predecessor asks for; that trade has not been proposed and is not proposed here.
+
+---
+
+**SUB-13 register totals at revision 1:** four entries, **`R-S13-1` … `R-S13-4`** — one Medium and
+three High, **zero charter `R<n>` rows**, correctly: charter assumption 48 records that no § Risks row
+names OUT-19, so this sub-task authors none. All four carry a severity, a mitigation, a named owner
+and an escalation route. Two are partially mitigated with their residuals named, and two are open —
+`R-S13-2` because broadening host access is not a documentation act, and `R-S13-3` because this
+sub-task is forbidden from producing the migration that would close it.
+
+**Three hazards are deliberately not raised here, because each is already recorded exactly once
+elsewhere and this package carries one id per fact.** That boot-time migration cannot be deferred and
+that batching converts one long breach into several short ones is **`R-S6-2`**, which already names
+SUB-13 as one of its two owners; that ownership is discharged in `DR-C11-S13-2` by fixing the batch
+bound and the resume contract rather than by opening a competing entry, and `R-S13-1` is a different
+exposure — not *"batching still breaches"* but *"the batch parameter is a stand-in and the horizon is
+unknown"*. That no stage is priced against `OBJ-8` is **`CAP-S7-1`**, a cap this sub-task inherits as
+named owner and re-shapes without lifting; the cap is the limit on what the published scope
+establishes, and `R-S13-1` is the exposure that follows from it. That every alert route is unconfirmed
+is **`R-S16-2`**, cited in the runbook wherever a verification step depends on a human read.
+
+**One thing that would look like a risk and is filed as a finding instead.** That an RLS layer written
+the usual way would be inert on this deployment is **`F-S13-2`**, not a risk entry: it is a
+determinate, presently-true property of the deployment read directly out of
+`src/infrastructure/db/migrate.ts:45` and `src/infrastructure/db/client.ts:37`–`:53`, not an exposure
+that might materialise. Its consequence is already carried — the RLS DDL is published unrecommended,
+with both preconditions attached — and the unobserved part of it is `OI-S13-2`.

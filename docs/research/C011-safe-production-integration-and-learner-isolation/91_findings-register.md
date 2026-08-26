@@ -1149,3 +1149,115 @@ to `NEU-895`. C010's `CAP-S3-3`, `CAP-S4-1` and `CAP-S7-1` are consumed with the
 `NEU-988` left them; `CAP-S7-1` is discharged by supplying the lifting condition its own entry
 names, which its entry invites rather than contradicts. The settled **46 / 43 / 3** tool surface is
 not restated as a codebase fact anywhere in `09_…md`, and `42` appears nowhere in it.
+
+---
+
+### SUB-13
+
+> **Id-collision disclosure — five, not one.** This sub-task mints **five** ids that already exist in
+> C010: **`F-S13-1`** (`../C010-system-and-repository-architecture/02_findings-register.md:336`),
+> **`F-S13-2`** (`:347`), **`F-S13-3`** (`:359`), **`F-S13-4`** (`:370`), and **`OI-S13-1`**
+> (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:301`). C010
+> has its own sub-task 13, about the authority matrix, and every one of those five is a different
+> record about a different subject. `F-S13-5` … `F-S13-8`, `R-S13-1` … `R-S13-4`, `OI-S13-2`,
+> `A-S13-1`, `CAP-S13-1`, `SPK-S13-1` and `G-S13-1` … `G-S13-7` have no C010 counterpart.
+> `DR-C11-S13-1` … `-3` do **not** collide with C010's `DR-C10-S13-1`, because the package prefix
+> differs. Under the package-wide rule `F-S2-2` establishes, a bare `F-S13-<k>` or `OI-S13-<k>` means
+> **this** package's, and C010's is always written qualified. Matching one-line notes appear in the
+> `### SUB-13` sections of `93_open-items-and-provisional-register.md` and
+> `94_caps-and-incomplete-scope.md`.
+
+#### `F-S13-1` — SUB-5 and SUB-6 disagree on whether `session_chunks` carries its own ownership column
+
+- **Id:** `F-S13-1`
+- **Finding:** SUB-5's per-port table states that *"`session_chunks` inherits ownership through its session rather than carrying its own key — stated as a DDL requirement for SUB-13, not authored here"* (`05_the-enforcement-point-that-confines-every-read-and-write.md:335`). SUB-6 assigns `session_chunks` the disposition **`backfill-by-join`**, which its own vocabulary defines as *"existing rows receive the key derived from a parent row across a declared, `NOT NULL` foreign key"* — the row **receives** a key (`06_the-disposition-of-every-unowned-row.md` §2.1, §3 row 4) — and counts it among the ten population-A tables that `S3` adds the column to and `S5` sets `NOT NULL`. The two positions cannot both be built.
+- **Evidence:** The two passages above, read at `fd05ca1`. Corroborating: SUB-7's `T7` exit condition is *"Every row in the **ten** tables carries the verified target subject"* and `T9`'s is *"The ownership column is `NOT NULL` on all **ten** tables"* (`07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:358`, `:378`–`:379`) — both unsatisfiable over nine.
+- **Consequence:** The DDL follows SUB-6 and SUB-7: `session_chunks` carries its own `user_id`, derived by join at `S4`. Three reasons, stated so the choice is auditable rather than preferential — OUT-2 owns the dispositions; two merged exit conditions are counted over ten tables; and a table with no key of its own cannot carry the adapter's confinement predicate without a join the predicate does not have (`DR-C11-S5-1` clause 1 puts the predicate *inside the query the method already issues*, and `SessionRepository`'s `session_chunks` reads do not all join their session). **If SUB-5's reading is the intended one, the DDL, `T7`'s exit condition and `T9`'s exit condition all change**, which is why this is routed rather than resolved here.
+- **What is assumed rather than derived:** Nothing. Both passages are quoted directly. What is *chosen* is which of two merged siblings to build on, and the choice is stated with its reasons in `DR-C11-S13-1` rejected alternative 6.
+- **Handed to:** **SUB-5** (NEU-997), which owns the resolution — this sub-task's own scope requires a divergence against SUB-5's derivation to be routed back rather than fixed here. **SUB-17**, whose audit checks exactly this class of unabsorbed divergence.
+
+#### `F-S13-2` — An RLS second layer written the usual way would be inert here, because the migrator and the application share one database role
+
+- **Id:** `F-S13-2`
+- **Finding:** `src/infrastructure/db/migrate.ts:45` is `const pool = getPool();` — the boot migrator runs on the **same pool, the same `DATABASE_URL` and therefore the same database role** as every application query (`src/infrastructure/db/client.ts:37`–`:53`). A role that executes `CREATE SCHEMA` and `CREATE TABLE` **owns** the resulting tables, and PostgreSQL exempts a table's owner from that table's row-level-security policies unless `ALTER TABLE … FORCE ROW LEVEL SECURITY` is set. **So an RLS layer written as `ENABLE ROW LEVEL SECURITY` plus `CREATE POLICY` — the usual form — would appear in the schema, review as defence in depth, and filter nothing.**
+- **Evidence:** The three source reads above at `fd05ca1`. No `ROW LEVEL SECURITY`, `CREATE POLICY` or `FORCE` statement exists anywhere under `drizzle/` or `src/` — searched at this cutoff. The repository's own compose runs Postgres as `postgres`, the cluster superuser (`docker-compose.yml:6`), and **a superuser bypasses RLS even with `FORCE`**; the production compose stack is off-repo (`.github/workflows/cd-prod.yml:15`, `:26`–`:30`) so the production role is unobserved.
+- **Consequence:** `OI-S5-1` records the RLS layer's *transaction cost* against `OBJ-1` and is silent on ownership. There are therefore **two** obstacles to clause 5 of `DR-C11-S5-1`, not one, and the second is decisive as usually written while the first is merely unpriced. The DDL in `13_the-ddl-the-migration-plan-and-the-runbook.md` §2.5 is published **with `FORCE ROW LEVEL SECURITY` and with both preconditions attached**, and is explicitly not recommended for adoption until they are met. A reader who takes an RLS appendix as evidence of a second layer would be wrong twice over.
+- **What is assumed rather than derived:** Nothing about the repository. The production role is **not** observed and no claim is made about it beyond the derivation that the app role owns the tables it created, which follows from the migrator sharing the pool. Whether the production role is additionally a superuser is `OI-S13-2`.
+- **Handed to:** **SUB-5** (NEU-997), as `OI-S5-1`'s raiser — this is an **addition** to that open item, not a contradiction of it, so **no amendment is routed to `NEU-895`**. **`NEU-986`**, which owns the C010 caps over the same surface, co-named **`NEU-896`** at convergence.
+
+#### `F-S13-3` — SUB-7's ten-stage order carries no stage for the consent table SUB-8 routes to this sub-task
+
+- **Id:** `F-S13-3`
+- **Finding:** SUB-8 designs the versioned consent record and states *"It **does not exist at this cutoff**; the DDL is **SUB-13's** (NEU-1006) under OUT-19"*, listing nine proposed columns (`08_consent-and-what-a-learner-can-export-and-erase.md` §5, `LD-S8-1`). SUB-7's ten-stage total order contains **no stage that lands it**. The DDL is therefore authored with nowhere to go.
+- **Evidence:** `DR-C11-S7-1`'s ten-row stage table and `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md` §6, read stage by stage: `T1` lands the carrier, `T3` the nullable additions, `T9` the tightening, and none mentions a consent store. The cause is positional and blameless — SUB-8 sits at dependency position 10 and SUB-7 at position 9, so SUB-7 sequenced the five sweeps and four gate stages it was handed, and `LD-S8-1` was not among them.
+- **Consequence:** The table's DDL is published (`13_the-ddl-the-migration-plan-and-the-runbook.md` §2.4) and its stage is not. **Inventing an eleventh stage here would re-decide OUT-3**, which this sub-task is explicitly out of scope to do, so the placement is carried as `OI-S13-1` with SUB-7's owner rather than filled in. A reader must not infer that the consent record lands anywhere in the published rollout.
+- **What is assumed rather than derived:** Nothing. The absence was checked against all ten stages rather than inferred from the summary table.
+- **Handed to:** **SUB-7** (NEU-1001), which owns OUT-3 and the stage set; **SUB-8** (NEU-1002), whose `LD-S8-1` acquires a rollout dependency it did not have; **`NEU-896`** at convergence.
+
+#### `F-S13-4` — The ten population-A tables span two schemas, so the additive and tightening DDL cannot be one `public`-schema loop
+
+- **Id:** `F-S13-4`
+- **Finding:** Nine of SUB-6's ten `backfill`/`backfill-by-join` tables are in `public`; the tenth, `linter_validation_corpus`, is in `infrastructure` (`src/infrastructure/db/schema.ts:333`–`:362`). Every statement of `S3`, `S4` and `S5` must therefore be schema-qualified per table, and any implementation that iterates `public` alone silently omits one of the ten.
+- **Evidence:** The schema read at `fd05ca1`; SUB-6's §3 rows 1–9 and 11.
+- **Consequence:** Small and cheap to get wrong in exactly the way that is invisible: an omitted tenth table passes `S3` and `S4` without error, and surfaces only at `S5`, as a `SET NOT NULL` failing on a production boot — which is `T9`'s stated health signal doing its job, several stages and several days late. All DDL and all sweep SQL in `13_the-ddl-the-migration-plan-and-the-runbook.md` §2.1, §3.5 and §3.6 is written schema-qualified for this reason.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** The implementation charter that executes the migration.
+
+#### `F-S13-5` — The three-step `SET NOT NULL` removes a lock and a scan and buys no `OBJ-8` compliance
+
+- **Id:** `F-S13-5`
+- **Finding:** `ALTER TABLE … ALTER COLUMN … SET NOT NULL` takes an `ACCESS EXCLUSIVE` lock and scans the table. On PostgreSQL 12 and later a **validated** `CHECK (col IS NOT NULL)` lets the planner prove the property instead, so the three-step form — `ADD CONSTRAINT … NOT VALID` (O(1)), `VALIDATE CONSTRAINT` (one scan, under `SHARE UPDATE EXCLUSIVE`, which blocks neither reads nor writes), then `SET NOT NULL` (O(1)) — replaces a scan-under-`ACCESS EXCLUSIVE` plus a second implicit scan with **one** scan under a weak lock.
+- **Evidence:** Documented PostgreSQL behaviour, applied to the ten tables at `13_the-ddl-the-migration-plan-and-the-runbook.md` §3.6. The version dependency is real: the repository's compose pins `pgvector/pgvector:pg16` (`docker-compose.yml:3`), and the production image is off-repo and unobserved (`SPK-S13-1`).
+- **Consequence:** **It does not shorten boot.** All three steps run inside the boot migrator, before the server accepts traffic, so the single scan is still on the boot clock. The gain is in lock contention and in doing the work once. This is registered rather than left in the chapter's prose because a reader could otherwise take the three-step form as an availability argument and conclude that `T9` fits `OBJ-8`. **It does not.** `CAP-S7-1` is unchanged.
+- **What is assumed rather than derived:** That the production PostgreSQL major version is ≥ 12. Unobserved; carried as `SPK-S13-1`, and the fallback if it is not is the naive single-step form, which is strictly worse and still correct.
+- **Handed to:** **SUB-7**'s owner (NEU-1001), whose `T9` health signal this refines; the implementation charter.
+
+#### `F-S13-6` — Two of the three carrier sites are raw-SQL tables with no Drizzle definition, and the third is not
+
+- **Id:** `F-S13-6`
+- **Finding:** `infrastructure.mcp_request_log` and `infrastructure.operation_event_log` exist **only** as raw SQL (`drizzle/0010_create_infrastructure_mcp_request_log.sql:3`, `drizzle/0013_create_operation_event_log.sql:1`) and have no entry in `src/infrastructure/db/schema.ts`. `public.context_tokens` **does** (`src/infrastructure/db/schema.ts:312`–`:321`), as do the ten population-A tables. So the attribution carrier's DDL touches three tables of which one is Drizzle-defined and two are not.
+- **Evidence:** The schema read and the three migration files at `fd05ca1`. `infrastructure.linter_validation_corpus` and `infrastructure.linter_rule_validation_report` are **dual-defined** — raw SQL at `drizzle/0019_create_linter_validation_corpus.sql:1` and `:20`, and Drizzle at `src/infrastructure/db/schema.ts:333` and `:364` — which is a third shape again.
+- **Consequence:** The implementation charter must extend `src/infrastructure/db/schema.ts` and regenerate the Drizzle snapshot for `context_tokens` and for the ten population-A tables, and must **not** for the two log tables, where there is nothing to keep in step. Getting this backwards in either direction is a silent drift: adding a Drizzle definition for a log table would make the next generated migration try to create a table that exists, and omitting one for `context_tokens` would make the next generated migration try to drop the new columns.
+- **What is assumed rather than derived:** Nothing about the repository. What the implementation charter's tooling actually does on a drift is not tested here.
+- **Handed to:** The implementation charter that executes the migration.
+
+#### `F-S13-7` — The archive predicate must be the recorded cutover timestamp and must never be `principal_kind = 'none'`
+
+- **Id:** `F-S13-7`
+- **Finding:** After `T1`, a **post**-cutover row can legitimately carry `principal_kind = 'none'` — that is the third state's entire purpose. SUB-16 states the distinguishing rule directly: the pre- and post-cutover cases are *"distinguished by the record's timestamp against the cutover, not by the column"* (`16_attribution-and-detection.md` §2). **A `T2` archive sweep predicated on `principal_kind = 'none'` would therefore archive live post-cutover rows, and would still leave pre-cutover rows behind the moment any post-cutover row was written unattributed.**
+- **Evidence:** SUB-16's three-state table, read at `fd05ca1`; `DR-C11-S16-1` decision 1, which gives `principal_kind` the default `'none'`, so every pre-cutover row acquires that value at `T1` and becomes indistinguishable by column from an unattributed post-cutover one.
+- **Consequence:** The cutover instant must be **recorded at `T1`**, in the same transaction as the carrier columns, and read at `T2`. `13_the-ddl-the-migration-plan-and-the-runbook.md` §3.4 lands a one-row marker for exactly this and writes both archive statements against it. The preferred alternative — reading the boot migrator's own applied-migration ledger — is *not* asserted, because the repository configures no `migrationsTable`/`migrationsSchema` (`drizzle.config.ts`), so that ledger's name and shape would be a library default rather than a repository fact.
+- **What is assumed rather than derived:** Nothing. The failure mode is derived from two merged decisions read together; neither predecessor states the consequence for the archive predicate, because neither owns both the carrier's default and the archive's sweep.
+- **Handed to:** The implementation charter; **SUB-17**, whose audit is the place a wrong sweep predicate would otherwise reach the archive unexamined.
+
+#### `F-S13-8` — `F-S7-4` states in two places that `T5` and `T9` are "six stages apart"; they are four
+
+- **Id:** `F-S13-8`
+- **Finding:** Both `07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:387` and the register entry at `91_findings-register.md:867` describe `S2` at `T5` and gate stage `D` at `T9` as *"six stages apart"*. In the published ten-stage order they are **four** apart: three stages intervene (`T6`, `T7`, `T8`), the separation is four, and the inclusive span is five. No reading of `T0` … `T9` yields six.
+- **Evidence:** The two passages above, read at `fd05ca1`, against `DR-C11-S7-1`'s own ten-row stage table.
+- **Consequence:** **`F-S7-4`'s conclusion is unaffected and is consumed unchanged.** Both purges are non-empty and both are necessary at any separation of one or more, and the mechanism the finding gives — *"rows minted between `T5` and `T6` on a path that did not bind"* — is correct and is exactly what `13_the-ddl-the-migration-plan-and-the-runbook.md` §3.6 implements with two differently-predicated `DELETE`s. What is wrong is a figure inside the finding that is its own sole evidence, which is the defect class this package has been bitten by repeatedly, so it is registered rather than silently corrected or propagated.
+- **What is assumed rather than derived:** Nothing. This is arithmetic over a published table.
+- **Handed to:** **SUB-7** (NEU-1001), which owns both texts and is the only party that may edit them — this register is append-only and no sub-task rewrites another's entry. **SUB-14** (NEU-1007), which aggregates the register and would otherwise carry the figure forward. **SUB-17**, for the audit.
+
+---
+
+**SUB-13 register totals at revision 1:** eight findings, `F-S13-1` … `F-S13-8`. **Zero blocking
+findings.** Three concern a disagreement or an error between merged siblings (`F-S13-1`, `F-S13-3`,
+`F-S13-8`) and are routed to their owners unresolved; one adds a second obstacle to an existing open
+item (`F-S13-2`); four are properties of the repository an implementer needs and could not get from
+any predecessor (`F-S13-4` … `F-S13-7`).
+
+**Two things were checked for and deliberately not filed.** That the sweeps run at boot and cannot be
+deferred is **`R-S6-2`**, which already names this sub-task as one of its two owners; the ownership is
+discharged in `DR-C11-S13-2` by fixing the batch bound and the resume contract, not by opening a
+competing entry. That no stage can be executed at a chosen moment is **`F-S7-5`**, consumed in the
+runbook's cadence section and not re-raised. Both were tested against the one-id-per-fact rule and
+both failed it, and that is recorded here rather than left as a silent absence, on the precedent
+SUB-5, SUB-6 and SUB-9 each set.
+
+**No contradiction with C010 was found by SUB-13.** `DR-C10-S8-2`'s reject-don't-grandfather rule is
+consumed and is what makes `T5` and gate `D` two separate purges; `NEU-850`'s `OUT-2` is **realized**
+rather than amended, and its column name is taken verbatim precisely so that no naming preference
+becomes a contradiction. `F-S13-2` is an **addition** to `OI-S5-1`, not a contradiction of it. **No
+amendment is routed to `NEU-895` by SUB-13.** The five id collisions disclosed above are naming
+collisions between two independent id spaces, which are not contradictions either.
