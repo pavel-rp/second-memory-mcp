@@ -1159,7 +1159,7 @@ not restated as a codebase fact anywhere in `09_…md`, and `42` appears nowhere
 > **`F-S13-2`** (`:347`), **`F-S13-3`** (`:359`), **`F-S13-4`** (`:370`), and **`OI-S13-1`**
 > (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:301`). C010
 > has its own sub-task 13, about the authority matrix, and every one of those five is a different
-> record about a different subject. `F-S13-5` … `F-S13-8`, `R-S13-1` … `R-S13-4`, `OI-S13-2`,
+> record about a different subject. `F-S13-5` … `F-S13-9`, `R-S13-1` … `R-S13-4`, `OI-S13-2`,
 > `A-S13-1`, `CAP-S13-1`, `SPK-S13-1` and `G-S13-1` … `G-S13-7` have no C010 counterpart.
 > `DR-C11-S13-1` … `-3` do **not** collide with C010's `DR-C10-S13-1`, because the package prefix
 > differs. Under the package-wide rule `F-S2-2` establishes, a bare `F-S13-<k>` or `OI-S13-<k>` means
@@ -1239,13 +1239,32 @@ not restated as a codebase fact anywhere in `09_…md`, and `42` appears nowhere
 - **What is assumed rather than derived:** Nothing. This is arithmetic over a published table.
 - **Handed to:** **SUB-7** (NEU-1001), which owns both texts and is the only party that may edit them — this register is append-only and no sub-task rewrites another's entry. **SUB-14** (NEU-1007), which aggregates the register and would otherwise carry the figure forward. **SUB-17**, for the audit.
 
+#### `F-S13-9` — A Drizzle migration runs exactly once, so the batched sweeps cannot be migration files at all
+
+- **Id:** `F-S13-9`
+- **Finding:** The Drizzle `node-postgres` migrator maintains `drizzle.__drizzle_migrations` and applies only migrations whose journal timestamp exceeds the **single most recent applied row**'s `created_at` — the check is `if (!lastDbMigration || Number(lastDbMigration.created_at) < migration.folderMillis)` (`node_modules/drizzle-orm/pg-core/dialect.cjs:63`). **A migration file therefore executes exactly once.** The migrator *process* runs on every one of `OBJ-7`'s ≥ 7 daily restarts; an individual migration's statements do not. **So a batched, resumable sweep cannot be a migration file**: shipped as one, it would be marked applied after its first boot and never run again — either finishing inside that single boot, which defeats batching entirely, or leaving the population permanently half-keyed with no mechanism to resume, which arrives at `R-S5-1`'s precondition by accident rather than by design.
+- **Evidence:** `node_modules/drizzle-orm/pg-core/dialect.cjs:46`–`:72`, read at `fd05ca1`, with the ledger's shape (`id SERIAL PRIMARY KEY`, `hash text NOT NULL`, `created_at bigint`) at `:50`–`:54` and the applied-check at `:63`; the call site at `src/infrastructure/db/migrate.ts:44`–`:48`. Corroborated by the project's own documented rule that the migrator uses the journal's `when` to determine applied-versus-pending, and that out-of-order timestamps cause migrations to be **silently skipped**.
+- **Consequence:** The published artifact separates two things SUB-6 and SUB-7 both describe as one. The **schema DDL** lands as ordinary one-shot Drizzle migrations; the **data sweeps** (`S1`, `S2`, `S4`) land as a **boot-time sweep runner that is not a migration** — predicate-driven, time-boxed, re-entered every boot until its predicate returns nothing (`13_the-ddl-the-migration-plan-and-the-runbook.md` §1.1, §3.2). **Both still execute at boot**, so SUB-7's feasibility assessment and `R-S6-2`'s *"cannot be deferred"* both survive unchanged; what changes is which mechanism carries which half. Two further consequences fall out of the same read: **all pending migrations run inside one transaction** (`session.transaction` wraps the loop at `:62`), so a sweep shipped as a migration would hold one transaction open for its whole duration; and **`CREATE INDEX CONCURRENTLY` is unavailable anywhere in the plan**, because it cannot run inside a transaction block.
+- **What is assumed rather than derived:** Nothing. This is read from the installed library at a stated cutoff. What is **not** established is whether the implementation charter's sweep runner can be added without touching `src/` — it cannot, and building it is out of this sub-task's scope by constraint.
+- **Handed to:** **SUB-6** (NEU-1000), whose `S1`–`S5` stage vocabulary reads as though all five were migrations; **SUB-7** (NEU-1001), whose feasibility table says the six data-bearing stages are *"Yes, but only as boot migrations"* — true of the DDL half and not of the sweep half, and the distinction is neither sub-task's to have caught, since neither owns the batching; the **implementation charter**, which must build the runner.
+
 ---
 
-**SUB-13 register totals at revision 1:** eight findings, `F-S13-1` … `F-S13-8`. **Zero blocking
+**SUB-13 register totals at revision 1:** nine findings, `F-S13-1` … `F-S13-9`. **Zero blocking
 findings.** Three concern a disagreement or an error between merged siblings (`F-S13-1`, `F-S13-3`,
 `F-S13-8`) and are routed to their owners unresolved; one adds a second obstacle to an existing open
-item (`F-S13-2`); four are properties of the repository an implementer needs and could not get from
-any predecessor (`F-S13-4` … `F-S13-7`).
+item (`F-S13-2`); five are properties of the repository or its libraries that an implementer needs
+and could not get from any predecessor (`F-S13-4` … `F-S13-7`, `F-S13-9`).
+
+**`F-S13-9` was found by re-attacking a claim this sub-task had already written down as true**, and
+that is recorded rather than smoothed over. The first draft of §2.1 justified its `IF NOT EXISTS`
+clauses on the grounds that *"the boot migrator runs unconditionally on every restart … so
+idempotence at the statement level is not a nicety here"*. That sentence conflates the migrator
+**process** running every boot — which it does — with a migration's **statements** running every
+boot, which they do not. The conflation was load-bearing in the wrong direction: it made the sweeps
+look implementable as migration files, which they are not. It was caught by opening the library
+rather than by re-reading the chapter, which is the same lesson `F-S9-5` records — **a claim that
+survives re-reading is not thereby verified; only the source verifies it.**
 
 **Two things were checked for and deliberately not filed.** That the sweeps run at boot and cannot be
 deferred is **`R-S6-2`**, which already names this sub-task as one of its two owners; the ownership is

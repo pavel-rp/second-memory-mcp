@@ -82,6 +82,46 @@ the migrations folder and runs the Drizzle migrator. Configuration resolves *aft
 files under `drizzle/` and the journal's last entry is `idx: 24`, tag
 `0024_add_attempt_scheduling_snapshot`, so the first migration this plan describes would be `0025`.
 
+### 1.1 How the migrator decides what to run, and the two consequences that shape §3
+
+Read from the library rather than assumed, because the entire migration plan's shape depends on it.
+
+`src/infrastructure/db/migrate.ts:44`–`:48` calls the Drizzle `node-postgres` migrator on the
+application's own pool. That migrator (`node_modules/drizzle-orm/pg-core/dialect.cjs:46`–`:72`)
+creates `drizzle.__drizzle_migrations` (`id SERIAL PRIMARY KEY`, `hash text NOT NULL`, `created_at
+bigint`), selects **the single most recent applied row**, and applies every migration whose journal
+timestamp is greater than that row's `created_at` — the check at `:63` is
+`if (!lastDbMigration || Number(lastDbMigration.created_at) < migration.folderMillis)`.
+
+**Consequence one: a migration file runs exactly once, so a sweep cannot be a migration file.** The
+migrator *process* runs on every one of `OBJ-7`'s ≥ 7 daily restarts; an individual migration's
+statements do not. A batched sweep shipped as migration `0029` would be marked applied after its
+first boot and would never run again — so it would either have to finish inside that one boot, which
+defeats batching entirely, or it would leave the population permanently half-keyed with **no
+mechanism to resume**, which is `R-S5-1`'s exact precondition arriving by accident.
+
+**This is why §3 separates two artifacts that SUB-6 and SUB-7 both describe as one.** The schema DDL
+of §2 lands as ordinary **one-shot Drizzle migrations**. The data sweeps of §3 land as a **boot-time
+sweep runner that is not a migration** — predicate-driven, time-boxed, and re-entered on every boot
+until its predicate returns nothing. Both still run at boot, so SUB-7's feasibility assessment and
+`R-S6-2`'s "cannot be deferred" both survive unchanged; what changes is which mechanism carries
+which half. Registered as **`F-S13-9`**, because SUB-6's `S1`–`S5` and SUB-7's *"Yes, but only as
+boot migrations"* both read as though the sweeps were migration files, and neither sub-task owns the
+distinction.
+
+**Consequence two: the ledger's `created_at` must not be used as the cutover instant.** The value
+inserted is `migration.folderMillis` — the `when` field from `drizzle/meta/_journal.json`, a
+**hand-authored constant in the repository**, not the moment the migration was applied. It can
+precede the real application instant by an arbitrary interval. §3.4's marker table therefore exists
+for a correctness reason and not a tidiness one: reading the cutover from the ledger would set it to
+an authoring timestamp and archive the wrong rows. `F-S13-7`.
+
+Two smaller facts follow from the same source. **All pending migrations run inside one transaction**
+(`session.transaction` wraps the loop), so a long sweep shipped as a migration would hold one
+transaction open for its whole duration — a second, independent reason the sweeps are not
+migrations. And **`CREATE INDEX CONCURRENTLY` cannot be used anywhere in this plan**, because it
+cannot run inside a transaction block; the indexes in §2.1 are therefore plain `CREATE INDEX`.
+
 ---
 
 ## 2. The DDL
@@ -133,9 +173,9 @@ ALTER TABLE infrastructure.linter_validation_corpus    ADD COLUMN IF NOT EXISTS 
 
 -- The predicate every row-owning query will carry needs an index on each
 -- table. Created here, at T3, so T8's first confined request does not meet
--- a sequential scan. CONCURRENTLY is NOT used: the boot migrator runs inside
--- a transaction per migration file and CREATE INDEX CONCURRENTLY cannot run
--- in one. This is a stated cost, not an oversight — see F-S13-5.
+-- a sequential scan. CONCURRENTLY is NOT used: the boot migrator wraps ALL
+-- pending migrations in ONE transaction (see 1.1) and CREATE INDEX CONCURRENTLY
+-- cannot run inside a transaction block. A stated cost, not an oversight.
 CREATE INDEX IF NOT EXISTS idx_learning_topics_user_id                     ON public.learning_topics (user_id);
 CREATE INDEX IF NOT EXISTS idx_learning_chunks_user_id                     ON public.learning_chunks (user_id);
 CREATE INDEX IF NOT EXISTS idx_learning_sessions_user_id                   ON public.learning_sessions (user_id);
@@ -148,10 +188,13 @@ CREATE INDEX IF NOT EXISTS idx_notes_user_id                               ON pu
 CREATE INDEX IF NOT EXISTS idx_linter_validation_corpus_user_id            ON infrastructure.linter_validation_corpus (user_id);
 ```
 
-`ADD COLUMN … IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS` are used throughout so a re-run is a
-no-op. The boot migrator runs unconditionally on every restart
-(`src/infrastructure/db/migrate.ts:44`–`:48`), and `OBJ-7` puts that at **≥ 7 times a day**, so
-idempotence at the statement level is not a nicety here.
+`ADD COLUMN … IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS` are used throughout, but **not for the
+reason a reader might assume, and the assumption matters enough to state**. See §1.1: a Drizzle
+migration file executes **exactly once**, not on every boot. The `IF NOT EXISTS` clauses are
+therefore defence against a statement being run by hand during an incident, or against a partially
+applied file being re-authored — not against the boot loop. `ADD CONSTRAINT` is written **without**
+a guard because PostgreSQL has no `ADD CONSTRAINT IF NOT EXISTS`, and it does not need one: the file
+runs once.
 
 ### 2.2 The three principal states, and the `iff` rule as a database constraint
 
@@ -583,13 +626,16 @@ competing record. One new spike is raised, `SPK-S13-1`, for a question neither a
 > archive live post-cutover rows and would still be leaving pre-cutover rows behind the moment any
 > post-cutover row was written unattributed. Registered as `F-S13-7`.
 
-The cutover instant must therefore be **recorded at `T1`**, not guessed at `T2`. The boot migrator
-already maintains a ledger of applied migrations with their timestamps, so the preferred source is
-that ledger's row for `T1`'s migration. Because the repository configures no `migrationsTable` or
-`migrationsSchema` (`drizzle.config.ts` sets only `dialect`, `schema`, `out`, `dbCredentials`,
-`strict`), the ledger's name and shape are the migrator library's defaults rather than a repository
-fact, and this chapter does not assert them. The fallback needs no such assumption and is preferred
-where certainty matters more than tidiness:
+The cutover instant must therefore be **recorded at `T1`**, not guessed at `T2`.
+
+**The migrator's own ledger is the obvious source and it is the wrong one** — this was checked
+rather than assumed, and the check changed the answer. `drizzle.__drizzle_migrations` does exist and
+its shape is known (§1.1), but the `created_at` it stores is `migration.folderMillis`, the `when`
+field hand-authored in `drizzle/meta/_journal.json` — an **authoring** timestamp, not the instant of
+application, and it can precede the real one by an arbitrary interval. Predicating the archive on it
+would archive rows written after the carrier landed. A one-row marker written by `T1`'s own
+migration, in the same transaction as the carrier columns, has none of that problem, because
+`DEFAULT NOW()` evaluates when the migration actually runs:
 
 ```sql
 -- Landed by T1's own migration, in the same transaction as the carrier
@@ -1036,8 +1082,10 @@ executable from reversal**, which is OUT-4's requirement.
 - **Entry.** `T1` exited — this is `A-S6-2`, discharged. **Additionally: schedule this stage when
   `T0`'s refusal-rate baseline is quiet**, because `F-S6-5`'s transient write-unavailability window
   opens here and the move must be the only operation in the stage.
-- **Apply.** Migration `0026`: the `archive` schema, the two `LIKE` tables, and the batched move
-  (§3.4), driven by the slice loop of §3.3.
+- **Apply.** Two artifacts, per §1.1. Migration `0026` creates the `archive` schema and the two
+  `LIKE` tables — one-shot DDL. The batched move itself (§3.4) is the **sweep runner**, not a
+  migration: it re-enters on every boot, driven by the slice loop of §3.3, until its predicate
+  returns nothing.
 - **Verify.** HTTP: both live tables contain only post-cutover rows —
   `SELECT COUNT(*) FROM infrastructure.mcp_request_log l, infrastructure.migration_marker m WHERE
   m.marker_id = 'c011.attribution_carrier_landed' AND l."timestamp" < m.marked_at;` must return 0,
@@ -1095,7 +1143,8 @@ executable from reversal**, which is OUT-4's requirement.
 - **Entry.** `T4` exited **and its observation has been read.** The strongest entry condition in the
   sequence, and the runbook states it as a stop: **if the observation has not been read, do not
   proceed.**
-- **Apply.** Migration `0028`: the batched wholesale delete (§3.6).
+- **Apply.** The **sweep runner**, not a migration (§1.1): the batched wholesale delete of §3.6,
+  re-entered each boot until `context_tokens` is empty. No schema object changes at this stage.
 - **Verify.** `SELECT COUNT(*) FROM public.context_tokens;` returns 0. Then watch the re-mint success
   rate: HTTP, the `init_agent_context` call's `response_status` distribution in `mcp_request_log`;
   **STDIO: not observable on this transport** — a STDIO client whose re-mint fails produces no row
@@ -1130,7 +1179,9 @@ executable from reversal**, which is OUT-4's requirement.
   empty**; and the four-wave order is respected — which §3.5 makes self-enforcing. **Additionally
   run `P-RANGE-1` and the other eleven probes of `06_…` §6.2 plus `P-ENC-3` of §3.7; any
   non-zero result is an ABORT, not a warning** (`R9`).
-- **Apply.** Migration `0029`: the four waves (§3.5), driven by the slice loop.
+- **Apply.** The **sweep runner**, not a migration (§1.1): the four waves of §3.5, driven by the
+  slice loop, re-entered on every boot until all ten unkeyed counts reach zero. No schema object
+  changes at this stage.
 - **Verify.** The ten-table unkeyed count returns zero for all ten. Boot duration per batch against
   `OBJ-8`. **This is the one stage whose duration scales with a row count nobody has** (`OI-S6-1`,
   `CAP-S7-1`).
@@ -1289,16 +1340,21 @@ implementation charter builds them, every "off" position in this chapter is a sp
    **The `MISSING-target` bucket was read entry by entry rather than trusted to be empty, and it is
    not empty.** C011 carries 28 `repo-root-corpus` and 1 914 `repo-root-source` exclusions, plus a
    `MISSING-target` set that pre-exists this chapter. **Four entries this chapter contributed were
-   repaired** — three bare `schema.ts` references and one bare `.sql`, all rewritten to resolve or
-   reworded. **Three remain, and each is disclosed rather than removed**, because each is
-   deliberate and each matches an existing convention in the package: `pgvector/pgvector:pg16` (a
-   container image tag, not a path), `/home/deploy/docker-services/second-memory-mcp` (a host path
-   outside this repository, identical to the one at `DR-C11-S7-2`'s clause 1), and
-   `decision-records/DR-C11-S13-1` in the outcome register's *"Verified by"* line (an
-   extension-less reference in the shape SUB-9 already uses at `97_package-completeness-gate.md:380`).
-   **None of the three is a broken citation**; all three are strings the normalizer takes for paths.
-   They are named here because the checker's zero is a weaker signal than it looks, and an
-   undisclosed bucket entry is how the last false certification happened.
+   repaired** — three bare `schema.ts` references and one bare `.sql`, rewritten to resolve or
+   reworded. **Three kinds remain, each disclosed rather than removed**, because each is deliberate
+   and each matches an existing convention in the package: `pgvector/pgvector:pg16` (a container
+   image tag, not a path), `/home/deploy/docker-services/second-memory-mcp` (a host path outside
+   this repository, identical to the one at `DR-C11-S7-2` clause 1), and
+   `decision-records/DR-C11-S13-1` in the outcome register's *"Verified by"* line — an
+   extension-less reference in exactly the shape SUB-9 already uses two rows above it at
+   `90_outcome-register.md:1106`. **None of the three is a broken citation**; all three are strings
+   the normalizer mistakes for paths.
+
+   **This paragraph adds its own occurrences of all three, by naming them**, so the bucket count
+   attributable to this chapter is larger than the number of distinct problems in it — which is
+   itself a fair illustration of how coarse the normalizer is, and is left standing rather than
+   worked around. They are disclosed because the checker's zero is a weaker signal than it looks,
+   and an unread bucket is how the last false certification in this package happened.
 3. **The spike register's running total is not re-counted here, because it is already owned.**
    `F-S9-2` records it as **twenty-four** at SUB-9's branch HEAD (`09_proving-a-data-right-reaches-every-copy.md:85`),
    with zero executed. `SPK-S13-1` makes **twenty-five**, and that increment is the only count this
@@ -1333,6 +1389,7 @@ does `CAP-S7-1`; every reference above is to the **C011** entry unless the path 
 | `F-S13-6` | Two of the three carrier sites are raw-SQL tables with no Drizzle definition, and one is not — the implementation charter must keep `src/infrastructure/db/schema.ts` in step for exactly one of them | the implementation charter |
 | `F-S13-7` | The archive predicate must be the recorded cutover timestamp, never `principal_kind = 'none'` | the implementation charter, **SUB-17** |
 | `F-S13-8` | `F-S7-4` says `T5` and `T9` are *"six stages apart"* in two places; they are four. The finding's conclusion is unaffected | **SUB-7** (NEU-1001), **SUB-14** (which aggregates the register), **SUB-17** |
+| `F-S13-9` | A Drizzle migration runs **exactly once**, so the batched sweeps cannot be migration files; they need a boot-time sweep runner. Neither SUB-6 nor SUB-7 owns the distinction | **SUB-6** (NEU-1000), **SUB-7** (NEU-1001), the implementation charter |
 | `R-S13-1` | The batch bound is a stand-in, so the sweep's completion horizon is unknown in both directions | the creator, `NEU-896` |
 | `R-S13-2` | Every per-stage control needs SSH to an off-repo host that one person can reach | the creator, `NEU-896` |
 | `R-S13-3` | The DDL is published and never applied, so the schema stays ownership-free | the creator, `NEU-896` |
