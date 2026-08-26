@@ -72,3 +72,4 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S6-1_the-migration-disposition-scheme.md` | SUB-6 (NEU-1000) | OUT-2 |
 | `DR-C11-S6-2_archiving-the-pre-cutover-log-population.md` | SUB-6 (NEU-1000) | OUT-2 (the disposition of the population `F-S8-2` and `R-S16-1` route to SUB-9 for its *propagation* action) |
 | `DR-C11-S6-3_aggregate-then-generate-and-the-exclusion-evidence.md` | SUB-6 (NEU-1000) | OUT-2 (and the evidence SUB-3 named SUB-6 to supply for the exclusion recorded at position 3) |
+| `DR-C11-S11-1_the-client-compatibility-contract.md` | SUB-11 (NEU-1004) | OUT-16 |
