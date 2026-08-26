@@ -11,7 +11,7 @@
 The package's fifteenth position and its only reconciliation pass. Fourteen producing sub-tasks —
 SUB-1 … SUB-9, SUB-11, SUB-12, SUB-13, SUB-15, SUB-16 (SUB-10 is retired and produced nothing) —
 each wrote a chapter, decision records, traceability rows and register entries **append-only**,
-keeping both sides on every conflict. That discipline is what let fifteen authors work in parallel;
+keeping both sides on every conflict. That discipline is what let fourteen authors work in parallel;
 its cost is that nobody could correct anybody, so every cross-author conflict was *registered* rather
 than resolved and routed here.
 
@@ -77,7 +77,7 @@ per-`### SUB-<n>` sum. Both agreed on every line.
 | `95_stand-in-assumption-register.md` | **22** | 2 charter-continued (`A-33`, `A-34`) + 20 scoped. |
 | `96_spike-register.md` | **33** | **Zero executed.** See §4.4. |
 | `97_package-completeness-gate.md` | **149 rows** | SUB-15 and SUB-16 wrote none, by decision (§4.6). |
-| **Band total** | **407 headings** | 406 C011-minted ids + 1 C010 disposition. |
+| **Band total** | **407 entries** | 406 C011-minted ids + 1 C010 disposition. *(Entries, not headings: 149 of them are `97_` table rows rather than markdown headings.)* |
 
 **Cross-register consistency has two limbs, and only one of them is clean.** The acceptance condition
 is that *"an id appearing in more than one register carries the same owner and status in each, with
@@ -126,10 +126,10 @@ needs no adjudication beyond §4.2.
 `[unconfirmed]` assumptions (33, 34, 35, 36) received a stand-in, but under two schemes: SUB-1 wrote
 `A-33` and `A-34` charter-continued, while **SUB-2's `A-S2-1` stands in for charter assumption 35 and
 SUB-3's `A-S3-1` stands in for charter assumption 36** — the same class of entry, scoped. That was
-not drift. `A-S3-1` records the reason in terms: the charter-continued scheme *"is not safe under
-concurrency — several sub-tasks run at once, each would compute 'the next charter assumption number'
+not drift. `A-S3-1` records the reason in terms — the charter-continued scheme **"is not safe under
+concurrency**: several sub-tasks run at once, each would compute "the next charter assumption number"
 independently, and because register conflicts resolve by keeping **both** sides, two sub-tasks
-picking the same number would land two rows sharing one id."*
+picking the same number would land two rows sharing one id."
 
 **Adjudication: the scoped form is canonical; `A-33` and `A-34` stand as written, grandfathered.**
 The correspondence is published here rather than encoded in the number, which is exactly what
@@ -229,9 +229,9 @@ superseded miscount it is. That is deliberately narrower than *"no citation reso
 which would be **false**: a line-42 reference occurs 62 times across 27 of the merged files,
 benignly, and two chapters record catching themselves making exactly that false certification in
 draft. **This chapter makes no absence claim about line numbers at all** — it was tested, the answer
-was "many", and the figure is reported rather than denied. (The two files this assembly authored
-raise the file count to 29, purely by discussing the matter in this paragraph and its counterpart in
-`README.md`; neither contains a line-42 *citation*.)
+was "many", and the figure is reported rather than denied. The two files this assembly authored
+contain **no** `:42` token at all, so they do not move either figure — this paragraph and its
+counterpart in `README.md` discuss line 42 without citing it.
 
 ### 4.4 The spike total, recounted
 
@@ -243,7 +243,7 @@ Four figures are in circulation, and **none of their authors erred**:
 | Figure | Where | Status |
 | --- | --- | --- |
 | 24 | `F-S9-2`, the owning finding | true at SUB-9's branch HEAD |
-| 32 | `96_…md` § SUB-12 — *"24 before, 8 added here, 32 in total"* | true at SUB-12's branch HEAD |
+| 32 | `96_…md` § SUB-12 — *"24 designed before this section, 8 added here, 32 designed in total, zero executed."* | true at SUB-12's branch HEAD |
 | 25 | `96_…md` § SUB-13 — 24 + 1 | true at SUB-13's branch HEAD |
 | **33** | this pass | **true in the merged register** |
 
@@ -281,9 +281,11 @@ exit 0.** (The gate also prints a total-citations and a total-resolving figure. 
 not quoted here: they count tokens inside this very chapter, so any edit to a sentence quoting them
 falsifies it. The load-bearing number is **0 non-resolving**, which is stable.)
 
-That clean result is not luck. **Twelve files across the package record having run the checker by
-hand** — three chapters, three registers, four traceability files and two decision records —
-precisely because `CAP-S1-2` left the local run as the only enforcement there was.
+That clean result is not luck. **Chapters, registers, traceability files and decision records across
+the package record having run the checker by hand**, precisely because `CAP-S1-2` left the local run
+as the only enforcement there was. No count is put on that here: the phrasings vary from author to
+author — some record a run, some record only that the package is ungated — and any single grep shape
+returns a different set, so a number would be a measurement artefact rather than a fact.
 
 **Arming it caught two real defects, and both were this chapter's.** On its first run over the
 assembled package the gate failed with two `C3-bare-upstream` findings in `00_method-and-provenance.md`
@@ -299,23 +301,27 @@ the input and this chapter's own additions are quotations of the targets it clas
 **A clean summary is not evidence, so all three blind spots were tested.**
 
 1. **The `…` shorthand.** `scripts/citation-paths/checker.ts:121` returns `null` for any token
-   containing `…` or `...`, so such refs are never counted. **Measured over the input: 23**
-   shorthand-exempt path-shaped tokens across 9 files, at most 5 in any one file. **Published total:
-   32**, the difference being 9 in this chapter, every one of them a quotation of a token it is
-   classifying. Every one of the 32 is a deliberate class noun (`src/…`, `drizzle/…`, `../C010-…/`)
-   or an elided sibling chapter (`../01_…md:154`). **None masks a broken corpus citation.**
+   containing `…` or `...`, so such refs are never counted. **Measured over the assembly input — the fourteen merged
+   chapters as received at `origin/develop` — 23** shorthand-exempt path-shaped tokens across 9
+   files, at most 5 in any one file. This chapter adds more only by *quoting* them, so the published
+   total is higher and drifts with every edit to this paragraph; it is therefore not quoted. Of the
+   23, most are deliberate class nouns (`src/…`, `drizzle/…`, `../C010-…/`) or an
+   elided sibling chapter (`../01_…md:154`); three are neither — a git branch name
+   (`feat/NEU-1004-…`) and two references to the gitignored charter path (`_local/…/02_subtasks.md`).
+   All three are classified in §5.1 as prose nouns or gitignored-charter references. **None of the 32
+   masks a broken corpus citation**, which is the claim that matters.
 2. **The `MISSING-target` bucket.** `checker.ts:247`–`:266` buckets a nowhere-resolving target there,
    and `isFailing` (`:342`–`:346`) tests only `inScope` and `staleNonClaims` — so this bucket **can
    never fail the gate and never appears in the summary**. Read entry by entry: **235 occurrences
-   over 73 distinct targets** in the input (**260 over 75** in the published package, the difference
-   being this chapter's own quotations), every one classified (§5.1). **Zero unreported broken
-   citations.**
+   over 73 distinct targets** in the assembly input, every one classified (§5.1). **Zero unreported
+   broken citations.**
 3. **A third blind spot, found here and not previously recorded.** `normalizeCandidate`'s
    line-reference stripper is `(:\d+(?:,\d+)*)+$` (`checker.ts:130`). It handles `:60`, `:60:4` and
    `:52,183` — but **not a hyphenated range like `:8-9`**. A `src/…` citation written with a range
-   therefore lands in `MISSING-target` instead of the intended `repo-root-source` class. All ten such
-   targets in C011 resolve to files that exist, so nothing is broken today; the **class** is
-   mis-bucketed, and a *wrong* `src/` path written with a range would be invisible. **Reported, not
+   therefore lands in `MISSING-target` instead of the intended `repo-root-source` class. All
+   **thirteen** such targets in C011 — resolving to **ten** distinct files — point at files that
+   exist, so nothing is broken today; the **class** is mis-bucketed, and a *wrong* `src/` path
+   written with a range would be invisible. **Reported, not
    fixed** — changing `normalizeCandidate` is a behaviour change to a shared CI gate and belongs with
    its own test case, not in an assembly pass.
 
@@ -334,24 +340,32 @@ wanted a row to carry it.
 **Adjudication: both stand, and neither is a defect.** §2 establishes that SUB-17 owns the register,
 which makes writing no row correct. A row authored early is a routed claim its author is accountable
 for, which makes writing one also correct — and strictly more informative. The divergence is
-**recorded, not normalised**: normalising would mean either deleting 95 rows or authoring two
-sections, and both are forbidden here. SUB-17 inherits 149 rows from eleven sub-tasks, and the
-knowledge that two sub-tasks' silence is deliberate rather than missing.
+**recorded, not normalised**: normalising it in either direction is forbidden here — deleting the
+rows the early authors wrote would destroy other sub-tasks' content, and writing rows for SUB-15 and
+SUB-16 would be authoring register content on their behalf. SUB-17 inherits **149 rows across eleven
+`### SUB-<n>` sections**, and the knowledge that the two missing sections are a deliberate silence
+rather than a gap.
 
 ## 5. Four checks whose result a summary line cannot show
 
 ### 5.1 The `MISSING-target` bucket, classified
 
-**235 occurrences over 73 distinct targets in the assembly input; 260 over 75 in the published
-package.** Every target falls in one of six classes, and **none is an unreported broken citation.**
-The counts below are the input's, because they are what was classified; the 25 further occurrences
-and 2 further distinct targets are this chapter quoting them.
+**235 occurrences over 73 distinct targets**, measured over the assembly input — the fourteen merged
+chapters as received at `origin/develop`. Every target falls in one of six classes, and **none is an
+unreported broken citation.**
+
+The published package's own figure is higher and is **deliberately not quoted**, for the same reason
+the citation totals are not (§4.5): this chapter must quote each target in order to classify it, so
+any sentence stating the published count changes that count and falsifies itself. The input figure is
+the one that was classified, it is stable, and it is the one that matters. The additional occurrences
+are this chapter's quotations plus one `origin/develop` token in `README.md`'s cutoff header, which
+is a header field rather than a citation.
 
 | Class | Distinct targets | What they are |
 | --- | --- | --- |
 | Prose and protocol nouns | 14 | `tools/call`, `tools/list`, `prompts/get`, `prompts/list`, `/mcp`, `n/a`, `if/else`, `.sql`, `@modelcontextprotocol/sdk`, `pgvector/pgvector:pg16`, `origin/develop`, `feat/NEU-1004-…`, `COMPOSE_DIR=…`, `/home/deploy/docker-services/second-memory-mcp`. Path-shaped strings that are not citations. |
 | Bare source basenames | ~40 | `schema.ts`, `http.ts`, `chunk-tools.ts`, … — source files named by basename in prose after being introduced with a full path. Not corpus targets; the checker cannot repair them because they are not corpus files. |
-| Hyphen-range `src/` paths | 10 | `src/transport/http.ts:82-83` and nine more. **All ten files exist.** Mis-bucketed by blind spot 3 (§4.5). |
+| Hyphen-range `src/` paths | 13 | `src/transport/http.ts:82-83` and twelve more, resolving to **ten** distinct files (`http.ts` twice, `pg-audit-transport.ts` three times). **Every one of the ten files exists.** Mis-bucketed by blind spot 3 (§4.5). |
 | Gitignored charter references | 2 | `01_charter.md` (×7), `02_subtasks.md` (×2). The charter is the package's own spec and lives in gitignored `_local/`, so a reader cannot follow them. Legitimate provenance, unfollowable by design — which is *why* charter assumption 46 exists and the risk register ships. |
 | Extension-less decision-record refs | 3 | `decision-records/DR-C11-S13-1`, `…/DR-C11-S9-1`, `…/DR-C11-S9-3`. SUB-13 examined **its own** (`DR-C11-S13-1`) and ruled it not a broken citation, naming SUB-9's identical shape two rows above it as the precedent. The other two are SUB-9's and were **not** individually examined by anyone. **Left as written**, on the strength of the shape being established and defended once. |
 | A by-design non-claim | 1 | See §5.2. |
@@ -373,8 +387,12 @@ available illustration of why blind spot 2 had to be read entry by entry rather 
 
 ### 5.3 The findings-register enumeration, in both directions
 
-Charter assumption 49 names **eleven** finding-producing outcomes: OUT-2, OUT-3, OUT-4, OUT-8, OUT-9,
-OUT-10, OUT-11, OUT-12, OUT-14, OUT-17, OUT-18.
+**Charter assumption 43** carries the **eleven** finding-producing outcomes verbatim and in this
+order: OUT-2, OUT-3, OUT-4, OUT-8, OUT-9, OUT-10, OUT-11, OUT-12, OUT-14, OUT-17, OUT-18. *(The
+decomposition attributes the enumeration to assumption **49**. That is a partial citation and is
+corrected here: 49 names only nine of the eleven — it omits OUT-3 and OUT-17 entirely — because it is
+the assumption that **added** producers to the list, not the one that states it. The list of record
+is 43's.)*
 
 - **Direction 1 — every named outcome carries the requirement in its own charter text: 11 of 11.**
 - **Direction 2 — every outcome whose text carries the requirement is named: 11 of 11.**
@@ -382,11 +400,11 @@ OUT-10, OUT-11, OUT-12, OUT-14, OUT-17, OUT-18.
 **Two counts, both eleven. No mismatch in either direction.**
 
 **Method, stated because a cruder one gives a false answer.** A bare keyword match over the charter's
-outcome table returns **twelve** carriers, because OUT-20's row uses the word "finding" five times.
-Reading those five sentences shows every one of them *describes the findings register* or *specifies
-the enumeration audit* — none is a requirement that OUT-20 itself produce a finding. OUT-20 is
-therefore correctly excluded, and the honest counts are 11 and 11. The cruder method would have
-reported a mismatch that does not exist.
+outcome table returns **twelve** carriers, not eleven: OUT-20's row contains the word 16 times (9
+`finding`, 7 `findings`). Reading every finding-bearing sentence in that row shows each of them
+*describes the findings register* or *specifies the enumeration audit* — **none is a requirement that
+OUT-20 itself produce a finding.** OUT-20 is therefore correctly excluded, and the honest counts are
+11 and 11. The cruder method would have reported a mismatch that does not exist.
 
 ### 5.4 Two id irregularities, both benign, both recorded
 
@@ -427,7 +445,7 @@ independent run.
 and correctly noted `CAP-S13-1` does *not* collide; SUB-5 disclosed four; SUB-8 disclosed six in its
 own chapter; SUB-2 established the governing rule; SUB-4, SUB-9 and SUB-12 each disclosed at least
 one. None is wrong. **They are individually correct and collectively incomplete**, which is the
-expected result of fifteen authors each disclosing what their own chapter touched.
+expected result of fourteen authors each disclosing what their own chapter touched.
 
 **Two collision classes were disclosed by nobody, and both are structural rather than per-sub-task:**
 
@@ -480,21 +498,26 @@ only ones whose `git diff --numstat` reads `0` added against `1` deleted.
 Stated in git's own terms, so the number cannot be read two ways — `--numstat` counts a modified line
 as one deletion plus one addition, so its totals are larger than the content actually removed:
 
-| Kind | Lines | Where |
-| --- | --- | --- |
-| Removed and not replaced | **5** | the five stray `</content>` tags |
-| Substituted in place (equal add/delete) | **35** | 31 lines carrying 33 tracker-id corrections, 3 spike heading markers, 1 glossary clause |
-| Expanded in place | **2 → 23** | `01_`'s cross-check re-label (1 → 9); `92_`'s three reordered rows plus the correction note (6 → 20) |
-| Superseded wholesale | **91 → 161** | `README.md`, which its own seed text designates for supersession |
-| Added | **new file** | `00_method-and-provenance.md` |
+| Kind | Deleted | Added | Where |
+| --- | --- | --- | --- |
+| Removed and not replaced | **5** | 0 | the five stray `</content>` tags |
+| Substituted in place | **35** | 35 | 31 lines carrying 33 tracker-id corrections, 3 spike heading markers, 1 glossary clause |
+| Reordered in place | **3** | 3 | `92_`'s index rows 10–12 |
+| Expanded in place | **2** | 13 | `01_`'s cross-check re-label (1 → 9); the `GATED` list (1 → 4) |
+| Note appended | 0 | 16 | `92_`'s `F-S3-3` correction note |
+| Superseded wholesale | **91** | 169 | `README.md`, which its own seed text designates for supersession |
+| New file | 0 | — | this chapter, which adds no deletion and whose own length is not quoted here because quoting it changes it |
+| **Total deleted** | **136** | | reconciles exactly against `git diff --numstat origin/develop` |
+
+The three categories are disjoint — the 35 substituted lines include `92_`'s three tracker-id lines,
+which is why `92_`'s six deletions split 3 (substituted) + 3 (reordered) and are not counted twice.
 
 **No line is deleted anywhere in this package outside those five and the declared README
 supersession.** No register entry body is altered, no entry is removed, and no id is renumbered.
 
 **Verified after every edit pass:** no NUL byte, UTF-8 round-trips byte-identically, and zero U+FFFD
-replacement characters in any touched file. (Seven multi-byte-heavy files were edited; the check
-exists because an in-place editor silently corrupted a chapter's multi-byte characters earlier in
-this charter's history.)
+replacement characters in **every** touched file. The check exists because an in-place editor
+silently corrupted a chapter's multi-byte characters earlier in this charter's history.
 
 ### 7.1 The `README.md` supersession
 
