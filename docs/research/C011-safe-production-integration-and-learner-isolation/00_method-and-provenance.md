@@ -32,6 +32,14 @@ deliberately absent here: the split-fidelity record, the package-completeness ga
 outcome-register audit, and the independent cold read. **This pass is not the gate and passes no
 judgement on whether the package is complete.**
 
+**One boundary needs stating, because §4.5 and §5.1 look like they cross it.** Those sections analyse
+the citation checker and classify its residual buckets in detail. That is **not** the citation audit
+SUB-17 owns; it is the **evidence required to arm the gate**, which is `CAP-S1-2` and is this pass's
+by the cap's own named owner. The distinction is real and worth keeping: this pass had to know
+whether a green run meant anything *before* switching CI enforcement on for fourteen merged chapters
+at once. SUB-17's audit is still owed and should still be run **cold** — it should not treat §4.5 as
+having discharged it, and nothing here reports a citation-audit verdict.
+
 ## 2. `97_` ownership, stated so SUB-17 knows what it is auditing
 
 **SUB-17 owns `97_package-completeness-gate.md`'s content. SUB-14 owns only its slot placement and
@@ -71,10 +79,30 @@ per-`### SUB-<n>` sum. Both agreed on every line.
 | `97_package-completeness-gate.md` | **149 rows** | SUB-15 and SUB-16 wrote none, by decision (§4.6). |
 | **Band total** | **407 headings** | 406 C011-minted ids + 1 C010 disposition. |
 
-**Cross-register consistency: clean.** Of 406 minted ids, **zero appear as an entry in more than one
+**Cross-register consistency has two limbs, and only one of them is clean.** The acceptance condition
+is that *"an id appearing in more than one register carries the same owner and status in each, with
+any conflict reported rather than silently reconciled."*
+
+**Limb 1 — uniqueness: clean.** Of 406 minted ids, **zero appear as an entry in more than one
 register** — checked mechanically, not asserted. The eight registers use disjoint id-family prefixes,
 so the property holds by construction as well as by measurement; both are reported because
 construction can be broken by a future author and measurement cannot be argued with.
+
+**Limb 2 — owner and status: one divergence, and this pass created it. Reported, not reconciled.**
+§4.2 resolves `F-S3-3` and discharges `A-S11-1`, and records both in a note in
+`92_risk-register.md`. But **`F-S3-3`'s own body in `91_findings-register.md` is untouched and still
+reads as live** — it still states the open consequence *"a collision at `R10` or a hole at `R11`"* —
+and **`A-S11-1`'s entry in `95_stand-in-assumption-register.md` carries no discharge record.** So the
+same two ids now carry one status where the resolution is recorded and another in their home
+registers.
+
+**Why it is not reconciled here.** Editing either body would be authoring register content, which
+this pass may not do; both are their authors' entries. The divergence is therefore the honest
+outcome of resolving a conflict without the authority to rewrite the entries that record it, and it
+is **named here rather than papered over**. **Routed to SUB-3 (NEU-995)** as `F-S3-3`'s author and
+**SUB-11 (NEU-1004)** as `A-S11-1`'s, each to reflect the resolution in its own entry if it chooses,
+and to **SUB-17 (NEU-1008)**, whose risk-register and consistency audits meet a declared divergence
+rather than discovering one.
 
 **All eight registers are present.** No divergence note is owed.
 
@@ -436,7 +464,7 @@ is used in **eight** places. Every one is listed; every deletion is counted and 
 | # | Change | Files | Lines removed | Authority |
 | --- | --- | --- | --- | --- |
 | 1 | C011 added to the citation `GATED` list | `scripts/check-citation-paths.ts` | 1 (replaced by 4) | `CAP-S1-2`, owner SUB-14 |
-| 2 | 31 wrong `SUB-<n> (NEU-<m>)` routing ids corrected | 7 package files | **0** — all same-line substitutions | `F-S11-1`, `F-S12-8`; owner SUB-14 |
+| 2 | 33 wrong `SUB-<n> (NEU-<m>)` routing ids corrected | 7 package files | **0** — all same-line substitutions | `F-S11-1`, `F-S12-8`; owner SUB-14 |
 | 3 | 5 stray `</content>` tags removed | `15_`, `traceability/S15_`, 3 × `DR-C11-S15-*` | **5** | `F-S5-13`; owner SUB-14 |
 | 4 | 3 spike headings normalised `##` → `####` | `96_spike-register.md` | **0** — marker change only | `F-S9-2`; owner SUB-14 |
 | 5 | Risk index table rows 10–12 un-transposed, with a note | `92_risk-register.md` | **0** — 3 rows reordered in place | `F-S3-3`; owner SUB-14 |
@@ -454,7 +482,7 @@ as one deletion plus one addition, so its totals are larger than the content act
 | Kind | Lines | Where |
 | --- | --- | --- |
 | Removed and not replaced | **5** | the five stray `</content>` tags |
-| Substituted in place (equal add/delete) | **34** | 30 lines carrying 31 tracker-id corrections, 3 spike heading markers, 1 glossary clause |
+| Substituted in place (equal add/delete) | **35** | 31 lines carrying 33 tracker-id corrections, 3 spike heading markers, 1 glossary clause |
 | Expanded in place | **2 → 23** | `01_`'s cross-check re-label (1 → 9); `92_`'s three reordered rows plus the correction note (6 → 20) |
 | Superseded wholesale | **91 → 161** | `README.md`, which its own seed text designates for supersession |
 | Added | **new file** | `00_method-and-provenance.md` |
@@ -481,11 +509,13 @@ chapters, the register table carries live counts, the id conventions state the c
 
 Reported, not absorbed — SUB-17 audits this list:
 
-- **`F-S13-8`** (*"six stages apart"* should be four) and **`F-S13-11`** (two disable paths
-  misassigned). Both are corrections to SUB-7's text, and both findings name **SUB-7** as the party
-  that may edit it, naming SUB-14 only for aggregation. SUB-7 has shipped. **This pass does not
-  override a merged sibling's explicit routing**; both are carried forward unactioned and are
-  SUB-17's to route onward. Neither figure is repeated anywhere in this chapter.
+- **`F-S13-8`** (a stage separation stated as six where the ten-stage order gives four) and
+  **`F-S13-11`** (two disable paths misassigned). Both are corrections to SUB-7's text, and both
+  findings name **SUB-7** as the party that may edit it, naming SUB-14 only for aggregation. SUB-7
+  has shipped. **This pass does not override a merged sibling's explicit routing**; both are carried
+  forward unactioned and are SUB-17's to route onward. **The wrong figure is not propagated**: it is
+  not used anywhere in this chapter as a fact about the stage order, and it is described here rather
+  than quoted so that a reader grepping for it does not find a fresh instance to cite.
 - **The four extension-less decision-record references** — examined and ruled not-broken by SUB-13.
 - **The three bare `OI-S8-1` uses** — correct when written; see §6.
 - **`F-S12-8`'s own evidence table and two verbatim quotations of C010's register**, which contain
@@ -503,6 +533,13 @@ Reported, not absorbed — SUB-17 audits this list:
   quotations and this one.
 - **`97_`'s divergence** on whether SUB-15 and SUB-16 owed gate rows — adjudicated in §4.6, not
   normalised.
+- **`F-S11-1`'s evidence is now historical, and that is stated rather than left for a reader to
+  discover.** It enumerates roughly twenty-five `file:line` locations exhibiting a wrong tracker id;
+  after row 2 above, most no longer do. **No evidence is destroyed** — unlike `F-S12-8`, `F-S11-1`
+  cites locations rather than quoting the defective strings, it bounds itself to *"at this cutoff"*,
+  and every line it names still exists at the same number, because the corrections are one-for-one
+  substitutions that change no line count. A reader checking its list today will find the finding was
+  right and the defect has since been repaired, which is the intended end state.
 - **A missing blank line before some `###` headings**, which pre-exists on `develop`. Two sub-tasks
   confirmed and left it; this pass leaves it too, because normalising it would touch many files for
   no reader-visible gain and would inflate a diff whose whole value is that every hunk is nameable.

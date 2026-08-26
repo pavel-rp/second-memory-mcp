@@ -50,7 +50,9 @@ remaining twelve are their own authors' to write; their absence here is correct,
 > entries below were always correct**: `R10` is legal determination, `R11` is the tool count, `R12`
 > is the greenfield lifecycle half, each computed from the charter by its own author. Only this index
 > table disagreed with the rule it states, so only this table is changed; **no entry id moves and no
-> entry body is touched**. `A-S11-1`'s re-validation trigger — SUB-14's aggregation pass — is
+> entry body is touched**. The clause above that *"SUB-14 renumbers nothing"* therefore still holds
+> exactly as written — it is a statement about **entry ids**, and none moved. What changed is three
+> rows of an index, which never carried an id of its own. `A-S11-1`'s re-validation trigger — SUB-14's aggregation pass — is
 > discharged by this check: fifteen rows, fifteen ids, no duplicate and no gap, eleven authored and
 > four reserved for SUB-17. `A-S11-1`'s invalidating outcome did **not** fire — the discrepancy is
 > explained by the index table, not by the charter having moved.
