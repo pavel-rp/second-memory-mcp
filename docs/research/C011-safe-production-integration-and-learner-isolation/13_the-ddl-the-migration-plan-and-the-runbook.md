@@ -658,13 +658,20 @@ ON CONFLICT (marker_id) DO NOTHING;   -- idempotent across the daily re-runs
 CREATE SCHEMA IF NOT EXISTS archive;
 
 -- LIKE copies the column set as it stands AFTER T1, so the archive tables
--- carry principal_kind and learner_key too and the moved rows keep their
--- values. INCLUDING DEFAULTS only: no indexes, no constraints — the archive
--- is a closed retained store, not a queryable second live table.
+-- carry principal_kind and learner_key too, in the same ordinal positions —
+-- which is what makes the `SELECT *` in the move below safe.
+--
+-- Bare LIKE: no indexes, no constraints, AND NO DEFAULTS. The archive is a
+-- closed retained store, not a queryable second live table, so it needs none
+-- of them. Omitting INCLUDING DEFAULTS is deliberate and not an oversight:
+-- `id` is BIGSERIAL on both source tables, and INCLUDING DEFAULTS would copy
+-- a `nextval` default pointing at the LIVE table's sequence, quietly coupling
+-- the archive to it. Every row moved below supplies `id` explicitly, so no
+-- default is ever needed here.
 CREATE TABLE IF NOT EXISTS archive.mcp_request_log
-  (LIKE infrastructure.mcp_request_log INCLUDING DEFAULTS);
+  (LIKE infrastructure.mcp_request_log);
 CREATE TABLE IF NOT EXISTS archive.operation_event_log
-  (LIKE infrastructure.operation_event_log INCLUDING DEFAULTS);
+  (LIKE infrastructure.operation_event_log);
 
 -- One batch. Atomic: a row is in the live table or the archive, never both
 -- and never neither, because the DELETE and the INSERT are one statement.
@@ -717,10 +724,10 @@ population is gone. **Resumable** — the live table is the cursor. **Reversible
 statement, with the two table names swapped, moves the rows back; that is SUB-7's `T2` reversal, and
 what it cannot restore is not the rows (`07_the-rollout-sequence-and-what-each-stage-cannot-undo.md:494`).
 
-`INCLUDING DEFAULTS` and nothing else is deliberate. The archive holds the most sensitive content in
-the inventory (`F-S3-1`), and giving it indexes would make it convenient to query, which is the
-opposite of what a closed retained store is for. Its disposal is `DR-C11-S9-1`'s bulk deletion at
-archive close, whose **execution** is `R-S9-1` — cited, not re-raised, and not discharged here.
+**A bare `LIKE` — columns and types only — is deliberate.** The archive holds the most sensitive
+content in the inventory (`F-S3-1`), and giving it indexes would make it convenient to query, which
+is the opposite of what a closed retained store is for. Its disposal is `DR-C11-S9-1`'s bulk deletion
+at archive close, whose **execution** is `R-S9-1` — cited, not re-raised, and not discharged here.
 
 > **The retention conflict is cited and not resolved.** SUB-8 sets a 30-day window on
 > `operation_event_log` (`08_consent-and-what-a-learner-can-export-and-erase.md` §9, exception 5),
