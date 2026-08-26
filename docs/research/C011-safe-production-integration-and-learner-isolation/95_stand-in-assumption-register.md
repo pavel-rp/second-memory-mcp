@@ -855,3 +855,86 @@ independently, so folding them together would hide which part of the chapter a r
 `A-S6-3` is about an **unbuilt artifact** and its refutation overturns a recorded exclusion in
 another sub-task's inventory. A single combined entry would have one owner; these have three
 different ones — the creator, SUB-7, and SUB-13 with the implementation charter.
+
+---
+
+### SUB-9
+
+## `A-S9-1` — Ninety days is an acceptable bound on the archived pre-cutover population's survival, where no rollback window is set
+
+**Status:** `[unconfirmed]`
+
+**Stands in for:** **`OI-S9-1`** — the rollback window, owned by SUB-7 (NEU-1001) under OUT-3 /
+OUT-4, which runs at position 9 and ships concurrently with this sub-task. `DR-C11-S9-1` clause 5
+binds the deletion to the close of that window; this entry stands in for the window's length **only
+where SUB-7 sets none**. It is not a stand-in for SUB-7's figure, and **SUB-7's in-flight output was
+deliberately not read** — a bound taken from an unmerged sibling would be a number with no citable
+source.
+
+**Assumption:** That the archived pre-cutover log population may survive **no more than 90 days
+after cutover** before bulk deletion, and that 90 days is long enough for any rollback that will
+actually be attempted. The figure is chosen as a round bound comfortably above the one hard floor
+that is derived rather than assumed — the Tier-2 blocking gate's five-week window at
+`src/adapters/drizzle/tier2-blocking-stats-repository.ts:41` — and comfortably above `A-S8-1`'s
+30-day request deadline, so a disposal cannot come due before a request that triggers it. **It is
+not observed, not calibrated, and not a legal determination**, and it rests on no production fact:
+the population's size is unknown, and no restore has ever been shown to have been exercised.
+
+**Owner:** **SUB-7** (NEU-1001) where it publishes a rollback window, which supersedes this entry.
+**The creator, as sole maintainer and sole operator**, where none is published — as the only party
+who can execute the deletion and the only party who would attempt a rollback.
+
+**Tolerance envelope:** Any bound between **five weeks and twelve months** leaves every decision in
+`09_proving-a-data-right-reaches-every-copy.md` and `DR-C11-S9-1` intact. The lower end is the
+Tier-2 gate's floor — below it the archive's deletion would begin interacting with a running gate
+input, which §6.6 relies on it not doing. The upper end is where a "bounded disposal" stops being
+distinguishable from the indefinite retention OUT-11 exists to end. The disposition itself — bulk
+deletion under storage limitation — does **not** turn on the figure; only its date does.
+
+**Invalidating outcome:** **A rollback window longer than the disposal bound.** That is the specific
+outcome that breaks the design rather than merely adjusting it: it would mean the archive must
+survive past the date on which it is required to be deleted, so the rollback capability and the
+storage-limitation duty become directly incompatible and one of them has to give. `DR-C11-S9-1`
+clause 5 subordinates the default to SUB-7's window precisely so this conflict surfaces as a
+reconciliation rather than as a silently missed deletion. A **shorter** window does not invalidate
+anything — it merely makes this position conservative. Separately invalidating: a lawful-basis
+determination closing `OI-S3-1` that fixes a statutory disposal period **shorter than five weeks**,
+which would put the required disposal below the Tier-2 gate's floor and make the two
+irreconcilable without a code change.
+
+**Re-validation trigger:** **SUB-7 (NEU-1001) publishes a rollback window** for the migration
+stages — the observable event that either supersedes this entry or confirms it. **Additionally:
+`OI-S3-1` closes**, fixing the lawful basis from which any statutory disposal period follows.
+**Additionally: the literal at `src/adapters/drizzle/tier2-blocking-stats-repository.ts:41`
+changes**, which moves the tolerance envelope's lower bound, since that bound is read from code
+rather than chosen.
+
+---
+
+**SUB-9 register totals at revision 1:** **one stand-in**, `A-S9-1`, with an owner, a tolerance
+envelope, a named invalidating outcome and an observable re-validation trigger.
+
+**Why one entry and not three.** The obvious candidates for two further entries are both declined,
+for the reason this register draws its own admission line. That **backups exist** is charter
+assumption 33 and is already carried as **`A-33`**, with the *fact* separately carried as `OI-S1-8`;
+this sub-task cites both and restates neither, so the package keeps one id per fact. That
+**`deadline_at` is 30 days** is **`A-S8-1`**, authored by SUB-8 at position 10 and consumed here by
+citation; the matrix in `09_…md` §7 carries that value throughout and states no deadline of its own.
+Re-raising either would give SUB-14's cross-register consistency check two ids for one assumption,
+which is the failure the one-id-per-fact rule exists to prevent.
+
+**A-S9-1 is the only assumption this sub-task's own decisions rest on**, and its scope is narrower
+than it first looks: the **disposition** in `DR-C11-S9-1` — bulk deletion under storage limitation
+rather than per-request erasure — rests on no assumption at all. Its two premises are that no
+per-learner predicate selects a pre-cutover row and that confinement hides those rows from everyone,
+and both are **derived** from merged findings (`16_attribution-and-detection.md:279`–`:285` and
+`05_the-enforcement-point-that-confines-every-read-and-write.md:616`–`:641`) rather than assumed.
+Only the **date** rests on a stand-in. Stating that separation matters, because a refutation of
+`A-S9-1` moves a deadline and does not reopen the disposition.
+
+**`A-S9-1` is not charter-continued.** It stands in for no charter assumption, so it takes the
+sub-task-scoped `A-S9-<k>` form rather than continuing the charter's own `A-<n>` numbering — the
+same allocation SUB-8 made for `A-S8-1`, and for the same reason recorded in
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`: a bare global sequence cannot be
+computed safely while sibling sub-tasks write into the same register concurrently, and two of them
+are in flight against it now.

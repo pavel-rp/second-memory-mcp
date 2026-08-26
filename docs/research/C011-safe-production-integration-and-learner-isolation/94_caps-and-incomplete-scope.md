@@ -248,3 +248,51 @@ would close it. None is a limit on what this package can decide — the disposit
 `06_the-disposition-of-every-unowned-row.md` §3 are settled, and not one of them turns on a row count
 or a probe result. A cap filed here would mis-describe the situation as unresolvable when it is
 merely unobserved, and would give SUB-17's audit a permanent limit where there is a closable one.
+
+---
+
+### SUB-9
+
+**Five inherited caps are dispositioned here, and none is re-filed.** OUT-12 requires each to carry
+an explicit recorded disposition with its actual owner named, so that SUB-14's classification and
+SUB-17's split-fidelity record both have a source. **This sub-task files no cap of its own.**
+
+| Id | Class | Actual owner | Disposition recorded here |
+| --- | --- | --- | --- |
+| **`CAP-S3-3` (C010)** | **Supplied-to** | `NEU-986` (`SUB-12 of C010`), co-named `NEU-896` | The retention window, its **code-derived** 5-week floor and the deletion owner are designed at `09_proving-a-data-right-reaches-every-copy.md` §6.6 and **handed over**. The cap stays with its owner; this package supplies what it lacks, exactly as OUT-12 states. Defined at `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:148` |
+| **`CAP-S4-1` (C010)** | **Supplied-to** | `NEU-986` (`SUB-12 of C010`), co-named `NEU-896` | The same gap sighted from component placement; the same mechanism is handed over and the structural obstruction is unchanged by this sub-task. Defined at `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:165`. **Not to be confused with this package's own `CAP-S4-1`** at `:115` above — see `F-S9-3` |
+| **`CAP-S7-1` (C010)** | **Owned here, discharged here** | `NEU-893` outright | Its `Owner:` line names `NEU-893` *"the only party positioned to assign a retention-and-deletion owner"* (`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:283`), alongside `NEU-986` at the gate and `NEU-896` at convergence. **Discharged** at `09_…md` §6.6 by supplying exactly the lifting condition `:284` names — a named deletion owner on `SC-S3-16` and `SC-S3-17` with a retention window, **plus the `SC-S3-17` gate-input statement that entry records as never made by any party** |
+| **`CAP-S5-1` (C010)** | **Co-owned here, discharged elsewhere** | Co-owned with `NEU-986` | **Discharged under OUT-8 by SUB-5**, not here, including the one worked `holds` verdict that is the invariant's first positive instance. Recorded as owned-here-discharged-elsewhere so SUB-14's classification has a source; this sub-task **neither absorbs nor declines it**, and files no C011 `CAP-S5-1` — a bare `CAP-S5-1` in this package is always C010's, per `:186` above |
+| **`OI-S5-1`** | **Consumed, not owned** | `NEU-850` | Not a cap; listed here because OUT-12 requires its disposition alongside the four. Consumed by **citing the stand-in entry SUB-3 authored at position 3** rather than assuming a reading of its own. Recorded in `93_open-items-and-provisional-register.md` § SUB-9 |
+
+**One inherited cap is touched only by citation.** `CAP-S1-2` — that C011 is absent from the
+citation checker's `GATED` list at `scripts/check-citation-paths.ts:21`, so CI will not fail on a
+broken C011 citation — bears directly on this sub-task, whose chapter and three decision records
+carry a large number of `file:line` claims. It is **not re-filed**: its owner is SUB-14 (NEU-1007)
+and it is already recorded once. This sub-task's response is procedural, following SUB-6's: the
+citation checker was run locally, and the `…` ellipsis shorthand — which the checker discards at
+`scripts/citation-paths/checker.ts:121` and therefore cannot gate — was grepped for explicitly, so a
+green result is evidence rather than a vacuous pass. Every `file:line` in this sub-task's output was
+additionally re-read at the cited line.
+
+**The `qa-execution:engine` no-op is carried at package level and not duplicated.** The capability
+registry resolves to `git, linear`, no capability owns the `qa-execution` surface, **no QA pass
+exists and none is claimed**. `CAP-S1-3` already carries this package-wide, and a per-sub-task
+duplicate would make one package-wide condition look like several independent ones — the same
+disposition SUB-5, SUB-6 and `SUB-6 of C010` each recorded.
+
+---
+
+**SUB-9 register totals at revision 1:** **zero new caps filed.** Five inherited ids are
+dispositioned with their actual owners named, one further inherited cap (`CAP-S1-2`) is cited rather
+than re-filed with its owner unchanged, and **one cap is recorded as discharged** — `CAP-S7-1`
+(C010), by supplying its own stated lifting condition. No other cap is recorded as lifted.
+
+**Why this sub-task files no cap, stated rather than left as an absence.** The two limits this
+sub-task hit are both genuinely closable by a named party. The **egressed copy** (`F-S9-1`) is not a
+cap: it has an available party (`NEU-896` at convergence), and its unknown half is a bounded
+observation registered as `SPK-S9-1`. The **unexecuted disposal** (`R-S9-1`) is not a cap either: it
+has an available party (the creator, as sole operator) and an observable resolving event (the
+deletion runs). A cap says no party can close a limit; filing either as one would mis-describe an
+unperformed action as an unresolvable gap, and would hand SUB-17's audit a permanent limit where
+there is a closable one — the reasoning SUB-6 recorded for the same choice.

@@ -306,3 +306,52 @@ about applied behaviour: no file under `src/` or `drizzle/` changes, no DDL is a
 is executed, and no test is written. And **no QA pass** — the `qa-execution:engine` surface is
 unconfigured, so the automated QA phase is a genuine Core Article 8 no-op, carried at package level
 as `CAP-S1-3`.
+
+---
+
+### SUB-9
+
+| # | Item | Disposition | Evidence / cap |
+| --- | --- | --- | --- |
+| `G-S9-1` | Six-column × three-duty matrix; every cell carries an action, a deadline, a retention exception, a learner-visible result and an auditable proof | **met** | `09_proving-a-data-right-reaches-every-copy.md` §7.1–§7.3 — 18 cells, all five elements each |
+| `G-S9-2` | Zero cells read "unknown" without a named owner and a date | **met** | §7. Three C3 cells read *not determinable at this cutoff* **with** the owner and resolving event carried from `OI-S1-8` (`93_…md:124`, `:125`) — the state OUT-12 permits. No cell is blank |
+| `G-S9-3` | Every column heading resolves to a defined class rather than an inherited label | **met** | §3 — six definitions with their SUB-3 inventory mappings; §3.1 resolves `web-owned state` to browser-side device state, server-side recorded empty-by-decision under `M-A` cited to `DR-C10-S6-1` |
+| `G-S9-4` | The sixth column carries SUB-1's recorded owner, retention bound and destruction condition with that origin named; any "destroy on schedule" is reasoned | **met** | §7.4 — all five terms read from `01_production-evidence-and-the-access-audit.md:151`–`:159`; the action is reasoned from the retention bound's unconditional expiry, and is explicitly **not** claimed to replace erase-on-request pre-publication |
+| `G-S9-5` | Each candidate package-internal copy is admitted or excluded on its derivation, with the answer written down | **met** | §5 — five candidates tested. §5.1 states the dry-run exclusion, sets no term, and adds the exclusion's **own falsifier**, which SUB-6 did not state |
+| `G-S9-6` | The backups column is resolved by citation to the package's single record, with its owner carried; zero backups records raised here | **met** | §10 cites `OI-S1-8` by id with its owner. Verified by grep: no finding, risk, open item, cap, stand-in or spike about backups appears in this sub-task's output |
+| `G-S9-7` | The unowned-copy audit runs mechanically over SUB-3's inventory ∪ `LD-S8-1`, reports a count, includes the package's own copies | **met** | §8 — 33 categories (`08_…md:258`), 0 with no propagation owner, package's own copies included as C6. Zero revisions raised against SUB-3's inventory |
+| `G-S9-8` | Every unowned copy and every unresolvable cell is reported as a finding with a named owner | **met** | `F-S9-1` — the one copy location no class claims, with owner and escalation route. C3 was tested against the trigger and **deliberately not filed**, recorded as *checked and not filed* in `91_findings-register.md` § SUB-9, because filing would raise a forbidden second backups record |
+| `G-S9-9` | The completion-proof design conforms to SUB-16's published signal contract field by field | **met** | `decision-records/DR-C11-S9-3` — 9/9 fields, 3/3 location properties, the timing rule, 6/6 negative clauses, each walked individually. The match is asserted here because `16_attribution-and-detection.md:338`–`:341` declines to assert it |
+| `G-S9-10` | `CAP-S3-3`, `CAP-S4-1`, `CAP-S7-1`, `CAP-S5-1` and `OI-S5-1` each carry an explicit disposition with its actual owner | **met** | `94_caps-and-incomplete-scope.md` § SUB-9 — five rows. `CAP-S7-1` **discharged**; two supplied-to; one owned-here-discharged-elsewhere; one consumed. C010's `CAP-S4-1` is written qualified throughout (`F-S9-3`) |
+| `G-S9-11` | OUT-12's outcome row and the Critical OUT-12-owned charter § Risks row are both authored here | **met** | `90_outcome-register.md` § SUB-9 (row, resolving evidence, eight-clause success measure); `92_risk-register.md` § `R2` with severity, mitigation, named owner and escalation route |
+| `G-S9-12` | The copy set is closed by an argument with a stated falsifier, rather than assumed complete | **met** | §4 — `W-1` … `W-7` enumerated statically at `ee0a750`; the argument at §4.2; the falsifier at §4.3, re-runnable by four greps with no production access |
+| `G-S9-13` | The propagation is demonstrated against a real copy | **not met** | **No production credential exists** — `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*`, `VPS_*` all unset, verified 2026-08-26. Zero of twenty-three designed spikes have executed package-wide. `SPK-S9-1` carries the one deferred observation with a method and an expiry; the argument at §4 is what stands in its place, and it is **not** restated as a demonstration |
+
+**SUB-9 rows: 13. Met 12; met with cap 0; not met 1; not applicable 0.**
+
+**SUB-9 uses the sub-task-scoped `G-S9-<k>` form**, following SUB-2, SUB-4, SUB-5, SUB-6 and SUB-8
+rather than SUB-1's and SUB-3's continuation of the bare global `G-<n>` sequence. Two conventions are
+live in this register and the divergence is stated rather than silently chosen, exactly as each of
+those sub-tasks stated its own. The reason is the collision
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md` names, and it is live right now:
+**two sibling sub-tasks are in flight against this same register concurrently**, and `G-S9-<k>`
+cannot collide with what either of them computes.
+
+**The one `not met` row is the package's standing condition, not a defect discovered here.**
+`G-S9-13` fails for the single reason every unmet row in this register fails: no production
+credential exists in this environment. It is recorded as its own row rather than folded into the met
+ones, and **it is not restated to match what was achievable** — the honest form is *"the propagation
+was not demonstrated against a real copy"*, not *"the propagation was proved by argument"*, which is
+a different and weaker claim already credited at `G-S9-12`. Collapsing the two would be the failure
+mode SUB-5 recorded against its own `G-S5-6` and SUB-6 against its three.
+
+**What SUB-9 does not assert here.** Nothing about production: no row count, no population size, no
+backup fact, no provider identity, and `observed-in-production` used **zero** times. Nothing about
+whether the disposal in `DR-C11-S9-1` has been executed — it has not, and `R-S9-1` carries that with
+a named owner. Nothing about what the external providers retain — `F-S9-1` names the exposure and
+`SPK-S9-1` records that its terms are unknown. Nothing about confinement, which is SUB-5's under
+OUT-8. Nothing about the tool surface: the settled **46 / 43 / 3** figure is neither re-counted nor
+restated in this sub-task's output, and **`42` appears nowhere in it**. And **no QA pass** — the
+`qa-execution` surface is unconfigured, so the automated QA phase is a genuine Core Article 8 no-op,
+carried at package level as `CAP-S1-3`. No file under `src/` or `drizzle/` changes, no DDL is
+authored, no migration is executed, and no test is written.
