@@ -822,3 +822,108 @@ answered statically in the affirmative at `09_…md` §4.4; `SPK-S9-1` asks *wha
 it arrives*, which is a question about a third party and which no reading of this repository can
 settle. A run of either would inform the other, and whoever executes one should execute both in the
 same session.
+
+---
+
+### SUB-12
+
+**Six spikes. None executed.** Every one first fails the *"could this have been read from the
+repository instead?"* test, which is why the threat model's many readable constants became cited
+`file:line` facts rather than spikes. Each carries a question, a method, a mandatory expiry and
+`Result: not executed` rather than a substituted answer.
+
+#### `SPK-S12-1` — Does any second process share the production database?
+
+- **Question.** Does the off-repo `docker compose` stack define any container besides the MCP server
+  and Postgres that holds a database credential — a worker, a cron container, a sidecar, a log
+  shipper?
+- **Why it cannot be read.** The compose stack is unversioned and **lives outside this repository**
+  (charter assumption 21). No reading of this repository at any cutoff can enumerate it. This is
+  extension shape `X-2`, and it also closes `X-4` (an unregistered scheduled job).
+- **Method.** Read-only: `docker compose config` on the host, plus `docker ps`. Non-mutating; no
+  database access required.
+- **Owner.** The creator, as sole maintainer and sole operator. **Expiry:** 90 days from execution, or
+  on any change to the compose stack, whichever is sooner.
+- **Result:** **not executed.** No `VPS_*` credential exists in this environment.
+
+#### `SPK-S12-2` — Does the production database carry any server-side execution object?
+
+- **Question.** Does any trigger, rule, function-backed view, foreign data wrapper, publication or
+  logical-replication slot read or write a learner table?
+- **Why it cannot be read.** Such an object is created through a direct database session and leaves
+  **no artifact under `src/` or `drizzle/`**. This is the one extension shape (`X-3`) that
+  `DR-C11-S12-1`'s ingress argument is structurally unable to close, and it is the reason `F-S12-5`
+  is a **blocking finding** rather than a caveat.
+- **Method.** Read-only catalogue queries: `pg_trigger` joined to `pg_class` over the learner tables;
+  `pg_rules`; `pg_proc` for functions referenced by views; `pg_foreign_table`; `pg_publication` and
+  `pg_replication_slots`. **A negative result is a result and must be recorded as one.**
+- **Owner.** The creator, as sole maintainer and sole operator. Escalates to **`NEU-896`**, since a
+  second writer to the production database is a program-level fact. **Expiry:** 90 days.
+- **Result:** **not executed.** No `DATABASE_URL` exists in this environment.
+- **Open item:** `OI-S12-1`.
+
+#### `SPK-S12-3` — Has any Tier-2 verdict field ever tripped in production?
+
+- **Question.** Has `tier2.circuit_breaker_tripped` ever been emitted, for which field, and what were
+  the prior-week counts at the time?
+- **Why it matters and what it does not decide.** It would establish whether `F-S12-1`'s channel has
+  ever been *exercised*. **`F-S12-1` does not depend on the answer** — the finding is about what the
+  deployment permits, which is read off four code facts. What the spike would settle is the volume
+  required to trip a field, which this chapter deliberately states no number for.
+- **Method.** Read-only: `SELECT` over `infrastructure.operation_event_log` where
+  `event = 'tier2.circuit_breaker_tripped'`, plus the `classifier.tier2_blocked` weekly distribution.
+  **Note the retention interaction** — a 30-day window (`F-S9-6`) may already have deleted the
+  evidence, and a null result must therefore be reported as *inconclusive*, not as *never tripped*.
+- **Owner.** The creator, as sole maintainer and sole operator. **Expiry:** 60 days — shorter than the
+  others because the retention window is actively destroying the evidence.
+- **Result:** **not executed.**
+
+#### `SPK-S12-4` — What is the deployed value of `OLLAMA_BASE_URL`, and which embedding provider does production actually run?
+
+- **Question.** Is the embedding provider OpenAI or Ollama in production, and if Ollama, does
+  `OLLAMA_BASE_URL` point at a local host or an external one?
+- **Relation to `SPK-S8-1` and `SPK-S9-1`, stated so no second record is raised.** `SPK-S8-1` asks
+  *which provider* production uses and `SPK-S9-1` asks *what the provider retains*. **Both are cited,
+  not re-designed.** This spike asks a third, narrower thing that neither covers: **the configured
+  destination value**, which is what `GATE-S12-13` measures. Whoever executes any of the three should
+  execute all three in the same session.
+- **Method.** Read-only: read the effective environment of the running container.
+- **Owner.** The creator, as sole maintainer and sole operator. **Expiry:** 90 days, or on any change
+  to the deployment's environment.
+- **Result:** **not executed.**
+
+#### `SPK-S12-5` — What is the container log driver, and what is its retention?
+
+- **Question.** Which logging driver does the production container use, what rotation and retention
+  does it apply, and who can read the resulting files?
+- **Why it matters.** `F-S9-5` establishes that learner free text reaches stderr unredacted, and that
+  under STDIO stderr is the **sole** copy. The retention of that copy is the one thing that would make
+  `GATE-S12-14` settable, and SUB-9 explicitly declined to claim anything about it.
+- **Method.** Read-only: `docker inspect` the running container's `LogConfig`, plus the daemon's
+  default. Non-mutating.
+- **Owner.** The creator, as sole maintainer and sole operator; escalates to **`NEU-896`**.
+  **Expiry:** 90 days.
+- **Result:** **not executed.**
+
+#### `SPK-S12-6` — How many database roles exist, and can an operator session be distinguished from an application session?
+
+- **Question.** Does the production database have a separate operator role, or does the operator
+  connect as the application's own role? What grants does each hold?
+- **Why it matters.** `GATE-S12-15` requires operator database access to be attributable. If one role
+  serves both, operator activity is **indistinguishable from application activity at the database
+  level**, and the gate's threshold is not merely unmet but unmeasurable.
+- **Method.** Read-only: `\du`, plus `information_schema.role_table_grants` over the learner tables.
+- **Owner.** The creator, as sole maintainer and sole operator. **Expiry:** 90 days.
+- **Result:** **not executed.**
+
+**Package spike total at this cutoff.** Counted mechanically over this file rather than inherited:
+**24 designed before this section, 6 added here, 30 designed in total, zero executed.** The figure has
+moved four times across the package's history — the register narrates the drift as a recurring
+self-correction (`F-S4-6`, `F-S9-2`) rather than as an error — and **each figure is only correct on
+the day it is written**. This one is correct at `57aeba3` on this branch, and a reader should recount
+rather than cite it forward.
+
+**Zero spike results are invented and no upstream spike's conclusion is restated.** `SPK-S8-1`,
+`SPK-S9-1`, `SPK-S15-3`, `SPK-S15-4` and `SPK-S16-1` are referred to by id only. In particular
+**`SPK-S16-1` is cited, not re-filed**, as the evidence source for `GATE-S12-19`: whether the audit
+writer is mounted in production is SUB-16's question and keeps SUB-16's id.

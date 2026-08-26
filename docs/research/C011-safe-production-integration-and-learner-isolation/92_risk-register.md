@@ -770,3 +770,54 @@ allocation matches this register's own id-convention table.
 **One risk is deliberately not raised.** That production database backups may hold learner data no erasure reaches is **`OI-S1-8`**'s subject, and this sub-task's scope forbids a second register record of the backups fact in any register, this one included. `R2`'s escalation route carries that item's owner across by citation instead. A separate risk entry would give SUB-14's cross-register consistency check two ids for one question.
 
 **No amendment is routed to `NEU-895` by SUB-9.** `F-S9-3` records a naming collision between two independent id spaces, which is not a contradiction of a C010 decision; `CAP-S7-1` is discharged by supplying the lifting condition its own entry names, which its entry invites. `A-28`'s tolerance envelope is not reached: nothing in this sub-task finds that safe isolation requires a separate deployment or datastore.
+
+---
+
+### SUB-12
+
+**No charter § Risks row is authored here, and that is computed rather than assumed.** All fifteen rows were read at `01_charter.md:581`–`:597` and their owning-outcome column enumerated: OUT-8, OUT-12, OUT-3, OUT-4, OUT-20, OUT-20, OUT-20, OUT-18, OUT-2, OUT-9, OUT-16, OUT-9, OUT-18, OUT-18, OUT-20. **OUT-17 appears zero times** — charter assumption 48. In particular the **inherited-universe risk is not this sub-task's**: the charter owns that row to OUT-20 and SUB-17 authors it; SUB-12 supplies only the amendment record it consumes. Four sub-task-scoped entries follow.
+
+## `R-S12-1` — Every isolation guarantee in this package is scoped to two ingress surfaces, and the qualifier is the first thing a reader will drop
+
+- **Severity:** High
+- **Risk.** The enforcement point is a predicate inside a row-owning adapter method (`05_the-enforcement-point-that-confines-every-read-and-write.md:229`–`:230`). `IN-4` (a direct database session) and `IN-5` (the host shell) execute no adapter method, so **every confinement claim in C011 holds for `IN-1` and `IN-2` and for nothing else.** No chapter claims otherwise; until §5.2 none said so either. The exposure is that "confinement is enforced" travels out of this package without the qualifier that makes it true, into a program-level go decision.
+- **Mitigation.** §5.2 states the scope explicitly as a standing qualifier rather than a footnote; every operator path is enumerated (`TP-S12-35` … `TP-S12-43`) with an invariant, so the scope boundary is visible as nine concrete rows rather than as a caveat; `GATE-S12-15` sets a control on the one path (`psql`) that most looks like an exemption. **The mitigation is explicitly not complete** — a port-boundary mechanism *cannot* reach below the port boundary, and placing it there is what `A-28`'s envelope requires. What is mitigated is the silence, not the scope.
+- **Owner.** SUB-12 (NEU-1005) for the statement; **the creator, as sole maintainer and sole operator**, for the operator surface itself.
+- **Escalation route.** **`NEU-896`** as the convergence gate: whether a confinement scoped to two of eight ingress surfaces is sufficient to authorize implementation is a program-level judgement, not one this package can take.
+- **Mitigation status:** **Partially mitigated.** The scope is now stated. Nothing prevents it being dropped downstream, and the precedent that a qualification gets dropped is `R-S9-3`, registered by SUB-9 against its own matrix for the same shape of failure.
+
+## `R-S12-2` — A new transport arm lands with no middleware, and the enumeration silently stops being true
+
+- **Severity:** Medium
+- **Risk.** The ingress partition is read off one conditional at one cutoff — `src/transport/main.ts:46`–`:59`. The STDIO arm already demonstrates the failure mode: it exists, it carries none of the middleware the HTTP arm mounts, and that asymmetry is the reason `F-S5-4` reports every category failing at `I4`. **A third arm would inherit the same default**, and the threat model would report 52 paths over a system that had 53.
+- **Mitigation.** `X-1` names the shape in §2.3 rather than leaving it to be discovered; `SIG-S16-4`'s paired before/after comparison across each deploy boundary is the signal that would catch the behaviour change, and `GATE-S12-20` is the gate. The falsifier is stated as a re-runnable procedure, so the check is cheap.
+- **Owner.** **SUB-7** (NEU-1001) under OUT-3 for the stage sequencing; the implementation charter for the re-run.
+- **Escalation route.** **`NEU-896`**, which converges the client and transport surface.
+- **Mitigation status:** **Partially mitigated.** The shape is named and a signal exists; nothing enforces the re-run.
+
+## `R-S12-3` — A dependency bump adds an outbound client, and learner content acquires a destination nobody enumerated
+
+- **Severity:** Medium
+- **Risk.** SUB-9's outbound enumeration was extended once already, because `new OpenAI` does not match `new OllamaEmbeddings` (`09_proving-a-data-right-reaches-every-copy.md:151`–`:154`). Both learner-content embedding paths are reached through `await import(...)` of a package that opens a socket, which is exactly where a new client first appears. A new provider would place learner content at a destination outside all six copy classes and outside `GATE-S12-8`'s enumerated set, and every search that had previously returned green would continue to.
+- **Mitigation.** `X-5` names the shape; `GATE-S12-8` is expressed as *"count of egress destinations with no named lawful basis: zero"* rather than as a list of providers, so a new provider **fails the gate by construction** rather than by being noticed. That is the design response to an enumeration that has already been extended once.
+- **Owner.** The owner of `OI-S3-1` (the creator, as sole operator); **SUB-8** (NEU-1002) under OUT-11 for the basis.
+- **Escalation route.** **`NEU-896`**.
+- **Mitigation status:** **Partially mitigated.** Expressing the gate as a count rather than a list is a real structural improvement; it still depends on somebody running it.
+
+## `R-S12-4` — A retention window set for storage limitation silently retunes a production control
+
+- **Severity:** Medium
+- **Risk.** `F-S9-6` records that the 30-day retention window on `infrastructure.operation_event_log` sits **five days below** the Tier-2 gate's own five-week query horizon. §7 adds the fact neither side had: **that horizon feeds a control, not a report.** The breaker computes `mean + 2σ` over `priorWeeksCounts` and skips a field entirely when priors are empty or all-zero (`src/orchestration/tier2-circuit-breaker.ts:116`–`:127`, `:117`, `:123`). Truncating the oldest bucket changes the mean, changes σ, and therefore changes **when and whether** the breaker trips. A policy chosen for storage-limitation reasons retunes a live control, with nothing in either decision path indicating that it does.
+- **Mitigation.** The consequence is stated here rather than absorbed; `GATE-S12-18` requires the retention mechanism's execution to be observable, so a change in behaviour would at least be attributable to a run; `GATE-S12-10`'s three admissible controls each remove the coupling, because none of them leaves a learner-influenced statistic driving the field set.
+- **`F-S9-6` is cited and deliberately not re-raised.** SUB-9 filed it unresolved on purpose and owns it. A consequence of another sub-task's finding is a risk of this one, not a second copy of theirs.
+- **Owner.** **`NEU-986`** (`SUB-12 of C010`), owner of C010's `CAP-S3-3` and `CAP-S4-1`, the log-table retention-and-deletion caps; co-named **`NEU-896`**.
+- **Escalation route.** **`NEU-896`** at convergence, where a retention position taken for one duty and a control depending on it are reconciled across packages.
+- **Mitigation status:** **Unmitigated.** Both merged positions stand, the conflict is real, and neither side is wrong. Nothing here changes either number.
+
+---
+
+**SUB-12 register totals at revision 1:** **four entries**, all sub-task-scoped (`R-S12-1` High, `R-S12-2` Medium, `R-S12-3` Medium, `R-S12-4` Medium), **zero charter § Risks rows** by the computation above. Every entry carries a severity, a mitigation, a named owner and an escalation route, and **not one is fully mitigated**.
+
+**One risk is deliberately not raised.** That an operator may read learner free text from the container's log files is **`F-S9-5`**'s subject, owned by SUB-9, and the backups question is **`OI-S1-8`**'s. Both are cited by `TP-S12-36` and `TP-S12-43` and neither is re-recorded here, so the package keeps one id per fact.
+
+**One amendment is routed to `NEU-895` by SUB-12, and it is the package's first.** Two failure modes `DR-C10-S5-1`'s five ordered checks do not generate — cross-learner actuation (`F-S12-1`) and a verdict set with no over-confinement outcome — fire that record's trigger 3. Routed to `NEU-895` as owner, co-named `NEU-896`, with **SUB-17** (NEU-1008) named as the recipient within this package, since the charter's inherited-universe risk requires that whether the route fired be reported. **It fired.** `A-28`'s tolerance envelope is not reached: nothing here finds that safe isolation requires a separate deployment or datastore.

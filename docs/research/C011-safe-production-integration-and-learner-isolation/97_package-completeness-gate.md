@@ -420,3 +420,48 @@ pass** — the
 `qa-execution` surface is unconfigured, so the automated QA phase is a genuine Core Article 8 no-op,
 carried at package level as `CAP-S1-3`. No file under `src/` or `drizzle/` changes, no DDL is
 authored, no migration is executed, and no test is written.
+
+---
+
+### SUB-12
+
+| # | Item | Disposition | Evidence / cap |
+| --- | --- | --- | --- |
+| `G-S12-1` | Threats enumerated across every path class OUT-17 names — read, write, session, retrieval, context-token, analytics, migration, operator, and the prospective general web API | **met** | `12_threat-model-and-the-gates-that-authorize-implementation.md` §4–§6 — **52 paths across ten classes** (the nine OUT-17 names plus Class J, the egress locations SUB-9 routed here). Every named class has at least one path; the per-class ranges are stated in §4 so a recount agrees |
+| `G-S12-2` | **Zero paths lack an explicit isolation or lifecycle invariant** | **met** | §9.2 — 52 paths, 52 invariant-bearing, **0 blank**. Mechanically checkable by reading the Invariant column of every §4/§5 table. §9.3 states that the zero is empirical over the enumerated set and **definitional with respect to the set itself** rather than letting it read as stronger |
+| `G-S12-3` | The threat set is closed by an argument with a stated falsifier, not assumed complete | **met** | §2; `decision-records/DR-C11-S12-1_closing-the-threat-set-over-ingress.md`. The falsifier is a **procedure**, not a count of greps, and **five extension shapes (`X-1`…`X-5`) are named in advance** rather than left to review |
+| `G-S12-4` | The enumeration was re-attacked after it first returned green, and any defect found is reported rather than silently repaired | **met** | §2.4 — a delegated enumeration searched `src/server/*.ts` and concluded **zero MCP prompts exist**; three do, at `src/transport/create-server.ts:25`, `:45`, `:80`. **Published with the reason the green check missed it**, on the precedent `G-S9-14` set |
+| `G-S12-5` | Operator access is **modelled with its own invariants rather than exempted**, including direct database and SSH access | **met** | §5 — nine operator paths (`TP-S12-35` … `TP-S12-43`). `psql` is `TP-S12-35`, SSH is `TP-S12-36`. Each carries an invariant, a verdict and an owner; **none is exempted**. §5's framing paragraph states why intent is irrelevant to the modelling |
+| `G-S12-6` | The scope of every C011 isolation guarantee is stated rather than left implicit | **met** | §5.2 — every guarantee is scoped to `IN-1` and `IN-2`; four of the eight ingress surfaces execute no adapter method. Carried as `R-S12-1`. **This is a qualifier that was missing, not a defect in SUB-5's design** |
+| `G-S12-7` | Every critical gap carries a control, a threshold, an owner and an evidence source | **met** | §8 — **22 gates**, four populated columns each, plus a provenance label and a `Transport` column. No cell is blank |
+| `G-S12-8` | A gap without a measurable control is recorded as a **blocking finding**, not accepted as a risk | **met** | §8.1 — `F-S12-5` (the database-side execution path) and `F-S12-6` (the unobservable propagation instruction), each with a named owner. Both were tested against the cap definition and filed as findings rather than caps, with the reasoning stated in `94_caps-and-incomplete-scope.md` § SUB-12 |
+| `G-S12-9` | Thresholds draw from SUB-15's objectives and signals from SUB-16's detection matrix | **met** | §8 consumes `SIG-S16-2`, `SIG-S16-3`, `SIG-S16-4`, `ME-S16-1`…`ME-S16-3`, `ME-S16-7`, and `OBJ-10`'s lower-bound position — which is **why every count threshold is zero-tolerance rather than a rate** (`DR-C11-S12-3`). `SIG-S16-3` was handed here by name and is `GATE-S12-22` |
+| `G-S12-10` | Every gate traces to a threat and every critical threat traces to a gate, **reported as counts in both directions** | **met** | §9.1 — 22 of 22 gates name a path, 0 name none. §9.2 — 35 gap/out-of-reach paths resolve 31 to a gate, 2 to a cited upstream risk, 1 to a blocking finding, 1 to a cited open item, **0 to nothing**. Both arithmetic identities are shown: 17 + 35 = 52 and 31 + 2 + 1 + 1 = 35 |
+| `G-S12-11` | **Any gate is evaluated, or any threshold measured** | **not met** | **No production credential exists** — `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and `VPS_*` re-probed at `57aeba3` and all unset, reproducing `F-S1-2`. All 22 gates are specifications; provenance is 15 derived, 3 stand-in, 4 deferred spike, **zero production observations**. Capped as **`CAP-S12-1`**, owner the creator as sole operator, escalating to `NEU-896`. **The specifications are not restated as measurements anywhere** |
+| `G-S12-12` | A failure mode the five checks do not generate is routed as a recorded amendment to `DR-C10-S5-1`, in a form the inherited-universe risk record can consume, **naming SUB-17 as recipient** | **met** | §10; `decision-records/DR-C11-S12-2_the-unconfined-aggregate-as-a-control-input.md`. Trigger 3 fired, two items, routed to `NEU-895` co-named `NEU-896`, recipient **SUB-17 (NEU-1008)**, with the effect on C010's two zeros stated. **Whether SUB-17's record reports it as fired is SUB-17's acceptance at position 16**, not this one's |
+
+**Eleven met, one not met.** The one `not met` is `G-S12-11`, it names what is missing (a production
+credential), why (none exists in this environment), and its owner (the creator, as sole maintainer and
+sole operator), and it is capped as `CAP-S12-1` rather than left as a bare gap.
+
+**The `42` disclosure, made explicitly because four records in this package previously certified it
+falsely and one had to correct itself.** `42` appears in `12_…md` **once**, in §13, where it is named
+as *the superseded miscount* in the course of disclosing that the tool surface's 43 comes from the
+13-row registration mapping at `src/server/tools.ts:17`–`:31` rather than from `46 − 3`. **That is not
+a tool-surface assertion; it is the disclosure itself.** Separately checked: **no `file:line` citation
+in this sub-task's output lands on line 42**, established by extracting every `:NN` token
+mechanically rather than by assertion.
+
+**The `…md` shorthand, and why this sub-task's citation check is load-bearing.** The shorthand form
+`05_…md` is **invisible to `scripts/check-citation-paths.ts`** — such refs are silently exempt, so a
+`0 non-resolving` result over a file full of them is true but is not evidence. This sub-task's own
+citations are therefore written with **full filenames**, so the checker actually resolves them.
+Occurrences of the shorthand in `12_…md` are inside quotations of another chapter's text or in table
+cells abbreviating a filename cited in full in the same section.
+
+**No QA pass.** The `qa-execution` surface is unconfigured, so the automated QA phase is a genuine
+Core Article 8 no-op. **This sub-task cites `F-S11-5` for that position rather than `CAP-S1-3`:**
+SUB-11 established that `CAP-S1-3` is referenced package-wide but has **no register entry anywhere**
+(`94_caps-and-incomplete-scope.md:271`–`:281`). The no-op is real; the cap id for it is not, yet, and
+citing a phantom id would be the unchecked inheritance this chapter is about. No file under `src/` or
+`drizzle/` changes, no DDL is authored, no migration is executed, and no test is written.

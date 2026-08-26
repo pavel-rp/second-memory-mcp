@@ -1004,3 +1004,161 @@ to `NEU-895`. C010's `CAP-S3-3`, `CAP-S4-1` and `CAP-S7-1` are consumed with the
 `NEU-988` left them; `CAP-S7-1` is discharged by supplying the lifting condition its own entry
 names, which its entry invites rather than contradicts. The settled **46 / 43 / 3** tool surface is
 not restated as a codebase fact anywhere in `09_…md`, and `42` appears nowhere in it.
+
+---
+
+### SUB-12
+
+Seven findings. **Two are blocking** (`F-S12-5`, `F-S12-6`) under OUT-17's rule that a critical gap
+without a measurable control is recorded as a blocking finding rather than accepted. The seventh
+(`F-S12-7`) is a package-hygiene defect observed in passing and **reported rather than fixed**, on
+the precedent SUB-5 set with `F-S5-13`.
+
+#### `F-S12-1` — An unconfined aggregate consumed as a **control input** lets one learner change the controls applied to another
+
+- **Finding.** `DrizzleTier2BlockingStatsRepository` aggregates `infrastructure.operation_event_log`
+  with **no principal predicate** (`src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`–`:42`).
+  The Tier-2 circuit breaker is **one per process, shared by every learner**
+  (`src/orchestration/tier2-circuit-breaker.ts:59`), trips a verdict field when that cross-learner
+  count exceeds `mean + 2σ` of prior weeks (`:124`–`:128`), holds the trip **one-shot until restart**
+  (`:65`–`:68`, `:148`–`:151`), and **removes the tripped field from the blocking set for every
+  subsequent caller** (`:182`–`:187`). So a learner who accumulates rejections on a field can durably
+  disable that content-quality control **for every other learner in the process**, with no access to
+  their data of any kind.
+- **Why it is not `F-S5-9`.** `F-S5-9` is a **disclosure** finding — an unconfined `COUNT` discloses a
+  true fact while returning no rows. This is **actuation**: the aggregate is returned to nobody, and
+  what changes is the system's behaviour toward a third party. It carries **no row and creates no
+  copy**, so it is invisible to `I3`, to SUB-9's six copy classes, and to `SIG-S16-1`. Critically,
+  **`F-S5-9`'s route does not close it** — port 9 is routed to C010's `CAP-S3-3` / `CAP-S4-1`, which
+  are *retention and deletion* caps, and a retention bound on the table does nothing about a breaker
+  reading it.
+- **Severity: high, not critical**, and bounded honestly. The harm weakens a quality control rather
+  than exposing data; the window is bounded by restart cadence (≥3.29/day, `C-17`), **which is a
+  dependency on an accident rather than a control**; and the volume required is unknown — no number
+  is offered, because the arrival rate is unobserved and `OI-S15-3` is SUB-15's distinct `t_db`
+  question and is not claimed to answer this one.
+- **Owner.** **`NEU-896`** at convergence — the breaker is a product-behaviour decision, not a
+  confinement mechanism this package may redesign. Co-named **SUB-13** (NEU-1006) if the resolution
+  is schema-shaped.
+- **Control.** `GATE-S12-10`. **Resolving event.** The breaker's input is confined to the acting
+  principal, or the breaker becomes per-learner, or the shrinkable field set is fixed by
+  configuration rather than by a learner-influenced statistic.
+- **Routed.** As an **amendment to `DR-C10-S5-1`** under that record's trigger 3, since the five
+  ordered checks return `holds` on this category while the failure is real. See
+  `decision-records/DR-C11-S12-2_the-unconfined-aggregate-as-a-control-input.md`.
+
+#### `F-S12-2` — The fail-open session binding composed with a map that empties on every restart admits every pre-existing session unverified
+
+- **Finding.** `verifySessionBinding` returns `true` when no binding is found
+  (`src/transport/http.ts:57`–`:58`), and the binding map's **only** eviction path is a clean session
+  close (`F-S15-3`), so every restart empties it. The deployment restarts **≥3.29 times per day** over
+  the most recent 7 days (`C-17`). **After each deploy, every pre-existing session is therefore
+  admitted with its binding unverified** — not as an edge case but as the steady state for the
+  remaining lifetime of those sessions.
+- **Why it is new.** Neither half is new; the **composition** is. `F-S15-3` owns the eviction and `R1`
+  owns the fail-open, and each predecessor correctly stayed inside its own remit. The compound
+  behaviour appears only when the two are read against the measured restart cadence.
+- **Severity:** high. **Owner:** **SUB-7** (NEU-1001) under OUT-3. **Control:** `GATE-S12-6`.
+- **Resolving event.** `verifySessionBinding` refuses an unknown session instead of returning `true`.
+
+#### `F-S12-3` — The search **query** is a fourth learner-content egress, distinct from the corpus
+
+- **Finding.** A learner's raw search text is embedded before any row is read
+  (`src/orchestration/search-workflows.ts:48`, `:85` reach `EmbeddingPort`), so it leaves the
+  deployment on the same three provider paths the corpus does. SUB-9's `W-3` enumerated the embedding
+  **call sites** and correctly found chunk text; it did not separate the **query** from the corpus.
+- **This is an addition, not a contradiction**, and **no revision is routed to SUB-9 and none is
+  owed.** The distinction is a lifecycle one: a chunk is stored learner content with a retention
+  window, while a query is transient, is never persisted by this deployment, and still egresses. It
+  is therefore **not** filed as a new copy class — nothing comes to rest.
+- **Severity:** medium. **Owner:** the owner of `OI-S3-1` (the creator, as sole operator); **SUB-8**
+  (NEU-1002) under OUT-11 for the lawful-basis position. **Control:** `GATE-S12-8`.
+
+#### `F-S12-4` — The `TRUNCATE … CASCADE` guard tests the caller's environment, not the target database
+
+- **Finding.** `clearAllTables()` truncates ten tables including every learner table
+  (`src/infrastructure/db/client.ts:77`–`:79`) — the most destructive statement in the repository, and
+  a **raw SQL template via `db.execute`**, invisible to a `.insert(`- or `.delete(`-shaped search. Its
+  guard (`:66`–`:73`) is three disjuncts over `NODE_ENV`, `process.argv` and `VITEST` — **all
+  properties of the caller's own environment**. It answers *"does this process believe it is a
+  test?"*, never *"is this a test database?"*.
+- **The target-shaped check exists but does not compose cleanly.** `getDatabaseUrl()` requires a
+  `_test` substring **only when `isTestEnv` is already true** (`:17`–`:32`), it runs **only** inside
+  `getPool()` and **only** when the pool is not yet memoized (`:38`–`:39`), and the check is a
+  substring test. A process that built its pool before `NODE_ENV` was `test` satisfies
+  `clearAllTables`'s guard against a pool the `_test` check never saw.
+- **What keeps it safe today is a call-graph fact, not an invariant:** the only call sites are
+  `tests/helpers/db-setup.ts:62`, `tests/integration/db/client.test.ts:47` and
+  `tests/integration/db/migrate.test.ts:40`. That is a real mitigation and is stated as one; it is
+  enforced by nothing.
+- **Severity:** high. **Owner:** the creator, as sole operator, for the deployment; the implementation
+  charter `NEU-896` hands OUT-19 to, for the guard. **Control:** `GATE-S12-16` — which is why this is
+  a finding with a gate rather than a blocking finding.
+
+#### `F-S12-5` — **BLOCKING.** A database-side execution path cannot be ruled out by any reading of this repository
+
+- **Finding.** A trigger, a rule, a function-backed view, a foreign data wrapper or a logical
+  replication slot created through a direct database session would read and write learner rows
+  indefinitely and leave **no artifact in this repository**. The threat enumeration closes over
+  ingress (`DR-C11-S12-1`), and this is the one extension shape (`X-3`) that no search over `src/` or
+  `drizzle/` at any cutoff can close.
+- **Why it is blocking rather than a caveat.** OUT-17 requires a measurable control per critical gap.
+  A control requires something to measure, and the only measurement is a query against the production
+  database, for which **no credential exists**. This is not a threshold left unset — the control is
+  structurally unavailable to this package.
+- **It attaches to the enumeration's boundary, not to a path**, and §9.2 keeps those counts separate
+  rather than promoting it to a path the model claims to have enumerated.
+- **Severity:** high. **Owner:** the creator, as sole maintainer and sole operator, for the
+  observation; escalates to **`NEU-896`**, since a second writer to the production database is a
+  program-level fact. **Spike:** `SPK-S12-2`, method stated, **not executed**.
+
+#### `F-S12-6` — **BLOCKING.** A propagation instruction to an MCP host has no observable compliance
+
+- **Finding.** Under STDIO the MCP response comes to rest in the peer host's own application state — a
+  transcript, a local cache, a log — which C2's browser-side definition excludes by its own words
+  (`09_proving-a-data-right-reaches-every-copy.md` §4.6). A propagation action into that class is an
+  **instruction**, and the deployment has no channel by which to observe whether it was followed.
+- **Why it is blocking.** A threshold over an unobservable population is not a measurement. No
+  admissible provenance under `DR-C11-S12-3` produces one.
+- **Not re-filed as a copy finding.** SUB-9 carries the location within `F-S9-4`; what is new here is
+  only that it is a **gate-less gap** under OUT-17's rule, which is a different statement about the
+  same fact.
+- **Severity:** medium. **Owner:** **`NEU-896`**, which converges the client surface.
+
+#### `F-S12-7` — The glossary row for `write-path closure` carries the exact claim its own defining file repudiates
+
+- **Finding.** `docs/GLOSSARY.md`'s `write-path closure` row states that *"re-running it costs **four
+  greps** and needs no production access"*, and cites
+  `09_proving-a-data-right-reaches-every-copy.md` §4 as its defining file. **That chapter's §4.3 says
+  the opposite, in terms**: the falsifier *"is deliberately **not** stated as a fixed number of
+  greps. 'Four greps' is what the first draft said, and four greps is exactly what missed `W-8`"*
+  (`:169`–`:172`). The glossary row preserves the superseded phrasing of the very defect its source
+  chapter published against itself.
+- **Why it matters more than a wording slip.** `docs/GLOSSARY.md` is the project's one-hop lookup, and
+  a reader who greps the term lands on the row rather than on §4.3. The row therefore teaches the
+  falsifier in the form that failed, and it does so with a citation that looks authoritative. This is
+  the same shape as `F-S8-1`'s diagnosis of the `42`: a figure travelling without the qualification
+  that corrects it.
+- **Reported, not fixed.** The row is SUB-9's, and no sub-task rewrites another's entry. This
+  sub-task's own glossary rows are **appends only**, and `ingress closure` states the corrected
+  position explicitly so the pair of rows is not self-contradictory to a reader who finds both.
+- **Severity:** low. **Owner:** **SUB-14** (NEU-1007) under OUT-20, which owns house-style assembly
+  and is the party permitted to touch another sub-task's file — the same routing SUB-5 used for
+  `F-S5-13`. Co-named **SUB-9** (NEU-1003) as the row's author.
+- **Resolving event.** The row's final clause is brought into line with `09_…md:169`–`:172`, or the
+  citation is repointed.
+
+**Two findings this sub-task deliberately does *not* raise.** That the boot migrator runs unguarded
+is **`R-S15-3`**, and that the archive sweep breaches `OBJ-8` is **`R-S6-2`**; both are cited by
+`TP-S12-31` and `TP-S12-32` and **neither is re-raised**, because a second register record of a
+settled question would hand SUB-14's cross-register check two ids for one fact. `F-S9-6`'s retention
+conflict is likewise cited and not re-raised — what is new is its *consequence* for a control, and a
+consequence of another sub-task's finding is registered as a risk of this one (`R-S12-4`).
+
+**One contradiction routed to `NEU-895` by SUB-12, and it is the package's first.** `F-S12-1` and the
+one-sided verdict set are two failure modes `DR-C10-S5-1`'s five ordered checks do not generate,
+which is that record's own trigger 3 verbatim. The amendment is routed to `NEU-895`, co-named
+`NEU-896`, with **SUB-17** (NEU-1008) as the recipient within this package. **This is an amendment
+under a stated trigger, not a rewrite:** C010's procedure is consumed as given and the shape of any
+sixth check is its owner's to decide. The settled **46 / 43 / 3** tool surface was re-derived at this
+cutoff and **holds**; `42` appears nowhere in `12_…md` as a codebase fact.

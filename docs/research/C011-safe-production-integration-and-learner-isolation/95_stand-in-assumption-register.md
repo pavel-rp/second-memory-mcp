@@ -1043,3 +1043,46 @@ same allocation SUB-8 made for `A-S8-1`, and for the same reason recorded in
 `decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`: a bare global sequence cannot be
 computed safely while sibling sub-tasks write into the same register concurrently, and two of them
 are in flight against it now.
+
+---
+
+### SUB-12
+
+One stand-in.
+
+#### `A-S12-1` — That a bound on the session maps can be set without knowing the per-entry footprint
+
+- **The assumption.** `GATE-S12-7` requires the transport and subject-binding maps to carry a TTL or a
+  size bound. **This sub-task assumes such a bound can be specified and enforced as a control without
+  first knowing the per-entry memory footprint or the host's RAM** — that is, that the gate is
+  satisfiable by *the existence of a bound* rather than by a particular numeric ceiling.
+- **Why a stand-in rather than a number.** SUB-15 established that the entry-count threshold cannot be
+  stated: the per-entry footprint has never been measured (`C-25`, `OI-S15-4`) and the host's RAM is
+  unknown (`C-26`, citing `OI-S1-9`). SUB-15 therefore **states no entry count**, and this sub-task
+  does not invent one. `GATE-S12-7`'s threshold is consequently *"a bound exists; entry count stays
+  under it"*, which is a real control with an unset constant rather than a number with no provenance.
+- **Tolerance envelope.** The assumption tolerates any bound that is (a) enforced in-process, (b)
+  independent of deploy cadence, and (c) observable. It does **not** tolerate the current state, where
+  the only bound is the restart rate — `R-S15-2` records that as *"a dependency on an accident"*, and
+  this stand-in explicitly does not adopt it as the bound.
+- **Invalidating outcome.** If `OI-S15-4` closes and shows that the per-entry footprint is large
+  enough that a *useful* bound would evict live sessions at realistic learner counts, then a bound is
+  not a control but a denial-of-service, and `GATE-S12-7` must be re-specified rather than tuned.
+- **Owner.** **The creator, as sole maintainer and sole operator**, for the host facts; **SUB-4**
+  (NEU-996) for the session-lifecycle design.
+- **Re-validation trigger.** `OI-S15-4` closes, or `SPK-S15-4` executes, or the deployment's release
+  cadence falls materially below `C-17`'s measured floor — at which point the accidental mitigation
+  that currently masks the leak stops operating and the bound's absence becomes load-bearing.
+- **Status:** **carried.**
+
+**`A-S12-1` is not charter-continued.** It stands in for no charter assumption, so it takes the
+sub-task-scoped `A-S12-<k>` form rather than continuing the charter's `A-<n>` numbering — the same
+allocation SUB-8, SUB-9, SUB-15 and SUB-16 each made, for the reason recorded in
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`.
+
+**Three stand-ins this sub-task consumes by citation and does not restate.** `A-S8-1`, the 30-day
+completion deadline, makes `SIG-S16-3` evaluable and is what `GATE-S12-22`'s threshold rests on; it
+is *"not observed, not calibrated, and not a legal determination"* and remains SUB-8's. `A-S16-1`,
+the reading the alert routes rest on, is what makes every `[unconfirmed]` route in `GATE-S12-1`'s
+family navigable, and remains SUB-16's. `A-33`, the backups stand-in, underlies `TP-S12-43`. **No
+second record of any of the three is raised here**, so the package keeps one id per assumption.
