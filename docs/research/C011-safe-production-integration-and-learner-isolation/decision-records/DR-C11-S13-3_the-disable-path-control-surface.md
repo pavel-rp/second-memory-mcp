@@ -9,8 +9,8 @@
 ## Decision
 
 1. **Six variables cover the stages SUB-7 credits with a real control** — four behaviour toggles plus
-   two numeric parameters of the sweep, serving `T1`, `T2`'s in-flight move, `T3`, `T4`, `T6`, `T7`
-   and `T8`. *(The table below has six rows and SUB-7 credits six stages; the two counts coincide and
+   two numeric parameters of the sweep, serving `T1`, `T2`'s in-flight move, `T4`, `T5`'s in-flight purge, `T6`, `T7`
+   and `T8` — **not `T3`**, which `F-S13-11` shows has no batches to pause. *(The table below has six rows and SUB-7 credits six stages; the two counts coincide and
    are **not** a one-to-one mapping — two toggles each serve more than one stage, and the two numeric
    parameters disable nothing on their own.)* SUB-7's four named exceptions — `T0`, `T2`, `T5`, `T9` — get **no toggle over their
    stated effect**, because manufacturing one would be the false-completeness failure `DR-C11-S7-2`

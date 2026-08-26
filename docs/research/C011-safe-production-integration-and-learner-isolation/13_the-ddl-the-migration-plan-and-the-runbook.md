@@ -1404,7 +1404,11 @@ coincidence and are not mapped onto each other. Four rows are behaviour toggles
 (`SM_ISOLATION_CARRIER_WRITE`, `SM_MIGRATION_SWEEP`, `SM_IDENTITY_GATE`, `SM_ADAPTER_CONFINEMENT`);
 two are numeric parameters of the sweep (`SM_MIGRATION_SLICE_MS`, `SM_MIGRATION_SLICE_ROWS`) and
 disable nothing on their own. Two of the four toggles serve more than one stage each. The stages that
-carry a real control are `T1`, `T2` (its in-flight move only), `T3`, `T4`, `T6`, `T7` and `T8`.
+carry a real control are `T1`, `T2` (its in-flight move only), `T4`, `T5` (its in-flight purge only),
+`T6`, `T7` and `T8`. **`T3` is not among them** — SUB-7 credits it with a batch pause, and
+`F-S13-11` shows that control is not realizable, because after §1.1 `T3` is one-shot DDL with no
+batches to pause. **`T5` is among them and SUB-7 credited it with none**, for the mirror-image
+reason: its purge became a sweep.
 
 `T0`, `T2`'s completed move, `T5` and
 `T9` carry SUB-7's four named exceptions, reproduced in §4.1 with their reasons and owners. **Zero
