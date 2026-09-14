@@ -270,18 +270,19 @@ export const ADVERSARIAL_GRADING_CASES: readonly AdversarialGradingCase[] = [
     id: 'vu-04-dp-no-complexity-asked',
     caseClass: 'valid_unusual',
     description:
-      'DP question that never asked for complexity: correct bottom-up recurrence, base case and fill order, with no complexity stated → q4.',
+      'DP question that never asked for complexity: correct bottom-up recurrence, base case and fill order; the unasked complexity is not penalized, so precision is satisfied by the exact recurrence → q5.',
     payload: {
       criteria: {
         core_correctness: true,
         completeness: true,
         reasoning_validity: true,
-        precision: false,
+        precision: true,
       },
       justifying_spans: {
         core_correctness: SPAN.dpRecurrence,
         completeness: SPAN.dpBaseCase,
         reasoning_validity: SPAN.dpOrder,
+        precision: SPAN.dpRecurrence,
       },
     },
     expectedVerdict: 'pass',
