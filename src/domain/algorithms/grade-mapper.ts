@@ -7,11 +7,11 @@
  * justify each criterion — and this pure, non-LLM mapper derives the 0–5 quality
  * deterministically from that payload.
  *
- * Rubric (illustrative DP rubric per EXP-03 `ECS-3`, weights sum to 5):
- *   correct_recurrence       (weight 2)
- *   correct_base_case        (weight 1)
- *   correct_iteration_order  (weight 1)
- *   complexity_stated        (weight 1)
+ * Rubric (domain-neutral, judged against the question actually asked; weights sum to 5):
+ *   core_correctness    (weight 2) — the central claim/conclusion is correct
+ *   completeness        (weight 1) — the substantive parts asked for are covered
+ *   reasoning_validity  (weight 1) — any reasoning the question calls for is valid
+ *   precision           (weight 1) — any specificity the question calls for is accurate
  *
  * A criterion is **credited** iff its boolean is `true` AND a non-empty verbatim
  * justifying span accompanies it. A claimed-true criterion without an evidencing
@@ -28,10 +28,10 @@
 
 /** The rubric criteria evaluated for a graded answer. All four are required. */
 export type RubricCriteria = {
-  correct_recurrence: boolean;
-  correct_base_case: boolean;
-  correct_iteration_order: boolean;
-  complexity_stated: boolean;
+  core_correctness: boolean;
+  completeness: boolean;
+  reasoning_validity: boolean;
+  precision: boolean;
 };
 
 /**
@@ -46,10 +46,10 @@ export type RubricGradingPayload = {
 
 /** Per-criterion weights; sum to the 0–5 quality ceiling. */
 export const RUBRIC_WEIGHTS: Record<keyof RubricCriteria, number> = {
-  correct_recurrence: 2,
-  correct_base_case: 1,
-  correct_iteration_order: 1,
-  complexity_stated: 1,
+  core_correctness: 2,
+  completeness: 1,
+  reasoning_validity: 1,
+  precision: 1,
 } as const;
 
 /** The ordered rubric-criterion keys. */

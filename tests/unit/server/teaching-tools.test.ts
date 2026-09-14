@@ -739,12 +739,12 @@ describe('teaching-tools', () => {
 
     const result = await handler({
       session_question_id: 'q1',
-      // criteria object is missing complexity_stated → Zod rejection (fail loudly).
+      // criteria object is missing precision → Zod rejection (fail loudly).
       grading: {
         criteria: {
-          correct_recurrence: true,
-          correct_base_case: true,
-          correct_iteration_order: true,
+          core_correctness: true,
+          completeness: true,
+          reasoning_validity: true,
         },
         justifying_spans: {},
       },

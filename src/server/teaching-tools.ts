@@ -59,7 +59,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                       'Call submit_answer({ session_question_id, response, grading, question_type, feedback, time_spent_ms }). ' +
                       'grading is the rubric-anchored payload (per-criterion booleans + verbatim justifying spans); the server derives the 0–5 quality. ' +
                       'No retries — one attempt per question.',
-                    nextStep: `submit_answer({ session_question_id: "${result.session_question_id as string}", response: "...", grading: { criteria: { correct_recurrence, correct_base_case, correct_iteration_order, complexity_stated }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
+                    nextStep: `submit_answer({ session_question_id: "${result.session_question_id as string}", response: "...", grading: { criteria: { core_correctness, completeness, reasoning_validity, precision }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
                   }
                 : {
                     action: 'USE_INLINE_SUBMIT',
@@ -85,7 +85,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                         'grading is the rubric-anchored payload (per-criterion booleans + verbatim justifying spans); the server derives the 0–5 quality.',
                       'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
                     ].join(' '),
-                    nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", grading: { criteria: { correct_recurrence, correct_base_case, correct_iteration_order, complexity_stated }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
+                    nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", grading: { criteria: { core_correctness, completeness, reasoning_validity, precision }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
                   };
 
             return toolData(

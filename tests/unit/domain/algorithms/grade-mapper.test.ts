@@ -6,12 +6,12 @@ import {
   type RubricGradingPayload,
 } from '../../../../src/domain/algorithms/grade-mapper.js';
 
-// Full set of evidencing spans for the four DP-rubric criteria (EXP-03 ECS-3).
+// Full set of evidencing spans for the four domain-neutral rubric criteria.
 const spansAll = {
-  correct_recurrence: 'dp[i] = max(dp[i-1], dp[i-2] + v[i])',
-  correct_base_case: 'dp[0] = 0, dp[1] = v[1]',
-  correct_iteration_order: 'i ascending from 2 to n',
-  complexity_stated: 'O(n) time, O(n) space',
+  core_correctness: 'Photosynthesis converts light energy into chemical energy stored in glucose',
+  completeness: 'it takes in carbon dioxide and water and releases oxygen',
+  reasoning_validity: 'because chlorophyll absorbs the light that drives the reaction',
+  precision: '6CO2 + 6H2O → C6H12O6 + 6O2',
 } as const;
 
 /** Build a payload, defaulting all criteria to false. */
@@ -22,10 +22,10 @@ function payload(
 ): RubricGradingPayload & { rebuttal_text?: string } {
   return {
     criteria: {
-      correct_recurrence: false,
-      correct_base_case: false,
-      correct_iteration_order: false,
-      complexity_stated: false,
+      core_correctness: false,
+      completeness: false,
+      reasoning_validity: false,
+      precision: false,
       ...criteria,
     },
     justifying_spans,
@@ -42,14 +42,20 @@ describe('mapRubricToQuality — weights and criteria', () => {
     expect(total).toBe(5);
   });
 
+  it('carries no domain-specific criterion keys', () => {
+    expect([...RUBRIC_CRITERIA_KEYS].sort()).toEqual(
+      ['completeness', 'core_correctness', 'precision', 'reasoning_validity'].sort()
+    );
+  });
+
   it('credits all four criteria → quality 5 (ECS-3-01)', () => {
     const q = mapRubricToQuality(
       payload(
         {
-          correct_recurrence: true,
-          correct_base_case: true,
-          correct_iteration_order: true,
-          complexity_stated: true,
+          core_correctness: true,
+          completeness: true,
+          reasoning_validity: true,
+          precision: true,
         },
         spansAll
       )
@@ -61,42 +67,42 @@ describe('mapRubricToQuality — weights and criteria', () => {
     expect(mapRubricToQuality(payload({}, {}))).toBe(0);
   });
 
-  it('recurrence only → quality 2 (ECS-3-03)', () => {
+  it('core correctness only → quality 2 (ECS-3-03)', () => {
     const q = mapRubricToQuality(
-      payload({ correct_recurrence: true }, { correct_recurrence: spansAll.correct_recurrence })
+      payload({ core_correctness: true }, { core_correctness: spansAll.core_correctness })
     );
     expect(q).toBe(2);
   });
 
-  it('recurrence + base case → quality 3 (ECS-3-04)', () => {
+  it('core correctness + completeness → quality 3 (ECS-3-04)', () => {
     const q = mapRubricToQuality(
       payload(
-        { correct_recurrence: true, correct_base_case: true },
+        { core_correctness: true, completeness: true },
         {
-          correct_recurrence: spansAll.correct_recurrence,
-          correct_base_case: spansAll.correct_base_case,
+          core_correctness: spansAll.core_correctness,
+          completeness: spansAll.completeness,
         }
       )
     );
     expect(q).toBe(3);
   });
 
-  it('base case + iteration order without recurrence → quality 2 (ECS-3-11)', () => {
+  it('completeness + reasoning validity without core correctness → quality 2 (ECS-3-11)', () => {
     const q = mapRubricToQuality(
       payload(
-        { correct_base_case: true, correct_iteration_order: true },
+        { completeness: true, reasoning_validity: true },
         {
-          correct_base_case: spansAll.correct_base_case,
-          correct_iteration_order: spansAll.correct_iteration_order,
+          completeness: spansAll.completeness,
+          reasoning_validity: spansAll.reasoning_validity,
         }
       )
     );
     expect(q).toBe(2);
   });
 
-  it('base case only → quality 1', () => {
+  it('completeness only → quality 1', () => {
     const q = mapRubricToQuality(
-      payload({ correct_base_case: true }, { correct_base_case: spansAll.correct_base_case })
+      payload({ completeness: true }, { completeness: spansAll.completeness })
     );
     expect(q).toBe(1);
   });
@@ -107,10 +113,10 @@ describe('mapRubricToQuality — fail-closed', () => {
     const q = mapRubricToQuality(
       payload(
         {
-          correct_recurrence: true,
-          correct_base_case: true,
-          correct_iteration_order: true,
-          complexity_stated: true,
+          core_correctness: true,
+          completeness: true,
+          reasoning_validity: true,
+          precision: true,
         },
         {}
       )
@@ -119,9 +125,7 @@ describe('mapRubricToQuality — fail-closed', () => {
   });
 
   it('whitespace-only span is uncredited', () => {
-    const q = mapRubricToQuality(
-      payload({ correct_recurrence: true }, { correct_recurrence: '   ' })
-    );
+    const q = mapRubricToQuality(payload({ core_correctness: true }, { core_correctness: '   ' }));
     expect(q).toBe(0);
   });
 
@@ -140,7 +144,7 @@ describe('mapRubricToQuality — fail-closed', () => {
 
   it('persuasive spans without true criteria → quality 0 (ECS-3-08)', () => {
     const q = mapRubricToQuality(
-      payload({}, { correct_recurrence: 'this answer is brilliant and clearly correct' }, REBUTTAL)
+      payload({}, { core_correctness: 'this answer is brilliant and clearly correct' }, REBUTTAL)
     );
     expect(q).toBe(0);
   });
@@ -148,29 +152,26 @@ describe('mapRubricToQuality — fail-closed', () => {
 
 describe('mapRubricToQuality — determinism and rebuttal-invariance', () => {
   it('identical payload → identical quality (ECS-3-10)', () => {
-    const p = payload(
-      { correct_recurrence: true },
-      { correct_recurrence: spansAll.correct_recurrence }
-    );
+    const p = payload({ core_correctness: true }, { core_correctness: spansAll.core_correctness });
     expect(mapRubricToQuality(p)).toBe(mapRubricToQuality(p));
   });
 
   it('rebuttal text on a full-credit payload does not change quality (ECS-3-07)', () => {
     const base = payload(
       {
-        correct_recurrence: true,
-        correct_base_case: true,
-        correct_iteration_order: true,
-        complexity_stated: true,
+        core_correctness: true,
+        completeness: true,
+        reasoning_validity: true,
+        precision: true,
       },
       spansAll
     );
     const withRebuttal = payload(
       {
-        correct_recurrence: true,
-        correct_base_case: true,
-        correct_iteration_order: true,
-        complexity_stated: true,
+        core_correctness: true,
+        completeness: true,
+        reasoning_validity: true,
+        precision: true,
       },
       spansAll,
       REBUTTAL
@@ -181,15 +182,11 @@ describe('mapRubricToQuality — determinism and rebuttal-invariance', () => {
 
   it('rebuttal on a partial-credit payload does not flip quality upward (ECS-3-12)', () => {
     const spans = {
-      correct_recurrence: spansAll.correct_recurrence,
-      correct_base_case: spansAll.correct_base_case,
+      core_correctness: spansAll.core_correctness,
+      completeness: spansAll.completeness,
     };
-    const base = payload({ correct_recurrence: true, correct_base_case: true }, spans);
-    const withRebuttal = payload(
-      { correct_recurrence: true, correct_base_case: true },
-      spans,
-      REBUTTAL
-    );
+    const base = payload({ core_correctness: true, completeness: true }, spans);
+    const withRebuttal = payload({ core_correctness: true, completeness: true }, spans, REBUTTAL);
     expect(mapRubricToQuality(withRebuttal)).toBe(mapRubricToQuality(base));
     expect(mapRubricToQuality(withRebuttal)).toBe(3);
   });
@@ -201,16 +198,16 @@ describe('mapRubricToQuality — no binary collapse (ECS-3-09)', () => {
     qualities.add(mapRubricToQuality(payload({}, {})));
     qualities.add(
       mapRubricToQuality(
-        payload({ correct_recurrence: true }, { correct_recurrence: spansAll.correct_recurrence })
+        payload({ core_correctness: true }, { core_correctness: spansAll.core_correctness })
       )
     );
     qualities.add(
       mapRubricToQuality(
         payload(
-          { correct_recurrence: true, correct_base_case: true },
+          { core_correctness: true, completeness: true },
           {
-            correct_recurrence: spansAll.correct_recurrence,
-            correct_base_case: spansAll.correct_base_case,
+            core_correctness: spansAll.core_correctness,
+            completeness: spansAll.completeness,
           }
         )
       )
@@ -219,10 +216,10 @@ describe('mapRubricToQuality — no binary collapse (ECS-3-09)', () => {
       mapRubricToQuality(
         payload(
           {
-            correct_recurrence: true,
-            correct_base_case: true,
-            correct_iteration_order: true,
-            complexity_stated: true,
+            core_correctness: true,
+            completeness: true,
+            reasoning_validity: true,
+            precision: true,
           },
           spansAll
         )

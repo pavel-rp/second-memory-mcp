@@ -35,7 +35,7 @@ describe('promptPack', () => {
     const text = promptPack.getPrompt('learning', { chunkTitle: 'Test' });
     expect(text).toContain('## Grading Rubric');
     expect(text).toContain('you do NOT supply a raw quality number');
-    expect(text).toContain('correct_recurrence');
+    expect(text).toContain('core_correctness');
     expect(text).toContain('justifying_spans');
     expect(text).toContain('a pass is quality >= 3');
   });
@@ -72,7 +72,7 @@ describe('promptPack', () => {
   it('retrieval prompt contains quality rubric and taxonomy reference', () => {
     const text = promptPack.getPrompt('retrieval', { chunkTitle: 'Test', masteryLevel: 3 });
     expect(text).toContain('## Grading Rubric');
-    expect(text).toContain('correct_recurrence');
+    expect(text).toContain('core_correctness');
     expect(text).toContain('justifying_spans');
     expect(text).toContain('taxonomy levels');
     expect(text).toContain('Recall');
@@ -86,7 +86,7 @@ describe('promptPack', () => {
       masteryLevel: 3,
     });
     expect(text).toContain('## Grading Rubric');
-    expect(text).toContain('correct_recurrence');
+    expect(text).toContain('core_correctness');
     expect(text).toContain('justifying_spans');
     expect(text).toContain('taxonomy-aware');
     expect(text).toContain('Level 1 question');

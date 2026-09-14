@@ -392,10 +392,10 @@ describe('SubmitAnswerInputSchema rubric payload rejection (NEU-928)', () => {
   it('rejects a grading payload missing a criterion boolean', () => {
     const grading = {
       criteria: {
-        correct_recurrence: true,
-        correct_base_case: true,
-        correct_iteration_order: true,
-        // complexity_stated omitted → schema failure (fail loudly)
+        core_correctness: true,
+        completeness: true,
+        reasoning_validity: true,
+        // precision omitted → schema failure (fail loudly)
       },
       justifying_spans: {},
     };
