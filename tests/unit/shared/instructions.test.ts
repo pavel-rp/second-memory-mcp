@@ -83,6 +83,15 @@ describe('SERVER_INSTRUCTIONS truncation-survival contract', () => {
     expect(SERVER_INSTRUCTIONS).not.toContain('fail → quality 2');
   });
 
+  it('names the required grading and question_type fields in every submit_answer step (NEU-1009)', () => {
+    // A client that follows a stale "pass/fail" step omits the required grading
+    // payload and gets a validation error from submit_answer.
+    expect(SERVER_INSTRUCTIONS).not.toContain('pass/fail');
+    expect(SERVER_INSTRUCTIONS).toContain(
+      'submit_answer with prompt_text, chunk_ids, response, grading, question_type, feedback'
+    );
+  });
+
   it('keeps the full instructions within the MCP handshake budget', () => {
     // Raised from 6800 (NEU-847): the correct_answer presentation clause added
     // to both TEACHING FLOW and ROLLING SESSION FLOW step 4 is genuine new

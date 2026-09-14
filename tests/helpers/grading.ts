@@ -2,31 +2,31 @@ import type { RubricGradingPayload } from '../../src/domain/algorithms/grade-map
 
 /**
  * Build a rubric-anchored grading payload that the deterministic mapper resolves
- * to exactly `quality` (0–5). Weights: correct_recurrence 2, correct_base_case 1,
- * correct_iteration_order 1, complexity_stated 1. Each credited criterion carries
- * a non-empty verbatim justifying span so it counts.
+ * to exactly `quality` (0–5). Weights: core_correctness 2, completeness 1,
+ * reasoning_validity 1, precision 1. Each credited criterion carries a non-empty
+ * verbatim justifying span so it counts.
  *
  * Reachable target selections (sum = quality):
- *   0 → none · 1 → base · 2 → recurrence · 3 → recurrence+base ·
- *   4 → recurrence+base+order · 5 → all four
+ *   0 → none · 1 → completeness · 2 → core_correctness ·
+ *   3 → core_correctness+completeness · 4 → +reasoning_validity · 5 → all four
  */
 export function rubricForQuality(quality: number): RubricGradingPayload {
   if (!Number.isInteger(quality) || quality < 0 || quality > 5) {
     throw new Error(`rubricForQuality: quality must be an integer 0–5, got ${quality}`);
   }
   const credited: Record<keyof RubricGradingPayload['criteria'], boolean> = {
-    correct_recurrence: false,
-    correct_base_case: false,
-    correct_iteration_order: false,
-    complexity_stated: false,
+    core_correctness: false,
+    completeness: false,
+    reasoning_validity: false,
+    precision: false,
   };
   const selections: Record<number, (keyof RubricGradingPayload['criteria'])[]> = {
     0: [],
-    1: ['correct_base_case'],
-    2: ['correct_recurrence'],
-    3: ['correct_recurrence', 'correct_base_case'],
-    4: ['correct_recurrence', 'correct_base_case', 'correct_iteration_order'],
-    5: ['correct_recurrence', 'correct_base_case', 'correct_iteration_order', 'complexity_stated'],
+    1: ['completeness'],
+    2: ['core_correctness'],
+    3: ['core_correctness', 'completeness'],
+    4: ['core_correctness', 'completeness', 'reasoning_validity'],
+    5: ['core_correctness', 'completeness', 'reasoning_validity', 'precision'],
   };
   const spans: Partial<Record<keyof RubricGradingPayload['criteria'], string>> = {};
   for (const key of selections[quality]) {
@@ -46,10 +46,10 @@ export function rubricForQuality(quality: number): RubricGradingPayload {
 export function rubricAllClaimedNoSpans(): RubricGradingPayload {
   return {
     criteria: {
-      correct_recurrence: true,
-      correct_base_case: true,
-      correct_iteration_order: true,
-      complexity_stated: true,
+      core_correctness: true,
+      completeness: true,
+      reasoning_validity: true,
+      precision: true,
     },
     justifying_spans: {},
   };

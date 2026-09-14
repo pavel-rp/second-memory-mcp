@@ -276,21 +276,22 @@ export const GradingPayloadShape = z
   .object({
     criteria: z
       .object({
-        correct_recurrence: z.boolean(),
-        correct_base_case: z.boolean(),
-        correct_iteration_order: z.boolean(),
-        complexity_stated: z.boolean(),
+        core_correctness: z.boolean(),
+        completeness: z.boolean(),
+        reasoning_validity: z.boolean(),
+        precision: z.boolean(),
       })
       .describe(
-        'Per-criterion booleans for the DP grading rubric. Each is true only if the ' +
-          "learner's answer demonstrably satisfies that criterion. All four are required."
+        'Per-criterion booleans for the domain-neutral grading rubric, judged against the ' +
+          "question actually asked. Each is true only if the learner's answer demonstrably " +
+          'satisfies that criterion. All four are required.'
       ),
     justifying_spans: z
       .object({
-        correct_recurrence: z.string().optional(),
-        correct_base_case: z.string().optional(),
-        correct_iteration_order: z.string().optional(),
-        complexity_stated: z.string().optional(),
+        core_correctness: z.string().optional(),
+        completeness: z.string().optional(),
+        reasoning_validity: z.string().optional(),
+        precision: z.string().optional(),
       })
       .describe(
         "Verbatim span(s) of the learner's OWN answer that justify each criterion claimed " +

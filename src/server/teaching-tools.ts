@@ -27,7 +27,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Then selects the next chunk, hydrates the appropriate prompt, and returns a structured teaching instruction. ' +
         'Only context_token required — reads the active session automatically. ' +
         "After presenting the instruction and receiving the learner's answer, call submit_answer " +
-        'with prompt_text, chunk_ids, response, pass/fail assessment, feedback, and time_spent_ms. ' +
+        'with prompt_text, chunk_ids, response, grading (rubric-anchored payload), question_type, feedback, and time_spent_ms. ' +
         'A progression gate requires at least one submit_answer before advancing to the next chunk. ' +
         "When submit_answer returns action 'recorded', call teach_next to get the next action: 'teach' → present instruction, 'roadblock' → follow-up questions required before progression (follow roadblock_detail.instruction), 'complete' → end session, 'blocked'/'error' → surface message. " +
         "Epistemic rule: when the learner challenges a claim, anchor your response to the chunk's canonical content (in the instruction field) rather than generating new answers. If ambiguous, say so and call get_chunk_content for the condensed_summary.",
@@ -59,7 +59,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                       'Call submit_answer({ session_question_id, response, grading, question_type, feedback, time_spent_ms }). ' +
                       'grading is the rubric-anchored payload (per-criterion booleans + verbatim justifying spans); the server derives the 0–5 quality. ' +
                       'No retries — one attempt per question.',
-                    nextStep: `submit_answer({ session_question_id: "${result.session_question_id as string}", response: "...", grading: { criteria: { correct_recurrence, correct_base_case, correct_iteration_order, complexity_stated }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
+                    nextStep: `submit_answer({ session_question_id: "${result.session_question_id as string}", response: "...", grading: { criteria: { core_correctness, completeness, reasoning_validity, precision }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
                   }
                 : {
                     action: 'USE_INLINE_SUBMIT',
@@ -85,7 +85,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                         'grading is the rubric-anchored payload (per-criterion booleans + verbatim justifying spans); the server derives the 0–5 quality.',
                       'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
                     ].join(' '),
-                    nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", grading: { criteria: { correct_recurrence, correct_base_case, correct_iteration_order, complexity_stated }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
+                    nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", grading: { criteria: { core_correctness, completeness, reasoning_validity, precision }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
                   };
 
             return toolData(
