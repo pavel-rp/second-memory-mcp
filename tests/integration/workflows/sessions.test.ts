@@ -7,6 +7,7 @@ import * as sessionWorkflows from '../../../src/orchestration/session-workflows.
 import type {
   CreateSessionInput,
   CreateSessionChunkInput,
+  SessionRepository,
 } from '../../../src/ports/session-repository.js';
 import type { BatchOperation } from '../../../src/domain/types/session.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
@@ -440,6 +441,149 @@ describe('sessions service', () => {
       if (result.success) {
         expect(active?.id).toBe(result.data.sessionId);
       }
+    });
+
+    /**
+     * NEU-1033: forces the pause/complete write's real-DB row count to 0 — deterministically
+     * reproducing "session A changed concurrently between the read and the write" without
+     * relying on an actual concurrent second call. Every other operation (topic/chunk seeding,
+     * session creation, the `getActiveSession`/`getSessionChunks` reads `createSession` performs)
+     * goes through the real Postgres-backed `sessionRepo`; only the one write under test is
+     * replaced.
+     */
+    function withForcedZeroRowWrite(
+      repo: DrizzleSessionRepository,
+      overrides: Partial<Pick<SessionRepository, 'updateSession' | 'completeSession'>>
+    ): SessionRepository {
+      return {
+        createSession: repo.createSession.bind(repo),
+        getSessionById: repo.getSessionById.bind(repo),
+        recordSessionEvent: repo.recordSessionEvent.bind(repo),
+        getSessionEventTimestamps: repo.getSessionEventTimestamps.bind(repo),
+        getActiveSession: repo.getActiveSession.bind(repo),
+        getPausedSessions: repo.getPausedSessions.bind(repo),
+        updateSession: overrides.updateSession ?? repo.updateSession.bind(repo),
+        completeSession: overrides.completeSession ?? repo.completeSession.bind(repo),
+        deleteSession: repo.deleteSession.bind(repo),
+        listSessions: repo.listSessions.bind(repo),
+        createSessionChunk: repo.createSessionChunk.bind(repo),
+        getSessionChunks: repo.getSessionChunks.bind(repo),
+        getSessionChunkById: repo.getSessionChunkById.bind(repo),
+        updateSessionChunk: repo.updateSessionChunk.bind(repo),
+        deleteSessionChunk: repo.deleteSessionChunk.bind(repo),
+        batchCreateSessionChunks: repo.batchCreateSessionChunks.bind(repo),
+        getSessionWithChunks: repo.getSessionWithChunks.bind(repo),
+        convertSessionToSessionInput: repo.convertSessionToSessionInput.bind(repo),
+        getHistoricalFeedbackForChunks: repo.getHistoricalFeedbackForChunks.bind(repo),
+        persistBatchSessionChunkOperations: repo.persistBatchSessionChunkOperations.bind(repo),
+        validateChunkIds: repo.validateChunkIds.bind(repo),
+      };
+    }
+
+    it('reports a structured conflict and creates no second session when the pause write affects zero rows, against a real DB (NEU-1033)', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ca1'], now);
+      await seedTopicAndChunks('topic-b', ['cb1'], now);
+
+      await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+        id: 's1',
+        topicId: 'topic-a',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.createSessionChunk({
+        id: 'sc1',
+        sessionId: 's1',
+        chunkId: 'ca1',
+        status: 'pending',
+        timeSpentMs: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const racyDeps = {
+        sessions: withForcedZeroRowWrite(sessionRepo, { updateSession: async () => 0 }),
+        chunks: new DrizzleChunkRepository(getSql()),
+        maxDependencyDepth: 5,
+      };
+
+      const result = await sessionWorkflows.createSession(
+        { topicId: 'topic-b', mode: 'learning' },
+        STDIO_PLACEHOLDER_LEARNER_KEY,
+        racyDeps
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe('conflict');
+        expect(result.error.findings).toEqual({
+          code: 'active_session_concurrently_modified',
+          session_id: 's1',
+        });
+      }
+
+      // The forced-zero-row write never actually happened — s1 is still active in the real DB,
+      // and no second session was created.
+      const stillActive = await sessionRepo.getSessionById('s1', STDIO_PLACEHOLDER_LEARNER_KEY);
+      expect(stillActive?.status).toBe('active');
+      expect(stillActive?.pausedAt).toBeNull();
+      const activeSessions = await sessionRepo.listSessions({ status: 'active' });
+      expect(activeSessions).toHaveLength(1);
+      expect(activeSessions[0]?.id).toBe('s1');
+    });
+
+    it('reports a structured conflict and creates no second session when the auto-complete write affects zero rows, against a real DB (NEU-1033)', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ca1'], now);
+      await seedTopicAndChunks('topic-b', ['cb1'], now);
+
+      await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+        id: 's1',
+        topicId: 'topic-a',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.createSessionChunk({
+        id: 'sc1',
+        sessionId: 's1',
+        chunkId: 'ca1',
+        status: 'completed',
+        timeSpentMs: 1000,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const racyDeps = {
+        sessions: withForcedZeroRowWrite(sessionRepo, { completeSession: async () => 0 }),
+        chunks: new DrizzleChunkRepository(getSql()),
+        maxDependencyDepth: 5,
+      };
+
+      const result = await sessionWorkflows.createSession(
+        { topicId: 'topic-b', mode: 'learning' },
+        STDIO_PLACEHOLDER_LEARNER_KEY,
+        racyDeps
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe('conflict');
+        expect(result.error.findings).toEqual({
+          code: 'active_session_concurrently_modified',
+          session_id: 's1',
+        });
+      }
+
+      // The forced-zero-row complete write never actually happened — s1 is still active (not
+      // completed) in the real DB, and no second session was created.
+      const stillActive = await sessionRepo.getSessionById('s1', STDIO_PLACEHOLDER_LEARNER_KEY);
+      expect(stillActive?.status).toBe('active');
     });
   });
 

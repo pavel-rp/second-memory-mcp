@@ -187,6 +187,41 @@ describe('createSession', () => {
     expect(deps.sessions.createSession).toHaveBeenCalledOnce();
   });
 
+  it('returns a structured conflict and creates no session when the auto-complete write affects zero rows (NEU-1033)', async () => {
+    const deps = stubDeps();
+    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubSession({ id: 'active-sess' })
+    );
+    (deps.sessions.getSessionChunks as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'sc-1',
+        sessionId: 'active-sess',
+        chunkId: 'c1',
+        status: 'completed',
+        teachingApproach: null,
+        timeSpentMs: 0,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    ]);
+    (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubSession({ id: 'active-sess' })
+    );
+    (deps.sessions.completeSession as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+    const result = await createSession({ mode: 'guided', topicId: 'topic-2' }, null, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('conflict');
+      expect(result.error.findings).toEqual({
+        code: 'active_session_concurrently_modified',
+        session_id: 'active-sess',
+      });
+    }
+    expect(deps.sessions.createSession).not.toHaveBeenCalled();
+  });
+
   it('pauses the active session and creates the new one for a different topic (NEU-1018)', async () => {
     const deps = stubDeps();
     (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(
@@ -481,6 +516,23 @@ describe('completeSession', () => {
     if (!result.success) {
       expect(result.error.type).toBe('not_found');
     }
+  });
+
+  it('returns a structured conflict and no logEvent when the complete write affects zero rows (NEU-1033)', async () => {
+    const deps = stubDeps();
+    (deps.sessions.completeSession as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+    const result = await completeSession('sess-1', undefined, null, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('conflict');
+      expect(result.error.findings).toEqual({
+        code: 'active_session_concurrently_modified',
+        session_id: 'sess-1',
+      });
+    }
+    expect(logEvent).not.toHaveBeenCalled();
   });
 
   it('returns database error when completeSession throws', async () => {

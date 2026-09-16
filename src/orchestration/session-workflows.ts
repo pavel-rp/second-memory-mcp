@@ -201,6 +201,12 @@ export async function createSession(
         // blocking the new session's creation — same rule as startLearning's.
         const completeResult = await completeSession(activeSession.id, undefined, learnerKey, deps);
         if (!completeResult.success) {
+          // NEU-1033: completeSession() reports a concurrently-vanished/changed session as a
+          // structured conflict (mirroring the pause branch's row-count check) — preserve that
+          // shape rather than flattening it into a generic database error.
+          if (completeResult.error.type === 'conflict') {
+            return serviceFail(completeResult.error);
+          }
           return serviceFail({
             type: 'database',
             message: `Failed to auto-complete finished session: ${completeResult.error.message}`,
@@ -297,7 +303,18 @@ export async function completeSession(
     if (!session) {
       return serviceFail({ type: 'not_found', message: `Session ${sessionId} not found` });
     }
-    await deps.sessions.completeSession(sessionId, feedback);
+    const completedRowCount = await deps.sessions.completeSession(sessionId, feedback);
+    if (completedRowCount === 0) {
+      // NEU-1033: the session existed at the read above but the write itself affected zero
+      // rows — it changed concurrently between the read and the write. Report a structured
+      // conflict rather than silently claiming success, mirroring createSession's pause-branch
+      // row-count check.
+      return serviceFail({
+        type: 'conflict',
+        message: 'Session changed concurrently and could not be completed.',
+        findings: { code: 'active_session_concurrently_modified', session_id: sessionId },
+      });
+    }
     logEvent('completeSession', 'session_completed', { sessionId });
     return serviceOk();
   } catch (error) {
