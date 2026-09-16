@@ -1,4 +1,5 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { DrizzleSessionRepository } from '../../../src/adapters/drizzle/session-repository.js';
 import { DrizzleChunkRepository } from '../../../src/adapters/drizzle/chunk-repository.js';
@@ -9,9 +10,17 @@ import type {
 } from '../../../src/ports/session-repository.js';
 import type { BatchOperation } from '../../../src/domain/types/session.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
-import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
+import {
+  learningTopics,
+  learningChunks,
+  sessionQuestions,
+  sessionQuestionChunks,
+} from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
-import { STDIO_PLACEHOLDER_LEARNER_KEY } from '../../../src/shared/learner-context.js';
+import {
+  STDIO_PLACEHOLDER_LEARNER_KEY,
+  withLearnerAuthContext,
+} from '../../../src/shared/learner-context.js';
 
 describe('sessions service', () => {
   let ctx: AppContext;
@@ -968,6 +977,387 @@ describe('sessions service', () => {
 
       const feedback = await ctx.getHistoricalFeedback(['c2']);
       expect(feedback.length).toBe(0);
+    });
+  });
+
+  describe('resume with recompute (NEU-1021)', () => {
+    it('recomputes a paused session against a shifted review schedule — sheds no-longer-due chunks (keeping their history), keeps completed chunks, admits newly-due chunks', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['a1', 'a2', 'a3'], now);
+      const learner = 'learner-shift';
+
+      await sessionRepo.createSession({
+        learnerKey: learner,
+        id: 'session-shift',
+        topicId: 'topic-a',
+        chunkIds: ['a1', 'a2'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const chunksBefore = await sessionRepo.getSessionChunks('session-shift');
+      const a1SessionChunk = chunksBefore.find(c => c.chunkId === 'a1');
+      const a2SessionChunk = chunksBefore.find(c => c.chunkId === 'a2');
+      expect(a1SessionChunk).toBeDefined();
+      expect(a2SessionChunk).toBeDefined();
+      await sessionRepo.updateSessionChunk(a1SessionChunk!.id, {
+        status: 'completed',
+        updatedAt: now,
+      });
+
+      // Question/attempt history on a2 (the chunk that will fall out of due) — keyed by
+      // chunk id, not session_chunks id, so it must survive that row's removal.
+      const db = getSql();
+      await db.insert(sessionQuestions).values({
+        id: 'sq-a2',
+        sessionId: 'session-shift',
+        questionIndex: 1,
+        promptText: 'What is a2 about?',
+        status: 'answered',
+        createdAt: now,
+        updatedAt: now,
+      });
+      await db.insert(sessionQuestionChunks).values({
+        id: 'sqc-a2',
+        sessionQuestionId: 'sq-a2',
+        chunkId: 'a2',
+      });
+
+      // a2 falls out of due (shifted far into the future); a3 was never in the session
+      // and is due (seedTopicAndChunks sets nextReviewAt = now, already <= Date.now()).
+      await db
+        .update(learningChunks)
+        .set({ nextReviewAt: now + 10_000_000_000 })
+        .where(eq(learningChunks.id, 'a2'));
+
+      const pausedAt = now + 1000;
+      await sessionRepo.updateSession('session-shift', {
+        status: 'paused',
+        pausedAt,
+        updatedAt: pausedAt,
+      });
+
+      const result = await withLearnerAuthContext(learner, () =>
+        ctx.startLearning({ topicId: 'topic-a' })
+      );
+
+      expect(result.action).toBe('resumed');
+      if (result.action !== 'resumed') throw new Error('Expected resumed');
+      expect(result.session_id).toBe('session-shift');
+
+      const resumedSession = await sessionRepo.getSessionById('session-shift', learner);
+      expect(resumedSession?.status).toBe('active');
+      expect(resumedSession?.pausedAt).toBeNull();
+
+      const finalChunks = await sessionRepo.getSessionChunks('session-shift');
+      const finalChunkIds = finalChunks.map(c => c.chunkId);
+      expect(finalChunkIds).toContain('a1');
+      expect(finalChunkIds).not.toContain('a2');
+      expect(finalChunkIds).toContain('a3');
+
+      const a1Final = finalChunks.find(c => c.chunkId === 'a1');
+      expect(a1Final?.status).toBe('completed');
+      // a3 was admitted as 'pending' by recompute, but resume also calls
+      // getNextTeachingStep (since the post-recompute count isn't zero), which selects
+      // the next pending chunk and marks it 'in_progress' as part of hydrating the first
+      // teaching step — the same behavior the pre-existing active-session-resume tail has.
+      const a3Final = finalChunks.find(c => c.chunkId === 'a3');
+      expect(a3Final?.status).toBe('in_progress');
+
+      // a2's session_question_chunks history survives even though its session_chunks
+      // row was removed — the junction keys off chunk id, not session_chunks id.
+      const survivingJunction = await db
+        .select()
+        .from(sessionQuestionChunks)
+        .where(eq(sessionQuestionChunks.chunkId, 'a2'));
+      expect(survivingJunction).toHaveLength(1);
+    });
+
+    it('resumes a paused session that recomputes to zero chunks (AC6) — no stale chunk served, no error', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-empty', ['ze1'], now);
+      const learner = 'learner-emptyrecompute';
+
+      await sessionRepo.createSession({
+        learnerKey: learner,
+        id: 'session-empty-after-recompute',
+        topicId: 'topic-empty',
+        chunkIds: ['ze1'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // ze1 falls out of due before resume, and topic-empty has no other chunk to admit —
+      // post-recompute session_chunks is empty, and ze1 was never completed.
+      const db = getSql();
+      await db
+        .update(learningChunks)
+        .set({ nextReviewAt: now + 10_000_000_000 })
+        .where(eq(learningChunks.id, 'ze1'));
+
+      await sessionRepo.updateSession('session-empty-after-recompute', {
+        status: 'paused',
+        pausedAt: now + 1000,
+        updatedAt: now + 1000,
+      });
+
+      const result = await withLearnerAuthContext(learner, () =>
+        ctx.startLearning({ topicId: 'topic-empty' })
+      );
+
+      expect(result.action).toBe('resumed');
+      if (result.action !== 'resumed') throw new Error('Expected resumed');
+      expect(result.session_id).toBe('session-empty-after-recompute');
+      expect(result.total_chunks).toBe(0);
+      expect(result.first_chunk.action).toBe('complete');
+
+      const resumedSession = await sessionRepo.getSessionById(
+        'session-empty-after-recompute',
+        learner
+      );
+      expect(resumedSession?.status).toBe('active');
+
+      const finalChunks = await sessionRepo.getSessionChunks('session-empty-after-recompute');
+      expect(finalChunks).toHaveLength(0);
+    });
+
+    describe('no-topic bucket', () => {
+      async function seedPausedNoTopicSession(learner: string, now: number): Promise<void> {
+        await seedTopicAndChunks('topic-c', ['c1'], now);
+        await seedTopicAndChunks('topic-d', ['d1'], now);
+        await sessionRepo.createSession({
+          learnerKey: learner,
+          id: 'session-notopic',
+          chunkIds: ['c1', 'd1'],
+          mode: 'learning',
+          startTime: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+        const pausedAt = now + 1000;
+        await sessionRepo.updateSession('session-notopic', {
+          status: 'paused',
+          pausedAt,
+          updatedAt: pausedAt,
+        });
+      }
+
+      it('start_learning(topic_id) for a different topic never resumes the no-topic bucket', async () => {
+        const now = Date.now();
+        const learner = 'learner-notopic-a';
+        await seedPausedNoTopicSession(learner, now);
+        await seedTopicAndChunks('topic-b', ['b1'], now);
+
+        const result = await withLearnerAuthContext(learner, () =>
+          ctx.startLearning({ topicId: 'topic-b' })
+        );
+        expect(result.action).toBe('started');
+
+        const notopic = await sessionRepo.getSessionById('session-notopic', learner);
+        expect(notopic?.status).toBe('paused');
+      });
+
+      it('auto-pick start_learning({}) never resumes the no-topic bucket', async () => {
+        const now = Date.now();
+        const learner = 'learner-notopic-b';
+        await seedPausedNoTopicSession(learner, now);
+        await seedTopicAndChunks('topic-b', ['b1'], now);
+
+        const result = await withLearnerAuthContext(learner, () => ctx.startLearning({}));
+        expect(result.action).toBe('started');
+
+        const notopic = await sessionRepo.getSessionById('session-notopic', learner);
+        expect(notopic?.status).toBe('paused');
+      });
+
+      it('start_learning(no_topic: true) resumes the no-topic bucket, admitting no new chunks', async () => {
+        const now = Date.now();
+        const learner = 'learner-notopic-c';
+        await seedPausedNoTopicSession(learner, now);
+        // A due chunk elsewhere in the DB — proves recompute never admits it into the
+        // no-topic bucket (there is no single topic to source additions from).
+        await seedTopicAndChunks('topic-e', ['e1'], now);
+
+        const result = await withLearnerAuthContext(learner, () =>
+          ctx.startLearning({ noTopic: true })
+        );
+        expect(result.action).toBe('resumed');
+        if (result.action !== 'resumed') throw new Error('Expected resumed');
+        expect(result.session_id).toBe('session-notopic');
+
+        const resumed = await sessionRepo.getSessionById('session-notopic', learner);
+        expect(resumed?.status).toBe('active');
+
+        const finalChunks = await sessionRepo.getSessionChunks('session-notopic');
+        const finalChunkIds = finalChunks.map(c => c.chunkId).sort();
+        // c1 and d1 are still due (never shifted), so both are kept; e1 is never admitted.
+        expect(finalChunkIds).toEqual(['c1', 'd1']);
+      });
+
+      it('start_learning(no_topic: true) with nothing paused returns nothing_due', async () => {
+        const learner = 'learner-notopic-empty';
+        const result = await withLearnerAuthContext(learner, () =>
+          ctx.startLearning({ noTopic: true })
+        );
+        expect(result.action).toBe('nothing_due');
+      });
+    });
+
+    it('auto-pick start_learning({}) resumes a paused session on the auto-picked (most urgent) topic (AC4)', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-auto', ['auto1'], now);
+      const learner = 'learner-autopick';
+
+      await sessionRepo.createSession({
+        learnerKey: learner,
+        id: 'session-auto-paused',
+        topicId: 'topic-auto',
+        chunkIds: ['auto1'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await sessionRepo.updateSession('session-auto-paused', {
+        status: 'paused',
+        pausedAt: now + 1000,
+        updatedAt: now + 1000,
+      });
+
+      // topic-auto is the only topic with a due chunk in the DB at this point, so
+      // auto-pick unambiguously selects it.
+      const result = await withLearnerAuthContext(learner, () => ctx.startLearning({}));
+
+      expect(result.action).toBe('resumed');
+      if (result.action !== 'resumed') throw new Error('Expected resumed');
+      expect(result.session_id).toBe('session-auto-paused');
+
+      const resumed = await sessionRepo.getSessionById('session-auto-paused', learner);
+      expect(resumed?.status).toBe('active');
+      expect(resumed?.pausedAt).toBeNull();
+    });
+
+    it('resumes the most recently paused session on a topic, leaving the earlier one paused', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ma1', 'ma2'], now);
+      const learner = 'learner-order';
+
+      await sessionRepo.createSession({
+        learnerKey: learner,
+        id: 'session-older',
+        topicId: 'topic-a',
+        chunkIds: ['ma1'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await sessionRepo.updateSession('session-older', {
+        status: 'paused',
+        pausedAt: now + 1000,
+        updatedAt: now + 1000,
+      });
+
+      await sessionRepo.createSession({
+        learnerKey: learner,
+        id: 'session-newer',
+        topicId: 'topic-a',
+        chunkIds: ['ma2'],
+        mode: 'learning',
+        startTime: now + 2000,
+        createdAt: now + 2000,
+        updatedAt: now + 2000,
+      });
+      await sessionRepo.updateSession('session-newer', {
+        status: 'paused',
+        pausedAt: now + 3000,
+        updatedAt: now + 3000,
+      });
+
+      const result = await withLearnerAuthContext(learner, () =>
+        ctx.startLearning({ topicId: 'topic-a' })
+      );
+
+      expect(result.action).toBe('resumed');
+      if (result.action !== 'resumed') throw new Error('Expected resumed');
+      expect(result.session_id).toBe('session-newer');
+
+      const older = await sessionRepo.getSessionById('session-older', learner);
+      expect(older?.status).toBe('paused');
+      const newer = await sessionRepo.getSessionById('session-newer', learner);
+      expect(newer?.status).toBe('active');
+    });
+
+    it("never resumes another learner's paused session on the same topic", async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ia1'], now);
+      const learner1 = 'learner-iso-1';
+      const learner2 = 'learner-iso-2';
+
+      await sessionRepo.createSession({
+        learnerKey: learner2,
+        id: 'session-learner2',
+        topicId: 'topic-a',
+        chunkIds: ['ia1'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await sessionRepo.updateSession('session-learner2', {
+        status: 'paused',
+        pausedAt: now + 1000,
+        updatedAt: now + 1000,
+      });
+
+      const result = await withLearnerAuthContext(learner1, () =>
+        ctx.startLearning({ topicId: 'topic-a' })
+      );
+
+      // Learner 1 gets a fresh/created session — never learner 2's paused one.
+      expect(result.action).toBe('started');
+      if (result.action !== 'started') throw new Error('Expected started');
+      expect(result.session_id).not.toBe('session-learner2');
+
+      const learner2Session = await sessionRepo.getSessionById('session-learner2', learner2);
+      expect(learner2Session?.status).toBe('paused');
+    });
+
+    it('create_session is unaffected — still creates a new session for a topic with only paused sessions, and leaves them paused', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ra1'], now);
+      const learner = 'learner-regress';
+
+      await sessionRepo.createSession({
+        learnerKey: learner,
+        id: 'session-paused-regress',
+        topicId: 'topic-a',
+        chunkIds: ['ra1'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await sessionRepo.updateSession('session-paused-regress', {
+        status: 'paused',
+        pausedAt: now + 1000,
+        updatedAt: now + 1000,
+      });
+
+      const result = await withLearnerAuthContext(learner, () =>
+        ctx.createSession({ topicId: 'topic-a', mode: 'learning' })
+      );
+
+      expect(result.success).toBe(true);
+      if (!result.success) throw new Error('Expected success');
+      expect(result.data.sessionId).not.toBe('session-paused-regress');
+
+      const stillPaused = await sessionRepo.getSessionById('session-paused-regress', learner);
+      expect(stillPaused?.status).toBe('paused');
     });
   });
 });

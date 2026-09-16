@@ -96,6 +96,9 @@ describe('SERVER_INSTRUCTIONS truncation-survival contract', () => {
     // Raised from 6800 (NEU-847): the correct_answer presentation clause added
     // to both TEACHING FLOW and ROLLING SESSION FLOW step 4 is genuine new
     // content, not slack — this still leaves headroom for future growth.
-    expect(Buffer.byteLength(SERVER_INSTRUCTIONS, 'utf8')).toBeLessThan(7000);
+    // Raised from 7000 (NEU-1021): the TOOL DISAMBIGUATION line documenting
+    // paused-session resume via start_learning (including the no-topic
+    // bucket) is genuine new content.
+    expect(Buffer.byteLength(SERVER_INSTRUCTIONS, 'utf8')).toBeLessThan(7200);
   });
 });

@@ -63,7 +63,7 @@ Before creating a topic: search existing content, then probe the learner — abs
 TOOL DISAMBIGUATION
 - start_learning vs create_session: start_learning is the one-call convenience. Use create_session only for manual control over chunk_ids or modes.
 - session_status: session metrics and completion checks; progress, quality, continue/complete/break. Stopping guidance also arrives in-band on teach_next/submit_answer, so polling is not required.
-- switching topics pauses the active session.
+- switching topics pauses the active session; its topic (or the no-topic bucket via no_topic: true) resumes through start_learning with a recomputed queue, never through create_session.
 
 TEACHING CONTENT INTEGRITY
 All content items provided by the server must be presented to the learner before they are referenced in any question.

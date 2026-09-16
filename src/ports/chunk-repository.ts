@@ -16,6 +16,12 @@ export type ListChunksFilter = {
   includeContent?: boolean;
   isLeech?: boolean;
   excludeDraft?: boolean;
+  /**
+   * NEU-1021: scope the list to a specific set of chunk ids — used by paused-session
+   * recompute to re-evaluate due status for chunks already in a session, independent of
+   * (or in addition to) `topicId`.
+   */
+  chunkIds?: string[];
 };
 
 /** Filter options for listing chunks with content (paginated). */

@@ -503,6 +503,11 @@ export type StartLearningInput = {
   subjectFilter?: string;
   /** NEU-1018: explicit topic to start/continue. Omitted means "no topic" — resume/auto-pick as today. */
   topicId?: string;
+  /**
+   * NEU-1021: explicitly resume the no-topic bucket's most recently paused session.
+   * Mutually exclusive with `topicId` (enforced by `StartLearningInputSchema`'s `.refine`).
+   */
+  noTopic?: boolean;
 };
 
 export type StartLearningStarted = {
@@ -547,7 +552,19 @@ export const StartLearningInputShape = {
     .describe(
       'Explicit topic to start or continue learning. Omit for "no topic" — the currently ' +
         'active session (if any) is resumed and the most urgent topic is auto-picked otherwise. ' +
-        'A different topic than the active session pauses it and starts this one instead.'
+        'A different topic than the active session pauses it and starts this one instead. ' +
+        "If that topic's most recently paused session is found, it resumes with its queue " +
+        'recomputed against the current review schedule instead of starting fresh. Mutually ' +
+        'exclusive with no_topic.'
+    ),
+  no_topic: z
+    .boolean()
+    .optional()
+    .describe(
+      "Explicitly resume the no-topic bucket's most recently paused session (a session whose " +
+        'chunks span no single topic) instead of auto-picking a topic. Mutually exclusive with ' +
+        'topic_id. With no matching paused session, returns action "nothing_due" rather than ' +
+        'starting a new session — the no-topic bucket is never auto-picked.'
     ),
   context_token: z
     .string()
@@ -560,9 +577,13 @@ export const StartLearningInputShape = {
 
 export const StartLearningInputSchema = z
   .object(StartLearningInputShape)
-  .transform(({ subject_filter, topic_id }) => ({
+  .refine(({ topic_id, no_topic }) => !(topic_id && no_topic), {
+    message: 'topic_id and no_topic are mutually exclusive — pass at most one.',
+  })
+  .transform(({ subject_filter, topic_id, no_topic }) => ({
     subjectFilter: subject_filter,
     topicId: topic_id,
+    noTopic: no_topic,
   }));
 
 // ── create_session_questions types ─────────────────────────────

@@ -446,6 +446,16 @@ describe('teaching-tools', () => {
     );
   });
 
+  it('start_learning description documents paused-session resume with recompute, including the no-topic bucket (NEU-1021)', () => {
+    registerTeachingTools(server as any, ctx);
+    const description = server.tools.get('start_learning')!.spec.description as string;
+
+    expect(description).toContain('has a paused session, that session resumes');
+    expect(description).toContain('queue is recomputed against the current review schedule');
+    expect(description).toContain('no_topic: true');
+    expect(description).toContain('never auto-picked');
+  });
+
   it('start_learning returns toolData result on success', async () => {
     const startResult = {
       action: 'started',

@@ -1805,6 +1805,63 @@ export type StartLearningDeps = {
 };
 
 /**
+ * NEU-1021: resume a paused session found by `findMostRecentlyPausedSession`, after
+ * recomputing its chunk queue against the current review schedule. Shared by all three
+ * resume call sites in `startLearning` below (explicit topic, explicit no-topic, auto-pick).
+ *
+ * If recompute leaves the session with zero chunks (AC6: every remaining chunk fell out of
+ * due and none was ever completed), `getNextTeachingStep`'s own completion detection can't
+ * be reused verbatim — it returns `action: 'error'` on a *zero-row* session
+ * (`teaching-workflows.ts` `getNextTeachingStep` step 2), never the vacuous-true
+ * `allCompleted` branch, which only fires when at least one row exists. So this helper
+ * checks the post-recompute count itself and builds the completion response directly via
+ * `buildCompleteResponse` in that case, instead of calling `getNextTeachingStep`.
+ */
+async function resumePausedSessionWithRecompute(
+  pausedSession: LearningSession,
+  topicId: string | null,
+  learnerKey: string | null,
+  deps: StartLearningDeps,
+  sessionDeps: sessionWorkflows.SessionDeps
+): Promise<StartLearningResult> {
+  await sessionWorkflows.recomputePausedSessionChunks(pausedSession, topicId, sessionDeps);
+
+  const resumedAt = Date.now();
+  await deps.sessions.updateSession(pausedSession.id, {
+    status: 'active',
+    pausedAt: null,
+    updatedAt: resumedAt,
+  });
+
+  const sessionChunks = await deps.sessions.getSessionChunks(pausedSession.id);
+
+  let firstChunk: TeachNextResponse;
+  if (sessionChunks.length === 0) {
+    firstChunk = buildCompleteResponse([], new Map(), new Map());
+  } else {
+    const teachingDeps: TeachingDeps = {
+      sessions: deps.sessions,
+      chunks: deps.chunks,
+      reviewPersistence: deps.reviewPersistence,
+      algorithmConfig: deps.algorithmConfig,
+      sessionQuestions: deps.sessionQuestions,
+      notes: deps.notes,
+    };
+    firstChunk = await getNextTeachingStep(learnerKey, teachingDeps);
+  }
+
+  logEvent('startLearning', 'session_resumed', { sessionId: pausedSession.id });
+
+  return {
+    action: 'resumed',
+    session_id: pausedSession.id,
+    mode: pausedSession.mode as SessionMode,
+    total_chunks: sessionChunks.length,
+    first_chunk: firstChunk,
+  };
+}
+
+/**
  * Quick-start: check for active session → pick highest-urgency topic → create single-topic session → teach first chunk.
  */
 export async function startLearning(
@@ -1891,6 +1948,51 @@ export async function startLearning(
     }
   }
 
+  // 1b. NEU-1021: explicit no-topic-bucket resume. Resolves only the no-topic bucket's most
+  // recently paused session — never falls through to auto-pick or fresh creation, since the
+  // no-topic bucket is deliberately never auto-picked (only an explicit `no_topic: true`
+  // reaches it).
+  if (input.noTopic) {
+    const pausedNoTopicSession = await sessionWorkflows.findMostRecentlyPausedSession(
+      learnerKey,
+      null,
+      sessionDeps
+    );
+    if (pausedNoTopicSession) {
+      return resumePausedSessionWithRecompute(
+        pausedNoTopicSession,
+        null,
+        learnerKey,
+        deps,
+        sessionDeps
+      );
+    }
+    return {
+      action: 'nothing_due',
+      message: 'No paused no-topic session to resume.',
+    };
+  }
+
+  // 1c. NEU-1021: explicit-topic resume — before falling through to auto-pick + create
+  // fresh, look up this topic's most recently paused session.
+  if (input.topicId) {
+    const pausedTopicSession = await sessionWorkflows.findMostRecentlyPausedSession(
+      learnerKey,
+      input.topicId,
+      sessionDeps
+    );
+    if (pausedTopicSession) {
+      return resumePausedSessionWithRecompute(
+        pausedTopicSession,
+        input.topicId,
+        learnerKey,
+        deps,
+        sessionDeps
+      );
+    }
+    // Fall through to step 2 below, which creates/continues the requested topic.
+  }
+
   // 2. Get topic-level recommendations
   const recDeps: recommendationWorkflows.RecommendationDeps = {
     chunks: deps.chunks,
@@ -1915,6 +2017,28 @@ export async function startLearning(
   // 3. Pick highest-urgency topic
   const topRec = recommendations.recommendations[0];
   const mode: 'learning' | 'review' = topRec.hasNewChunks ? 'learning' : 'review';
+
+  // 3a. NEU-1021: auto-pick resume — only when the caller specified neither an explicit
+  // topic nor no_topic (input.topicId is falsy here whenever we reach this point, since an
+  // explicit topic either resumed above or fell through with the same topicId still set —
+  // guard on the original input, not a derived value, to avoid re-triggering on a fall-through).
+  if (!input.topicId && !input.noTopic) {
+    const pausedAutoPickSession = await sessionWorkflows.findMostRecentlyPausedSession(
+      learnerKey,
+      topRec.topicId,
+      sessionDeps
+    );
+    if (pausedAutoPickSession) {
+      return resumePausedSessionWithRecompute(
+        pausedAutoPickSession,
+        topRec.topicId,
+        learnerKey,
+        deps,
+        sessionDeps
+      );
+    }
+    // Fall through to the existing dependency-resolution + createSession tail unchanged.
+  }
 
   // 3b. Resolve chunk dependencies (topological sort + prerequisite injection)
   // Re-sorts dueChunkIds because prerequisite injection may add new nodes
