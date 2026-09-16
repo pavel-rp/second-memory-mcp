@@ -164,6 +164,26 @@ export async function createSession(
   deps: SessionDeps
 ): Promise<ServiceResult<{ sessionId: string }>> {
   try {
+    // Assessment mode requires non-empty chunk_ids
+    if (input.mode === 'assessment') {
+      if (!input.chunkIds || input.chunkIds.length === 0) {
+        return serviceFail({
+          type: 'validation',
+          message: 'Assessment mode requires non-empty chunk_ids.',
+        });
+      }
+    }
+
+    if (input.chunkIds && input.chunkIds.length > 0) {
+      const validation = await deps.sessions.validateChunkIds(input.chunkIds);
+      if (!validation.valid) {
+        return serviceFail({
+          type: 'validation',
+          message: `Invalid chunk IDs: ${validation.invalidIds.join(', ')}`,
+        });
+      }
+    }
+
     const activeSession = await deps.sessions.getActiveSession(learnerKey);
     if (activeSession) {
       const activeSessionChunks = await deps.sessions.getSessionChunks(activeSession.id);
@@ -181,6 +201,12 @@ export async function createSession(
         // blocking the new session's creation — same rule as startLearning's.
         const completeResult = await completeSession(activeSession.id, undefined, learnerKey, deps);
         if (!completeResult.success) {
+          // NEU-1033: completeSession() reports a concurrently-vanished/changed session as a
+          // structured conflict (mirroring the pause branch's row-count check) — preserve that
+          // shape rather than flattening it into a generic database error.
+          if (completeResult.error.type === 'conflict') {
+            return serviceFail(completeResult.error);
+          }
           return serviceFail({
             type: 'database',
             message: `Failed to auto-complete finished session: ${completeResult.error.message}`,
@@ -214,34 +240,25 @@ export async function createSession(
         }
 
         const pausedAt = Date.now();
-        await deps.sessions.updateSession(activeSession.id, {
+        const pausedRowCount = await deps.sessions.updateSession(activeSession.id, {
           status: 'paused',
           pausedAt,
           updatedAt: pausedAt,
         });
+        if (pausedRowCount === 0) {
+          return serviceFail({
+            type: 'conflict',
+            message:
+              'Active session changed concurrently and could not be paused; no new session was created.',
+            findings: {
+              code: 'active_session_concurrently_modified',
+              session_id: activeSession.id,
+            },
+          });
+        }
         logEvent('createSession', 'session_paused', {
           sessionId: activeSession.id,
           requestedTopicId: input.topicId,
-        });
-      }
-    }
-
-    // Assessment mode requires non-empty chunk_ids
-    if (input.mode === 'assessment') {
-      if (!input.chunkIds || input.chunkIds.length === 0) {
-        return serviceFail({
-          type: 'validation',
-          message: 'Assessment mode requires non-empty chunk_ids.',
-        });
-      }
-    }
-
-    if (input.chunkIds && input.chunkIds.length > 0) {
-      const validation = await deps.sessions.validateChunkIds(input.chunkIds);
-      if (!validation.valid) {
-        return serviceFail({
-          type: 'validation',
-          message: `Invalid chunk IDs: ${validation.invalidIds.join(', ')}`,
         });
       }
     }
@@ -286,7 +303,18 @@ export async function completeSession(
     if (!session) {
       return serviceFail({ type: 'not_found', message: `Session ${sessionId} not found` });
     }
-    await deps.sessions.completeSession(sessionId, feedback);
+    const completedRowCount = await deps.sessions.completeSession(sessionId, feedback);
+    if (completedRowCount === 0) {
+      // NEU-1033: the session existed at the read above but the write itself affected zero
+      // rows — it changed concurrently between the read and the write. Report a structured
+      // conflict rather than silently claiming success, mirroring createSession's pause-branch
+      // row-count check.
+      return serviceFail({
+        type: 'conflict',
+        message: 'Session changed concurrently and could not be completed.',
+        findings: { code: 'active_session_concurrently_modified', session_id: sessionId },
+      });
+    }
     logEvent('completeSession', 'session_completed', { sessionId });
     return serviceOk();
   } catch (error) {

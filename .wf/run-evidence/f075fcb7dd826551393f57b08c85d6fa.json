@@ -1,0 +1,108 @@
+{
+  "formatVersion": 2,
+  "runId": "f075fcb7dd826551393f57b08c85d6fa",
+  "records": [
+    {
+      "kind": "phase-receipt",
+      "subject": "spec",
+      "taskId": "NEU-1033",
+      "runId": "f075fcb7dd826551393f57b08c85d6fa",
+      "workspaceFingerprint": "df44f345506ac40139966c0e036d621510661cff6a1a8ab3044cb7fa551a3c5c",
+      "issuedAt": "2026-09-16T16:20:00.024Z",
+      "sequence": 0,
+      "artifact": {
+        "path": "_local/NEU-1033/01_spec.md",
+        "sha256": "870803ced11d52fd063f421d94d36bb289a0fda0bbc3a6e0712e1f1ae1c894f9",
+        "bytes": 9468
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "0ef94db80deb51df57a97c0604058078e5efc8c997a34858f95541532dee128c"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "plan",
+      "taskId": "NEU-1033",
+      "runId": "f075fcb7dd826551393f57b08c85d6fa",
+      "workspaceFingerprint": "df44f345506ac40139966c0e036d621510661cff6a1a8ab3044cb7fa551a3c5c",
+      "issuedAt": "2026-09-16T16:24:33.748Z",
+      "sequence": 1,
+      "artifact": {
+        "path": "_local/NEU-1033/02_plan.md",
+        "sha256": "2b8eabfc5a6b3f5ef6105ce03b7f569c423ce2a7b26992f33c7b12a5fada5260",
+        "bytes": 11833
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "a145ebe0d01431492f6d34fc7bc32ed071703b28f987d407c00f238f2525d2b5"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "implement",
+      "taskId": "NEU-1033",
+      "runId": "f075fcb7dd826551393f57b08c85d6fa",
+      "workspaceFingerprint": "df44f345506ac40139966c0e036d621510661cff6a1a8ab3044cb7fa551a3c5c",
+      "issuedAt": "2026-09-16T16:29:34.040Z",
+      "sequence": 2,
+      "artifact": {
+        "path": "_local/NEU-1033/02_plan.md",
+        "sha256": "b137fbd71e6ce0b1275ec8e584ab304790c646fa8bfdb0bd928066964eb64e85",
+        "bytes": 15012
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "dcc32c610980860fb0b80c4813aaa10058eb7a1c7f911370973d1d93f60b1b9f"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "verify-spec",
+      "taskId": "NEU-1033",
+      "runId": "f075fcb7dd826551393f57b08c85d6fa",
+      "workspaceFingerprint": "df44f345506ac40139966c0e036d621510661cff6a1a8ab3044cb7fa551a3c5c",
+      "issuedAt": "2026-09-16T16:34:51.744Z",
+      "sequence": 3,
+      "artifact": {
+        "path": "_local/NEU-1033/04_verify.md",
+        "sha256": "567bdae86434243c75f9cbf22723a9fad4ead60a264066b4c07546835c099ab2",
+        "bytes": 8522
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "e37a44fec1913601d34404d4cb3d41f697abdb7052b68b92c662fdba8db2a42d"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "verify-spec",
+      "taskId": "NEU-1033",
+      "runId": "f075fcb7dd826551393f57b08c85d6fa",
+      "workspaceFingerprint": "df44f345506ac40139966c0e036d621510661cff6a1a8ab3044cb7fa551a3c5c",
+      "issuedAt": "2026-09-16T16:45:32.266Z",
+      "sequence": 4,
+      "artifact": {
+        "path": "_local/NEU-1033/04_verify.md",
+        "sha256": "8019358320308eed10d26e9dfe7df6650b4c682ba67571d71fc0874bce437f4a",
+        "bytes": 10025
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "76fe0cb18a69995910296c6b43133d4049d198045a428ebafc24cb80e5c5cf3a"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "qa-gen",
+      "taskId": "NEU-1033",
+      "runId": "f075fcb7dd826551393f57b08c85d6fa",
+      "workspaceFingerprint": "df44f345506ac40139966c0e036d621510661cff6a1a8ab3044cb7fa551a3c5c",
+      "issuedAt": "2026-09-16T16:51:47.008Z",
+      "sequence": 5,
+      "artifact": {
+        "path": "_local/NEU-1033/06_qa.md",
+        "sha256": "89741cadddda825bbeaab53b544deb7a745d549e43cc4374291876b00e8b4466",
+        "bytes": 11846
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "1f4184e590a162d2e4c65ad4008c59997bce38009b42b6887c07e23204b8cc70"
+    }
+  ]
+}
