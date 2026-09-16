@@ -110,11 +110,18 @@ export const learningSessions = pgTable(
     feedback: text('feedback'), // optional completion feedback
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
+    // NEU-1015: nullable learner-isolation key. On token transports this is the
+    // verified token's raw `payload.sub`; on stdio (single fixed placeholder,
+    // stdio is slated for deprecation) it is the fixed placeholder constant.
+    // Nullable here by design — NEU-1019 backfills existing rows and adds the
+    // NOT NULL constraint; do not tighten this column before that migration.
+    learnerKey: text('learner_key'),
   },
   table => [
     index('idx_learning_sessions_status').on(table.status),
     index('idx_learning_sessions_topic_id').on(table.topicId),
     index('idx_learning_sessions_created_at').on(table.createdAt),
+    index('idx_learning_sessions_learner_key').on(table.learnerKey),
     check(
       'chk_session_mode',
       sql`${table.mode} IN ('scaffolding', 'learning', 'retrieval', 'review', 'assessment')`
