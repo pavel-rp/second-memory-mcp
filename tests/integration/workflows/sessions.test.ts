@@ -1059,8 +1059,12 @@ describe('sessions service', () => {
 
       const a1Final = finalChunks.find(c => c.chunkId === 'a1');
       expect(a1Final?.status).toBe('completed');
+      // a3 was admitted as 'pending' by recompute, but resume also calls
+      // getNextTeachingStep (since the post-recompute count isn't zero), which selects
+      // the next pending chunk and marks it 'in_progress' as part of hydrating the first
+      // teaching step — the same behavior the pre-existing active-session-resume tail has.
       const a3Final = finalChunks.find(c => c.chunkId === 'a3');
-      expect(a3Final?.status).toBe('pending');
+      expect(a3Final?.status).toBe('in_progress');
 
       // a2's session_question_chunks history survives even though its session_chunks
       // row was removed — the junction keys off chunk id, not session_chunks id.
