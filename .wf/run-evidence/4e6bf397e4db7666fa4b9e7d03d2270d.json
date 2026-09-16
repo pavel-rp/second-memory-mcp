@@ -103,6 +103,40 @@
       "evidenceClass": "artifact-backed",
       "runMode": "unestablished",
       "seal": "7381bc0e7e7557113afb84307e5e2365fef4328c6e05da1abef759b2ee4ec7d6"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "verify-spec",
+      "taskId": "NEU-1021",
+      "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+      "workspaceFingerprint": "fd14587e6fcf0c978b88f6be84a771a9232b85b939c60ba4ead57d79878907f7",
+      "issuedAt": "2026-09-16T15:48:52.016Z",
+      "sequence": 6,
+      "artifact": {
+        "path": "_local/NEU-1021/04_verify.md",
+        "sha256": "47c19409289abcdee33be9c54d7d2b8b8af23a5aa2c1eb0d8d9fc7a92a09477b",
+        "bytes": 11587
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "f16e10774aaa497df0e732d335abc548ae90c4d7a8da8ed24c9f0cd3e1f67839"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "qa-gen",
+      "taskId": "NEU-1021",
+      "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+      "workspaceFingerprint": "fd14587e6fcf0c978b88f6be84a771a9232b85b939c60ba4ead57d79878907f7",
+      "issuedAt": "2026-09-16T15:51:43.590Z",
+      "sequence": 7,
+      "artifact": {
+        "path": "_local/NEU-1021/06_qa.md",
+        "sha256": "48e34b264511f2f06f85f4c1e1f8b0aecb90e282014915d8cf8131c90f89daca",
+        "bytes": 7116
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "796539e3c313fd250840555fcf040361889d64e90c816ed3c8f99afa79a68dd9"
     }
   ]
 }
