@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { registerSessionManagementTools } from '../../../src/server/session-management-tools.js';
 import { createAppContext } from '../../../src/composition-root.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
@@ -389,16 +389,13 @@ describe('Integration: Session Management Tools', () => {
     const createParsed = parseToolResult(createResult);
     const sessionId = createParsed.data.session_id;
 
-    const scId = `session-chunk-${now}`;
-    await db.insert(sessionChunks).values({
-      id: scId,
-      sessionId: sessionId,
-      chunkId: chunkId,
-      status: 'completed',
-      timeSpentMs: 3000,
-      createdAt: now,
-      updatedAt: now,
-    });
+    // `createSessionTool` already auto-created a `session_chunks` row for `chunkId` (it was
+    // passed in `chunk_ids`) — NEU-1042's unique constraint on (session_id, chunk_id) means this
+    // test must update that existing row to 'completed' rather than inserting a second one.
+    await db
+      .update(sessionChunks)
+      .set({ status: 'completed', timeSpentMs: 3000, updatedAt: now })
+      .where(and(eq(sessionChunks.sessionId, sessionId), eq(sessionChunks.chunkId, chunkId)));
 
     // Insert normalized question + attempt
     const sqId = `sq-mgmt-${now}`;
@@ -436,7 +433,10 @@ describe('Integration: Session Management Tools', () => {
     const getParsed = parseToolResult(getResult);
     expect(getParsed.status).toBe('ok');
     expect(getParsed.data.action).toBe('found');
-    expect(getParsed.data.session.chunks).toHaveLength(2);
+    // NEU-1042: the test now updates the single auto-created session_chunks row (from
+    // chunk_ids at session creation) to 'completed' instead of inserting a second row for the
+    // same (session_id, chunk_id) pair — so there is exactly one chunk here, not two.
+    expect(getParsed.data.session.chunks).toHaveLength(1);
     const completedChunk = getParsed.data.session.chunks.find(
       (chunk: any) => chunk.status === 'completed'
     );

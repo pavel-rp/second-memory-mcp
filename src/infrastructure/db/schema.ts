@@ -130,6 +130,13 @@ export const learningSessions = pgTable(
       sql`${table.mode} IN ('scaffolding', 'learning', 'retrieval', 'review', 'assessment')`
     ),
     check('chk_session_status', sql`${table.status} IN ('active', 'completed', 'paused')`),
+    // NEU-1042: DB-level backstop for the CAS-guarded pause/resume/complete transitions — at
+    // most one 'active' row per learner_key. A caller that bypasses the CAS path (or a race the
+    // CAS path can't observe, e.g. two concurrent inserts) surfaces as a unique violation on
+    // this named index, mapped to a structured `conflict` in `createSession` (session-workflows.ts).
+    uniqueIndex('uq_learning_sessions_active_learner_key')
+      .on(table.learnerKey)
+      .where(sql`${table.status} = 'active'`),
   ]
 );
 
@@ -160,6 +167,9 @@ export const sessionChunks = pgTable(
       'chk_teaching_approach',
       sql`${table.teachingApproach} IN ('recall', 'cued_recall', 'reteach', 'scaffold')`
     ),
+    // NEU-1042: no duplicate (session_id, chunk_id) rows — the DB-level backstop for the
+    // CAS-guarded resume reordering in `resumePausedSessionWithRecompute`.
+    uniqueIndex('uq_session_chunks_session_chunk').on(table.sessionId, table.chunkId),
   ]
 );
 

@@ -131,22 +131,34 @@ export class DrizzleSessionRepository implements SessionRepository {
       .orderBy(desc(learningSessions.pausedAt));
   }
 
-  async updateSession(id: string, changes: UpdateSessionInput): Promise<number> {
-    const res = await this.db
-      .update(learningSessions)
-      .set(changes)
-      .where(eq(learningSessions.id, id));
+  async updateSession(
+    id: string,
+    changes: UpdateSessionInput,
+    expectedStatus?: 'active' | 'paused' | 'completed'
+  ): Promise<number> {
+    const condition = expectedStatus
+      ? and(eq(learningSessions.id, id), eq(learningSessions.status, expectedStatus))
+      : eq(learningSessions.id, id);
+    const res = await this.db.update(learningSessions).set(changes).where(condition);
     return res.rowCount ?? 0;
   }
 
-  async completeSession(id: string, feedback?: string): Promise<number> {
+  async completeSession(
+    id: string,
+    feedback?: string,
+    expectedStatus?: 'active' | 'paused' | 'completed'
+  ): Promise<number> {
     const now = Date.now();
-    return this.updateSession(id, {
-      status: 'completed',
-      endTime: now,
-      feedback: feedback || null,
-      updatedAt: now,
-    });
+    return this.updateSession(
+      id,
+      {
+        status: 'completed',
+        endTime: now,
+        feedback: feedback || null,
+        updatedAt: now,
+      },
+      expectedStatus
+    );
   }
 
   async deleteSession(id: string): Promise<number> {
@@ -182,9 +194,25 @@ export class DrizzleSessionRepository implements SessionRepository {
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
     };
-    await this.db.insert(sessionChunks).values(chunkData);
-    logger.info(`Created session chunk ${input.id} for session ${input.sessionId}`);
-    return { ...chunkData, teachingApproach: chunkData.teachingApproach ?? null } as SessionChunk;
+    // NEU-1042: `uq_session_chunks_session_chunk` enforces at most one row per
+    // (session_id, chunk_id) — a chunk already present (e.g. auto-created from `chunk_ids` at
+    // session creation, or a repeat `create_session_chunk` call) is refreshed in place via
+    // ON CONFLICT DO UPDATE rather than rejected; the original row's `id`/`createdAt` are
+    // preserved by omitting them from `set`, and `.returning()` reports the actual persisted row.
+    const [row] = await this.db
+      .insert(sessionChunks)
+      .values(chunkData)
+      .onConflictDoUpdate({
+        target: [sessionChunks.sessionId, sessionChunks.chunkId],
+        set: {
+          status: chunkData.status,
+          timeSpentMs: chunkData.timeSpentMs,
+          updatedAt: chunkData.updatedAt,
+        },
+      })
+      .returning();
+    logger.info(`Created session chunk ${row.id} for session ${input.sessionId}`);
+    return { ...row, teachingApproach: row.teachingApproach ?? null } as SessionChunk;
   }
 
   async getSessionChunks(sessionId: string): Promise<SessionChunk[]> {

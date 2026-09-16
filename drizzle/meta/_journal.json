@@ -204,6 +204,13 @@
       "when": 1774310000000,
       "tag": "0028_add_learning_sessions_learner_key_not_null",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1774320000000,
+      "tag": "0029_add_session_atomicity_constraints",
+      "breakpoints": true
     }
   ]
 }

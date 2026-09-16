@@ -3726,7 +3726,8 @@ describe('startLearning', () => {
 
       expect(updateSessionMock).toHaveBeenCalledWith(
         'active-sess',
-        expect.objectContaining({ status: 'paused', pausedAt: expect.any(Number) })
+        expect.objectContaining({ status: 'paused', pausedAt: expect.any(Number) }),
+        'active'
       );
       expect(result.action).toBe('started');
       if (result.action !== 'started') throw new Error('Expected started');
@@ -3789,7 +3790,8 @@ describe('startLearning', () => {
 
       expect(updateSessionMock).toHaveBeenCalledWith(
         'active-sess',
-        expect.objectContaining({ status: 'paused' })
+        expect.objectContaining({ status: 'paused' }),
+        'active'
       );
       expect(completeSpy).not.toHaveBeenCalled();
       expect(result.action).toBe('nothing_due');
@@ -3882,7 +3884,8 @@ describe('startLearning', () => {
 
       expect(updateSessionMock).toHaveBeenCalledWith(
         'active-sess',
-        expect.objectContaining({ status: 'paused' })
+        expect.objectContaining({ status: 'paused' }),
+        'active'
       );
       expect(result.action).toBe('started');
     });

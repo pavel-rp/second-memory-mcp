@@ -1,0 +1,125 @@
+{
+  "formatVersion": 2,
+  "runId": "363359f640dcd71d7c71f37bea37e37e",
+  "records": [
+    {
+      "kind": "phase-receipt",
+      "subject": "spec",
+      "taskId": "NEU-1042",
+      "runId": "363359f640dcd71d7c71f37bea37e37e",
+      "workspaceFingerprint": "4290c24f511f1cc59fa8d3e8d81ae9c9113139c65ad7a8d66bd9af8a3ff7355c",
+      "issuedAt": "2026-09-16T21:17:27.076Z",
+      "sequence": 0,
+      "artifact": {
+        "path": "_local/NEU-1042/01_spec.md",
+        "sha256": "5d2d345ae1be9ff8b2e976b3cae110f9b708b2fc565b06b22a6696629b463f98",
+        "bytes": 9388
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "f2491d3d678999910375038db3726e3b9ba32c0cf02f620534b4597797da97cb"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "plan",
+      "taskId": "NEU-1042",
+      "runId": "363359f640dcd71d7c71f37bea37e37e",
+      "workspaceFingerprint": "4290c24f511f1cc59fa8d3e8d81ae9c9113139c65ad7a8d66bd9af8a3ff7355c",
+      "issuedAt": "2026-09-16T21:22:05.508Z",
+      "sequence": 1,
+      "artifact": {
+        "path": "_local/NEU-1042/02_plan.md",
+        "sha256": "7f8b27f6ae15b6d4d2dfb37718ce6a55ac2aafe498d643c63123b5837507729e",
+        "bytes": 13835
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "055b5dd383b1c89977729464e044a8169354aa89bfac5b1ccc57afc41d2019fc"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "implement",
+      "taskId": "NEU-1042",
+      "runId": "363359f640dcd71d7c71f37bea37e37e",
+      "workspaceFingerprint": "4290c24f511f1cc59fa8d3e8d81ae9c9113139c65ad7a8d66bd9af8a3ff7355c",
+      "issuedAt": "2026-09-16T21:36:18.642Z",
+      "sequence": 2,
+      "artifact": {
+        "path": "_local/NEU-1042/02_plan.md",
+        "sha256": "4ce9720218c691dd7d0dc9045d28e4f3ceae343c2f7c42e200e4fc58451333b2",
+        "bytes": 21722
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "d0ccc7baee2d17685fb6260b0652bc7a0ba64eb7ae11759210157e4c33637592"
+    },
+    {
+      "kind": "gate-approval",
+      "subject": "gate:implement",
+      "taskId": "NEU-1042",
+      "runId": "363359f640dcd71d7c71f37bea37e37e",
+      "workspaceFingerprint": "4290c24f511f1cc59fa8d3e8d81ae9c9113139c65ad7a8d66bd9af8a3ff7355c",
+      "issuedAt": "2026-09-16T21:39:28.013Z",
+      "sequence": 3,
+      "artifact": {
+        "path": "_local/NEU-1042/02_plan.md",
+        "sha256": "4ce9720218c691dd7d0dc9045d28e4f3ceae343c2f7c42e200e4fc58451333b2",
+        "bytes": 21722
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "5c4a1ea0aef47fa0cc035da7111f65a95175e434694536eeb680e6fa3d3d31c6"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "verify-spec",
+      "taskId": "NEU-1042",
+      "runId": "363359f640dcd71d7c71f37bea37e37e",
+      "workspaceFingerprint": "4290c24f511f1cc59fa8d3e8d81ae9c9113139c65ad7a8d66bd9af8a3ff7355c",
+      "issuedAt": "2026-09-16T21:48:13.823Z",
+      "sequence": 4,
+      "artifact": {
+        "path": "_local/NEU-1042/04_verify.md",
+        "sha256": "0774706b2553e70279f730bb66b08479bc5787607486d0c6eaa35884ecf361c6",
+        "bytes": 8615
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "d3647e3e87bfa5d266a554783950f9681c6fc6d8048b3f338d8da8b41d9e9de5"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "qa-gen",
+      "taskId": "NEU-1042",
+      "runId": "363359f640dcd71d7c71f37bea37e37e",
+      "workspaceFingerprint": "4290c24f511f1cc59fa8d3e8d81ae9c9113139c65ad7a8d66bd9af8a3ff7355c",
+      "issuedAt": "2026-09-16T21:57:32.597Z",
+      "sequence": 5,
+      "artifact": {
+        "path": "_local/NEU-1042/06_qa.md",
+        "sha256": "527bf43c99ed5604f69ee0e488a04a22b45fdb5caf0cb6a47c0f52803e703b87",
+        "bytes": 16199
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "4f486dea4232bd994fe23c0a89e2fcc72ee1faaeb922d8e4f9f4608c21379a11"
+    },
+    {
+      "kind": "gate-approval",
+      "subject": "gate:implement",
+      "taskId": "NEU-1042",
+      "runId": "363359f640dcd71d7c71f37bea37e37e",
+      "workspaceFingerprint": "4290c24f511f1cc59fa8d3e8d81ae9c9113139c65ad7a8d66bd9af8a3ff7355c",
+      "issuedAt": "2026-09-16T21:58:00.883Z",
+      "sequence": 6,
+      "artifact": {
+        "path": "_local/NEU-1042/02_plan.md",
+        "sha256": "359fec7c0b7685c31149590d7c504e1219e49e9a592e075fa607086319b20ddf",
+        "bytes": 22364
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "30dc0a30dedf3e1f416d6a1c6d97b7589ef64295266fcb841912cfed98f10671"
+    }
+  ]
+}

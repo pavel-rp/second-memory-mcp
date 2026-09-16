@@ -19,6 +19,7 @@ import {
 } from '../domain/algorithms/classify-chunk.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 import { getRequestLogger, logEvent } from '../shared/logger.js';
+import { isPgUniqueViolation } from '../shared/errors.js';
 
 export type SessionDeps = {
   sessions: SessionRepository;
@@ -240,11 +241,15 @@ export async function createSession(
         }
 
         const pausedAt = Date.now();
-        const pausedRowCount = await deps.sessions.updateSession(activeSession.id, {
-          status: 'paused',
-          pausedAt,
-          updatedAt: pausedAt,
-        });
+        const pausedRowCount = await deps.sessions.updateSession(
+          activeSession.id,
+          {
+            status: 'paused',
+            pausedAt,
+            updatedAt: pausedAt,
+          },
+          'active'
+        );
         if (pausedRowCount === 0) {
           return serviceFail({
             type: 'conflict',
@@ -277,7 +282,23 @@ export async function createSession(
       learnerKey,
     };
 
-    await deps.sessions.createSession(sessionInput);
+    try {
+      await deps.sessions.createSession(sessionInput);
+    } catch (insertError) {
+      // NEU-1042: the partial unique index (`learning_sessions_active_per_learner_key`) is the
+      // DB-level backstop for the CAS-guarded pause above — any caller that bypasses the CAS
+      // path (or a race the CAS path itself can't observe, e.g. this insert racing a
+      // concurrent createSession) still surfaces as a structured conflict, never a generic
+      // `database` error.
+      if (isPgUniqueViolation(insertError, 'uq_learning_sessions_active_learner_key')) {
+        return serviceFail({
+          type: 'conflict',
+          message: 'An active session already exists for this learner; could not create a new one.',
+          findings: { code: 'active_session_exists_concurrently' },
+        });
+      }
+      throw insertError;
+    }
     logEvent('createSession', 'session_created', {
       sessionId,
       mode: input.mode,
@@ -303,7 +324,14 @@ export async function completeSession(
     if (!session) {
       return serviceFail({ type: 'not_found', message: `Session ${sessionId} not found` });
     }
-    const completedRowCount = await deps.sessions.completeSession(sessionId, feedback);
+    // NEU-1042: complete is an active -> completed transition, mirroring pause's
+    // active -> paused and resume's paused -> active — the CAS guard requires 'active' rather
+    // than echoing back whatever status was just read (which would make the guard tautological
+    // and unable to ever detect a race). Completing an already-paused session is out of scope
+    // for this transition and now correctly reports the existing conflict shape instead of
+    // silently succeeding, per CI DISTILL feedback on this PR reconciling the earlier
+    // verify-spec finding, which was itself mistaken.
+    const completedRowCount = await deps.sessions.completeSession(sessionId, feedback, 'active');
     if (completedRowCount === 0) {
       // NEU-1033: the session existed at the read above but the write itself affected zero
       // rows — it changed concurrently between the read and the write. Report a structured

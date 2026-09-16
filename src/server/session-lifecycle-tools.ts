@@ -321,8 +321,17 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           );
 
           if (!completeResult.success) {
-            throw new Error(
-              `Failed to complete session ${validatedInput.sessionId}: ${completeResult.error.message}`
+            // NEU-1042: forward the orchestration layer's structured error type (e.g. the
+            // CAS-guard's `conflict` on a zero-row race) instead of throwing a plain Error,
+            // which the outer catch would flatten to a generic `database`/`internal` error —
+            // same pattern already used above and in create_session's handler.
+            return toolError(
+              `Failed to complete session ${validatedInput.sessionId}: ${completeResult.error.message}`,
+              {
+                type: completeResult.error.type,
+                message: completeResult.error.message,
+                findings: completeResult.error.findings,
+              }
             );
           }
 
