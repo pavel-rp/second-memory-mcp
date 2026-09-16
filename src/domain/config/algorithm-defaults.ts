@@ -39,11 +39,16 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
     // `qualityMet && timeMet` -> 'complete' completion heuristic.
     timeThresholdMs: 90 * 60 * 1000,
     completionThreshold: 0.8, // 80%
-    // 2 hours — ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy audit
-    // found no anchoring evidence). Remains the hard ceiling backstop, now
-    // surfaced both through `session_status` and in-band as a recurring
-    // `time_ceiling` stopping advisory.
-    maxTimeMs: 120 * 60 * 1000,
+    // 10 minutes — PROVISIONAL DEFAULT, not evidence-derived (NEU-1016). A gap
+    // between learner-driven events at or above this value ends the current
+    // sitting and starts a new one at zero active time (`active-time.ts`).
+    idleCutoffMs: 10 * 60 * 1000,
+    // 45 minutes of ACTIVE (gap-based) learning time — PROVISIONAL DEFAULT, not
+    // evidence-derived (NEU-1016; the 45-50 min band is a future tuning target).
+    // Replaces the old wall-clock `maxTimeMs` ceiling backstop. Surfaced both
+    // through `session_status` and in-band as a recurring `active_time_ceiling`
+    // stopping advisory — advisory only, never a blocking/control signal.
+    activeTimeCeilingMs: 45 * 60 * 1000,
   },
   recommendationConfig: {
     conversation: {

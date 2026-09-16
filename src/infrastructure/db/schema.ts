@@ -251,6 +251,27 @@ export const sessionQuestionAttempts = pgTable(
   ]
 );
 
+// NEU-1016: one row per `teach_next` event, the server-side timestamp series
+// `active-time.ts`'s gap-based sitting computation merges with
+// `session_question_attempts.created_at` (submit_answer's own per-event
+// timestamp) to derive active learning time. Deliberately minimal — no
+// payload beyond the session FK and the moment, since only the timestamp
+// series is ever read back.
+export const sessionEvents = pgTable(
+  'session_events',
+  {
+    id: text('id').primaryKey().notNull(),
+    sessionId: text('session_id')
+      .notNull()
+      .references(() => learningSessions.id, { onDelete: 'cascade' }),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
+  },
+  table => [
+    index('idx_session_events_session_id').on(table.sessionId),
+    index('idx_session_events_created_at').on(table.createdAt),
+  ]
+);
+
 // NEU-676: revise_grade preserves the original attempt values verbatim while
 // the live `session_question_attempts` row is updated in place. The supersede
 // behavior keeps `aggregateQuestionQualities` and the roadblock gate untouched.
@@ -410,6 +431,8 @@ export type NewSessionQuestionRow = InferInsertModel<typeof sessionQuestions>;
 export type NewSessionQuestionChunkRow = InferInsertModel<typeof sessionQuestionChunks>;
 
 export type NewSessionQuestionAttemptRow = InferInsertModel<typeof sessionQuestionAttempts>;
+
+export type NewSessionEventRow = InferInsertModel<typeof sessionEvents>;
 
 export type SessionQuestionAttemptRevisionRow = InferSelectModel<
   typeof sessionQuestionAttemptRevisions

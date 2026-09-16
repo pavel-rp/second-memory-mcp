@@ -37,7 +37,13 @@ export type AlgorithmConfig = {
     qualityThreshold: number; // 0-5 quality threshold for completion
     timeThresholdMs: number; // milliseconds for time-based completion
     completionThreshold: number; // 0-1 progress threshold for completion
-    maxTimeMs: number; // maximum session time in milliseconds
+    // Gap size (ms) at/above which a sitting ends and a new one starts at zero
+    // active time (NEU-1016). See `src/domain/algorithms/active-time.ts`.
+    idleCutoffMs: number;
+    // Sitting active-time ceiling (ms) — fires the `active_time_ceiling`
+    // stopping advisory once the current sitting's active time (gap-based,
+    // never wall-clock) reaches this value (NEU-1016).
+    activeTimeCeilingMs: number;
   };
   // Recommendation-specific configuration
   recommendationConfig: {

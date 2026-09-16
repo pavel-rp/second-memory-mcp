@@ -8,8 +8,10 @@ import {
   sessionQuestions,
   sessionQuestionChunks,
   sessionQuestionAttempts,
+  sessionEvents,
   type NewLearningSessionRow,
   type NewSessionChunkRow,
+  type NewSessionEventRow,
 } from '../../infrastructure/db/schema.js';
 import type { LearningSession, SessionChunk } from '../../domain/types/entities.js';
 import { toIsoTimestamp } from '../../shared/date-helpers.js';
@@ -84,6 +86,23 @@ export class DrizzleSessionRepository implements SessionRepository {
       .from(learningSessions)
       .where(and(eq(learningSessions.id, id), this.learnerKeyPredicate(learnerKey)));
     return row || null;
+  }
+
+  async recordSessionEvent(sessionId: string, timestamp: number): Promise<void> {
+    const row: NewSessionEventRow = {
+      id: crypto.randomUUID(),
+      sessionId,
+      createdAt: timestamp,
+    };
+    await this.db.insert(sessionEvents).values(row);
+  }
+
+  async getSessionEventTimestamps(sessionId: string): Promise<number[]> {
+    const rows = await this.db
+      .select({ createdAt: sessionEvents.createdAt })
+      .from(sessionEvents)
+      .where(eq(sessionEvents.sessionId, sessionId));
+    return rows.map(r => r.createdAt);
   }
 
   async getActiveSession(learnerKey: string | null): Promise<LearningSession | null> {
@@ -330,12 +349,17 @@ export class DrizzleSessionRepository implements SessionRepository {
       });
     }
 
+    // NEU-1016: teach-event timestamps feed the gap-based sitting active-time
+    // computation alongside the attempt timestamps already flattened into `chunks`.
+    const teach_event_timestamps = await this.getSessionEventTimestamps(sessionId);
+
     const result: SessionInput = {
       session_id: session.id,
       mode: session.mode as SessionInput['mode'],
       start_time: toIsoTimestamp(session.startTime),
       chunks,
       historical_feedback,
+      teach_event_timestamps,
     };
 
     if (session.mode === 'assessment' && questionRows.length > 0) {

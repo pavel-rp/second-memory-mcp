@@ -13,6 +13,7 @@ import { clamp, roundTo } from '../../shared/math.js';
 import type { FatigueAttempt } from '../algorithms/fatigue-trend.js';
 import type { SessionAdvisory } from '../algorithms/session-advisory.js';
 import { resolveSessionAdvisory } from '../algorithms/session-advisory.js';
+import { computeActiveTime } from '../algorithms/active-time.js';
 
 // Helper function to parse ISO timestamp
 function parseTimestamp(timestamp: string, fallback: Date): Date {
@@ -86,6 +87,21 @@ function toDeduplicatedFatigueAttempts(chunks: SessionChunk[]): FatigueAttempt[]
 }
 
 /**
+ * Flatten `sessionData.chunks[].attempts[]` into raw epoch-ms timestamps for
+ * the sitting active-time computation (NEU-1016). Unlike
+ * `toDeduplicatedFatigueAttempts`, exact duplicates (the same underlying
+ * attempt reattached to multiple chunks in a multi-chunk assessment question)
+ * are harmless here — a duplicate timestamp inserts a zero-length gap that
+ * contributes nothing to `computeActiveTime`'s sum — so no dedup key is
+ * needed.
+ */
+function toAttemptTimestamps(chunks: SessionChunk[]): number[] {
+  return chunks.flatMap(chunk =>
+    chunk.attempts.map(attempt => new Date(attempt.timestamp).getTime())
+  );
+}
+
+/**
  * Calculate session progress metrics from session input data
  */
 export function calculateSessionProgress(sessionData: SessionInput, now: Date): SessionProgress {
@@ -133,17 +149,9 @@ function evaluateCompletionCriteria(
     qualityMet: boolean;
     timeMet: boolean;
     chunkMet: boolean;
-    maxTimeExceeded: boolean;
   },
   advisory: SessionAdvisory | null
 ): { shouldComplete: boolean; reason: string; recommendation: 'continue' | 'complete' | 'break' } {
-  if (thresholds.maxTimeExceeded) {
-    return {
-      shouldComplete: true,
-      reason: 'Maximum session time reached (2 hours). Take a break to maintain effectiveness.',
-      recommendation: 'break',
-    };
-  }
   if (thresholds.qualityMet && thresholds.chunkMet) {
     return {
       shouldComplete: true,
@@ -197,10 +205,23 @@ export function getSessionStatus(
   const progress = calculateSessionProgress(sessionData, now);
   const config = algorithmConfig.sessionConfig;
 
+  // NEU-1016: the sitting's active time — gap-based over this session's
+  // recorded teach-event timestamps merged with its attempt timestamps.
+  // Never wall-clock elapsed time, and nothing is credited after the last
+  // event: a `session_status` call made hours after the last event adds no
+  // active time of its own (this function never appends "now" to the series).
+  const activeTimeMs = computeActiveTime({
+    timestamps: [
+      ...toAttemptTimestamps(sessionData.chunks),
+      ...(sessionData.teach_event_timestamps ?? []),
+    ],
+    idleCutoffMs: config.idleCutoffMs,
+  }).activeTimeMs;
+
   const advisory = resolveSessionAdvisory({
     attempts: toDeduplicatedFatigueAttempts(sessionData.chunks),
-    elapsedMs: progress.time_elapsed_ms,
-    maxTimeMs: config.maxTimeMs,
+    activeTimeMs,
+    activeTimeCeilingMs: config.activeTimeCeilingMs,
   });
 
   const { shouldComplete, reason, recommendation } = evaluateCompletionCriteria(
@@ -209,7 +230,6 @@ export function getSessionStatus(
       qualityMet: progress.average_quality >= config.qualityThreshold,
       timeMet: progress.time_elapsed_ms >= config.timeThresholdMs,
       chunkMet: progress.overall_progress >= config.completionThreshold,
-      maxTimeExceeded: progress.time_elapsed_ms >= config.maxTimeMs,
     },
     advisory
   );

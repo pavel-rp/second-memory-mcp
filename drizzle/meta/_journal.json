@@ -183,6 +183,13 @@
       "when": 1774280000000,
       "tag": "0025_add_learning_sessions_learner_key",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1774290000000,
+      "tag": "0026_add_session_events",
+      "breakpoints": true
     }
   ]
 }
