@@ -2181,7 +2181,7 @@ describe('getNextTeachingStep', () => {
       expect(second.session_advisory?.kind).toBe('fatigue');
     });
 
-    it('is absent when neither the fatigue nor the time-ceiling signal fires', async () => {
+    it('is absent when neither the fatigue nor the active-time-ceiling signal fires', async () => {
       const deps = makeDeps({
         sessions: {
           getActiveSession: vi
@@ -2197,23 +2197,48 @@ describe('getNextTeachingStep', () => {
       expect(result).not.toHaveProperty('session_advisory');
     });
 
-    it('carries the time_ceiling advisory on the same channel past maxTimeMs while fatigue stays silent', async () => {
-      const pastCeiling = Date.now() - (DEFAULT_ALGORITHM_CONFIG.sessionConfig.maxTimeMs + 60_000);
+    it('carries the active_time_ceiling advisory on the same channel once the sitting active time is exceeded (NEU-1016), while fatigue stays silent', async () => {
+      // Basis is gap-based sitting active time over recorded event
+      // timestamps, never wall-clock session duration: 7 events 8 min apart
+      // (sub-idle-cutoff, so every gap counts) sum to 48min, past the 45min
+      // default ceiling.
+      const gapMs = 8 * 60 * 1000;
+      const base = Date.now() - 60 * 60 * 1000;
+      const eventTimestamps = Array.from({ length: 7 }, (_, i) => base + i * gapMs);
       const deps = makeDeps({
         sessions: {
-          getActiveSession: vi.fn().mockResolvedValue(makeSession({ startTime: pastCeiling })),
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+          getSessionEventTimestamps: vi.fn().mockResolvedValue(eventTimestamps),
         },
       });
-      // Default stub: getAllAttemptsForSession resolves to [] — fatigue silent, only ceiling can fire.
+      // Default stub: getAllAttemptsForSession resolves to [] — fatigue silent, only the ceiling can fire.
 
       const result = (await getNextTeachingStep(null, deps)) as TeachNextTeach;
 
       expect(result.action).toBe('teach');
       expect(result.session_advisory).toEqual({
-        kind: 'time_ceiling',
+        kind: 'active_time_ceiling',
         reason: expect.any(String),
         directive: expect.any(String),
       });
+    });
+
+    it('does NOT fire the ceiling on wall-clock session duration alone (NEU-1016 regression guard)', async () => {
+      // A session opened long ago, with no recorded events/attempts at all,
+      // must never trigger the ceiling — only gap-based active time can.
+      const longAgo = Date.now() - 3 * 60 * 60 * 1000;
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi.fn().mockResolvedValue(makeSession({ startTime: longAgo })),
+        },
+      });
+
+      const result = (await getNextTeachingStep(null, deps)) as TeachNextTeach;
+
+      expect(result.action).toBe('teach');
+      expect(result).not.toHaveProperty('session_advisory');
     });
 
     it('fails open: a throw in advisory assembly still returns a complete, successful teach response with the block omitted', async () => {
@@ -2260,6 +2285,38 @@ describe('getNextTeachingStep', () => {
       await getNextTeachingStep(null, deps);
 
       expect(sqRepo.getAllAttemptsForSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('records one session event per teach_next call, regardless of the returned action (NEU-1016)', async () => {
+      const recordSessionEvent = vi.fn().mockResolvedValue(undefined);
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+          recordSessionEvent,
+        },
+      });
+
+      await getNextTeachingStep(null, deps);
+
+      expect(recordSessionEvent).toHaveBeenCalledTimes(1);
+      expect(recordSessionEvent).toHaveBeenCalledWith('sess-1', expect.any(Number));
+    });
+
+    it('fails open when recording the session event throws — the teach_next call still succeeds', async () => {
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+          recordSessionEvent: vi.fn().mockRejectedValue(new Error('write failed')),
+        },
+      });
+
+      const result = (await getNextTeachingStep(null, deps)) as TeachNextTeach;
+
+      expect(result.action).toBe('teach');
     });
   });
 

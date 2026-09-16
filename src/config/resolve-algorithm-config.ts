@@ -107,7 +107,7 @@ export function resolveAlgorithmConfig(
         DEFAULT_ALGORITHM_CONFIG.sessionConfig.idleCutoffMs
       ),
       // PROVISIONAL DEFAULT, not evidence-derived (NEU-1016). Replaces the old
-      // wall-clock `maxTimeMs` ceiling backstop; fires the `active_time_ceiling`
+      // wall-clock session-time ceiling backstop; fires the `active_time_ceiling`
       // stopping advisory once the sitting's gap-based active time reaches this
       // value, surfaced both through `session_status` and in-band.
       activeTimeCeilingMs: parseNumber(

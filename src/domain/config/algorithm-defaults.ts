@@ -45,7 +45,7 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
     idleCutoffMs: 10 * 60 * 1000,
     // 45 minutes of ACTIVE (gap-based) learning time — PROVISIONAL DEFAULT, not
     // evidence-derived (NEU-1016; the 45-50 min band is a future tuning target).
-    // Replaces the old wall-clock `maxTimeMs` ceiling backstop. Surfaced both
+    // Replaces the old wall-clock session-time ceiling backstop. Surfaced both
     // through `session_status` and in-band as a recurring `active_time_ceiling`
     // stopping advisory — advisory only, never a blocking/control signal.
     activeTimeCeilingMs: 45 * 60 * 1000,

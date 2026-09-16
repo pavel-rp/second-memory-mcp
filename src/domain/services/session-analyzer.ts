@@ -173,7 +173,12 @@ function evaluateCompletionCriteria(
       recommendation: 'complete',
     };
   }
-  if (advisory?.kind === 'fatigue') {
+  // NEU-1016: both advisory kinds — `fatigue` and `active_time_ceiling` —
+  // map to the same 'break' recommendation, driven by the advisory's own
+  // reason. `resolveSessionAdvisory` already resolves at most one advisory
+  // (fatigue takes precedence over the ceiling), so any non-null advisory
+  // here is the one signal to relay.
+  if (advisory) {
     return {
       shouldComplete: true,
       reason: advisory.reason,
