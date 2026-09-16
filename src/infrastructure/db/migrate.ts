@@ -41,12 +41,36 @@ export async function initializeDatabase(): Promise<void> {
 
 /**
  * Apply all pending Drizzle Kit migrations.
+ *
+ * NEU-1019: migration 0028 backfills unkeyed `learning_sessions` rows from the
+ * configured `OWNER_LEARNER_KEY` setting, then enforces `learner_key NOT NULL`.
+ * SQL migration files can't read `process.env` directly, and Drizzle's
+ * node-postgres migrator runs every pending migration's statements together
+ * inside one `session.transaction()` call — when `drizzle()` is constructed
+ * with a `pg.Pool`, that transaction checks out its own fresh connection via
+ * `pool.connect()`, so a value set on a *different* connection beforehand
+ * would not be visible inside it. To keep the value visible where 0028 reads
+ * it (`current_setting('app.owner_learner_key', true)`), this checks out one
+ * dedicated client, sets the setting on it (session-scoped, not `SET LOCAL`,
+ * so it survives from before `BEGIN` into the migrator's own later
+ * transaction), and passes that *same* client — not the pool — to `drizzle()`,
+ * so the migrator reuses it for the whole batch instead of opening a new one.
  */
 export async function ensureSchema(): Promise<void> {
   const pool = getPool();
-  const drizzleDb = drizzle(pool);
-  const migrationsFolder = resolveMigrationsDir();
-  await migrate(drizzleDb, { migrationsFolder });
+  const client = await pool.connect();
+  try {
+    const ownerLearnerKey = (process.env.OWNER_LEARNER_KEY ?? '').trim();
+    await client.query('select set_config($1, $2, false)', [
+      'app.owner_learner_key',
+      ownerLearnerKey,
+    ]);
+    const drizzleDb = drizzle(client);
+    const migrationsFolder = resolveMigrationsDir();
+    await migrate(drizzleDb, { migrationsFolder });
+  } finally {
+    client.release();
+  }
 }
 
 /* v8 ignore start */

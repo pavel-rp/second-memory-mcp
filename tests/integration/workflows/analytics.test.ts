@@ -11,6 +11,7 @@ import {
   sessionQuestionAttempts,
 } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { STDIO_PLACEHOLDER_LEARNER_KEY } from '../../../src/shared/learner-context.js';
 
 describe('analytics workflows', () => {
   let ctx: AppContext;
@@ -59,6 +60,7 @@ describe('analytics workflows', () => {
 
     await db.insert(learningSessions).values({
       id: sessionId,
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       topicId,
       mode: 'review',
       status: 'completed',

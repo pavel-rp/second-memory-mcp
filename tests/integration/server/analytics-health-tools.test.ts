@@ -13,6 +13,7 @@ import {
 } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 import { CaptureServer, parseToolResult } from '../../helpers/capture-server.js';
+import { STDIO_PLACEHOLDER_LEARNER_KEY } from '../../../src/shared/learner-context.js';
 
 type ToolEntry = { spec: any; handler: Function };
 
@@ -205,6 +206,7 @@ async function seedDatabase(): Promise<void> {
 
   await db.insert(learningSessions).values({
     id: SESSION_ID,
+    learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
     topicId: TOPIC_ID,
     mode: 'review',
     status: 'completed',
