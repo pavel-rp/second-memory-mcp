@@ -152,7 +152,8 @@ describe('createSession', () => {
     expect(deps.sessions.completeSession).not.toHaveBeenCalled();
     expect(deps.sessions.updateSession).toHaveBeenCalledWith(
       'active-sess',
-      expect.objectContaining({ status: 'paused', pausedAt: expect.any(Number) })
+      expect.objectContaining({ status: 'paused', pausedAt: expect.any(Number) }),
+      'active'
     );
     expect(result.success).toBe(true);
     expect(deps.sessions.createSession).toHaveBeenCalledOnce();
@@ -178,7 +179,7 @@ describe('createSession', () => {
 
     const result = await createSession({ mode: 'guided', topicId: 'topic-2' }, null, deps);
 
-    expect(deps.sessions.completeSession).toHaveBeenCalledWith('active-sess', undefined);
+    expect(deps.sessions.completeSession).toHaveBeenCalledWith('active-sess', undefined, 'active');
     expect(deps.sessions.updateSession).not.toHaveBeenCalledWith(
       'active-sess',
       expect.objectContaining({ status: 'paused' })
@@ -244,7 +245,8 @@ describe('createSession', () => {
 
     expect(deps.sessions.updateSession).toHaveBeenCalledWith(
       'active-sess',
-      expect.objectContaining({ status: 'paused', pausedAt: expect.any(Number) })
+      expect.objectContaining({ status: 'paused', pausedAt: expect.any(Number) }),
+      'active'
     );
     expect(result.success).toBe(true);
     expect(deps.sessions.createSession).toHaveBeenCalledOnce();
@@ -503,7 +505,7 @@ describe('completeSession', () => {
     const result = await completeSession('sess-1', 'Good session', null, deps);
 
     expect(result.success).toBe(true);
-    expect(deps.sessions.completeSession).toHaveBeenCalledWith('sess-1', 'Good session');
+    expect(deps.sessions.completeSession).toHaveBeenCalledWith('sess-1', 'Good session', 'active');
   });
 
   it('returns not_found when session does not exist', async () => {

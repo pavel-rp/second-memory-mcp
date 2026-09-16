@@ -131,22 +131,34 @@ export class DrizzleSessionRepository implements SessionRepository {
       .orderBy(desc(learningSessions.pausedAt));
   }
 
-  async updateSession(id: string, changes: UpdateSessionInput): Promise<number> {
-    const res = await this.db
-      .update(learningSessions)
-      .set(changes)
-      .where(eq(learningSessions.id, id));
+  async updateSession(
+    id: string,
+    changes: UpdateSessionInput,
+    expectedStatus?: 'active' | 'paused' | 'completed'
+  ): Promise<number> {
+    const condition = expectedStatus
+      ? and(eq(learningSessions.id, id), eq(learningSessions.status, expectedStatus))
+      : eq(learningSessions.id, id);
+    const res = await this.db.update(learningSessions).set(changes).where(condition);
     return res.rowCount ?? 0;
   }
 
-  async completeSession(id: string, feedback?: string): Promise<number> {
+  async completeSession(
+    id: string,
+    feedback?: string,
+    expectedStatus?: 'active' | 'paused' | 'completed'
+  ): Promise<number> {
     const now = Date.now();
-    return this.updateSession(id, {
-      status: 'completed',
-      endTime: now,
-      feedback: feedback || null,
-      updatedAt: now,
-    });
+    return this.updateSession(
+      id,
+      {
+        status: 'completed',
+        endTime: now,
+        feedback: feedback || null,
+        updatedAt: now,
+      },
+      expectedStatus
+    );
   }
 
   async deleteSession(id: string): Promise<number> {

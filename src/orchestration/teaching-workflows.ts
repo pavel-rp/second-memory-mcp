@@ -1824,14 +1824,31 @@ async function resumePausedSessionWithRecompute(
   deps: StartLearningDeps,
   sessionDeps: sessionWorkflows.SessionDeps
 ): Promise<StartLearningResult> {
-  await sessionWorkflows.recomputePausedSessionChunks(pausedSession, topicId, sessionDeps);
-
+  // NEU-1042: the CAS-guarded `paused -> active` flip runs *before* the chunk-queue recompute
+  // (reordered from the prior recompute-then-flip sequence) so a losing concurrent resume never
+  // reaches the chunk-insert step at all — it returns `action: 'error'` here without ever
+  // calling `recomputePausedSessionChunks` or reading session chunks.
   const resumedAt = Date.now();
-  await deps.sessions.updateSession(pausedSession.id, {
-    status: 'active',
-    pausedAt: null,
-    updatedAt: resumedAt,
-  });
+  const resumedRowCount = await deps.sessions.updateSession(
+    pausedSession.id,
+    {
+      status: 'active',
+      pausedAt: null,
+      updatedAt: resumedAt,
+    },
+    'paused'
+  );
+  if (resumedRowCount === 0) {
+    getRequestLogger().error(
+      `Failed to resume session ${pausedSession.id}: status changed concurrently`
+    );
+    return {
+      action: 'error',
+      message: 'Paused session changed concurrently and could not be resumed. Please try again.',
+    };
+  }
+
+  await sessionWorkflows.recomputePausedSessionChunks(pausedSession, topicId, sessionDeps);
 
   const sessionChunks = await deps.sessions.getSessionChunks(pausedSession.id);
 
@@ -1915,11 +1932,28 @@ export async function startLearning(
 
       if (shouldPause) {
         const pausedAt = Date.now();
-        await deps.sessions.updateSession(activeSession.id, {
-          status: 'paused',
-          pausedAt,
-          updatedAt: pausedAt,
-        });
+        const pausedRowCount = await deps.sessions.updateSession(
+          activeSession.id,
+          {
+            status: 'paused',
+            pausedAt,
+            updatedAt: pausedAt,
+          },
+          'active'
+        );
+        if (pausedRowCount === 0) {
+          // NEU-1042: the active session changed status concurrently (e.g. a racing pause,
+          // resume, or completion) between the read above and this CAS-guarded update — same
+          // structured-failure shape as the auto-complete-failure branch above, since
+          // `startLearning` has no `ServiceResult` conflict variant of its own.
+          getRequestLogger().error(
+            `Failed to pause session ${activeSession.id}: status changed concurrently`
+          );
+          return {
+            action: 'error',
+            message: 'Active session changed concurrently. Please try again.',
+          };
+        }
         logEvent('startLearning', 'session_paused', {
           sessionId: activeSession.id,
           requestedTopicId: input.topicId,

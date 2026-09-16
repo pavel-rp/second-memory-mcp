@@ -92,8 +92,25 @@ export interface SessionRepository {
    * relies on to pick the first topic-matching session.
    */
   getPausedSessions(learnerKey: string | null): Promise<LearningSession[]>;
-  updateSession(id: string, changes: UpdateSessionInput): Promise<number>;
-  completeSession(id: string, feedback?: string): Promise<number>;
+  /**
+   * NEU-1042: optional CAS guard, mirroring `updateSessionChunk`'s existing
+   * `expectedStatus` parameter. When passed, the update only affects a row whose
+   * current `status` also matches — a mismatch (including a status change that
+   * raced ahead of this call) returns `rowCount 0` rather than a silent no-op or
+   * an update of the wrong logical state. Omitted preserves the prior unconditional
+   * update-by-id behavior.
+   */
+  updateSession(
+    id: string,
+    changes: UpdateSessionInput,
+    expectedStatus?: 'active' | 'paused' | 'completed'
+  ): Promise<number>;
+  /** NEU-1042: threads the same optional CAS guard through to the underlying `updateSession`. */
+  completeSession(
+    id: string,
+    feedback?: string,
+    expectedStatus?: 'active' | 'paused' | 'completed'
+  ): Promise<number>;
   deleteSession(id: string): Promise<number>;
   /**
    * NEU-1044 enforcement point: the only place a `learner_key` predicate is
