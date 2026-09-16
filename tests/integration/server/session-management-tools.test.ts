@@ -13,6 +13,7 @@ import {
   sessionQuestionAttempts,
 } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { STDIO_PLACEHOLDER_LEARNER_KEY } from '../../../src/shared/learner-context.js';
 
 import { CaptureServer, parseToolResult } from '../../helpers/capture-server.js';
 
@@ -133,6 +134,7 @@ describe('Integration: Session Management Tools', () => {
 
     const sessionId = `session-${now}`;
     await db.insert(learningSessions).values({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: sessionId,
       topicId: null,
       chunkIds: ['chunk1'],
@@ -171,6 +173,7 @@ describe('Integration: Session Management Tools', () => {
 
     const sessionId = `session-${now}`;
     await db.insert(learningSessions).values({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: sessionId,
       topicId: null,
       chunkIds: ['chunk1'],
@@ -215,6 +218,7 @@ describe('Integration: Session Management Tools', () => {
 
     const sessionId = `session-${now}`;
     await db.insert(learningSessions).values({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: sessionId,
       topicId: null,
       chunkIds: ['chunk1'],
@@ -259,6 +263,7 @@ describe('Integration: Session Management Tools', () => {
 
     const sessionId = `session-${now}`;
     await db.insert(learningSessions).values({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: sessionId,
       topicId: null,
       chunkIds: ['chunk1'],
@@ -447,6 +452,7 @@ describe('Integration: Session Management Tools', () => {
 
     const session1Id = `session-${now}`;
     await db.insert(learningSessions).values({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: session1Id,
       topicId: null,
       chunkIds: null,
@@ -483,6 +489,7 @@ describe('Integration: Session Management Tools', () => {
 
     const session2Id = `session-${now + 1000}`;
     await db.insert(learningSessions).values({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: session2Id,
       topicId: null,
       chunkIds: null,

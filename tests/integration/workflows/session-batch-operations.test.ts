@@ -8,6 +8,7 @@ import {
   sessionChunks,
 } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { STDIO_PLACEHOLDER_LEARNER_KEY } from '../../../src/shared/learner-context.js';
 
 describe('Integration: batch session chunk operations', () => {
   beforeAll(setupTestDb);
@@ -75,6 +76,7 @@ describe('Integration: batch session chunk operations', () => {
 
     const sessionId = `s-${now}`;
     await db.insert(learningSessions).values({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: sessionId,
       topicId: topicId,
       chunkIds: ['c1'],

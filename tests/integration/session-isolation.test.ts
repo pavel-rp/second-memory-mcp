@@ -251,13 +251,18 @@ describe('learner session isolation (NEU-1015)', () => {
       expect(activeA).toBeNull();
     });
 
-    it('raw-returning entry points throw rather than performing any lookup', async () => {
-      await expect(
-        withLearnerAuthContext(undefined, () => ctx.getSessionById('whatever'))
-      ).rejects.toThrow(/sub/i);
-      await expect(withLearnerAuthContext(undefined, () => ctx.getActiveSession())).rejects.toThrow(
+    it('raw-returning entry points throw rather than performing any lookup', () => {
+      // NEU-1015: `ctx.getSessionById`/`ctx.getActiveSession` are plain (non-`async`) arrow
+      // functions that call `resolveLearnerKeyOrThrow()` as an argument expression — a refusal
+      // throws *synchronously*, before any Promise is ever returned. `withLearnerAuthContext`
+      // (a thin `AsyncLocalStorage.run` wrapper) propagates that synchronous throw unchanged, so
+      // this asserts a synchronous throw (`toThrow`), not a rejected Promise (`.rejects.toThrow`)
+      // — the server tool layer's own try/catch (CLAUDE.md's documented convention) catches
+      // both forms identically, so this is a source behavior detail, not a defect.
+      expect(() => withLearnerAuthContext(undefined, () => ctx.getSessionById('whatever'))).toThrow(
         /sub/i
       );
+      expect(() => withLearnerAuthContext(undefined, () => ctx.getActiveSession())).toThrow(/sub/i);
     });
   });
 
