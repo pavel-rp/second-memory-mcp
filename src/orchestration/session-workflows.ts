@@ -164,6 +164,26 @@ export async function createSession(
   deps: SessionDeps
 ): Promise<ServiceResult<{ sessionId: string }>> {
   try {
+    // Assessment mode requires non-empty chunk_ids
+    if (input.mode === 'assessment') {
+      if (!input.chunkIds || input.chunkIds.length === 0) {
+        return serviceFail({
+          type: 'validation',
+          message: 'Assessment mode requires non-empty chunk_ids.',
+        });
+      }
+    }
+
+    if (input.chunkIds && input.chunkIds.length > 0) {
+      const validation = await deps.sessions.validateChunkIds(input.chunkIds);
+      if (!validation.valid) {
+        return serviceFail({
+          type: 'validation',
+          message: `Invalid chunk IDs: ${validation.invalidIds.join(', ')}`,
+        });
+      }
+    }
+
     const activeSession = await deps.sessions.getActiveSession(learnerKey);
     if (activeSession) {
       const activeSessionChunks = await deps.sessions.getSessionChunks(activeSession.id);
@@ -214,34 +234,25 @@ export async function createSession(
         }
 
         const pausedAt = Date.now();
-        await deps.sessions.updateSession(activeSession.id, {
+        const pausedRowCount = await deps.sessions.updateSession(activeSession.id, {
           status: 'paused',
           pausedAt,
           updatedAt: pausedAt,
         });
+        if (pausedRowCount === 0) {
+          return serviceFail({
+            type: 'conflict',
+            message:
+              'Active session changed concurrently and could not be paused; no new session was created.',
+            findings: {
+              code: 'active_session_concurrently_modified',
+              session_id: activeSession.id,
+            },
+          });
+        }
         logEvent('createSession', 'session_paused', {
           sessionId: activeSession.id,
           requestedTopicId: input.topicId,
-        });
-      }
-    }
-
-    // Assessment mode requires non-empty chunk_ids
-    if (input.mode === 'assessment') {
-      if (!input.chunkIds || input.chunkIds.length === 0) {
-        return serviceFail({
-          type: 'validation',
-          message: 'Assessment mode requires non-empty chunk_ids.',
-        });
-      }
-    }
-
-    if (input.chunkIds && input.chunkIds.length > 0) {
-      const validation = await deps.sessions.validateChunkIds(input.chunkIds);
-      if (!validation.valid) {
-        return serviceFail({
-          type: 'validation',
-          message: `Invalid chunk IDs: ${validation.invalidIds.join(', ')}`,
         });
       }
     }
