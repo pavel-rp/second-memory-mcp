@@ -136,15 +136,53 @@ describe('createSession', () => {
 
   // ── NEU-1018: pause-vs-reject-vs-auto-complete on an active session ────
 
-  it('auto-completes an active session with no session_chunks before creating (NEU-1018)', async () => {
+  it('pauses (does not auto-complete) an active session with zero session_chunks — the ROLLING SESSION FLOW case (NEU-1018)', async () => {
+    // A session created with no chunk_ids (create_session, mode: learning, no chunkIds) is a
+    // legitimate "empty" active session — chunks are added afterward one at a time via
+    // create_session_chunk. Zero chunks must NOT be treated as "all completed", or every
+    // rolling-flow session would auto-complete the instant a second create_session call came in.
+    const deps = stubDeps();
+    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubSession({ id: 'active-sess', topicId: 'topic-1' })
+    );
+    (deps.sessions.getSessionChunks as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    const result = await createSession({ mode: 'guided', topicId: 'topic-2' }, null, deps);
+
+    expect(deps.sessions.completeSession).not.toHaveBeenCalled();
+    expect(deps.sessions.updateSession).toHaveBeenCalledWith(
+      'active-sess',
+      expect.objectContaining({ status: 'paused', pausedAt: expect.any(Number) })
+    );
+    expect(result.success).toBe(true);
+    expect(deps.sessions.createSession).toHaveBeenCalledOnce();
+  });
+
+  it('auto-completes a non-empty, fully-completed active session before creating (NEU-1018)', async () => {
     const deps = stubDeps();
     (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(
       stubSession({ id: 'active-sess' })
     );
+    (deps.sessions.getSessionChunks as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'sc-1',
+        sessionId: 'active-sess',
+        chunkId: 'c1',
+        status: 'completed',
+        teachingApproach: null,
+        timeSpentMs: 0,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    ]);
 
     const result = await createSession({ mode: 'guided', topicId: 'topic-2' }, null, deps);
 
     expect(deps.sessions.completeSession).toHaveBeenCalledWith('active-sess', undefined);
+    expect(deps.sessions.updateSession).not.toHaveBeenCalledWith(
+      'active-sess',
+      expect.objectContaining({ status: 'paused' })
+    );
     expect(result.success).toBe(true);
     expect(deps.sessions.createSession).toHaveBeenCalledOnce();
   });

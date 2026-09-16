@@ -101,7 +101,11 @@ describe('sessions service', () => {
     expect(notFound).toBeNull();
   });
 
-  it('auto-completes an active session with no chunks instead of blocking a new one (NEU-1018)', async () => {
+  it('rejects a second no-topic create_session call against a no-topic empty active session (NEU-1018)', async () => {
+    // A session created with no topicId and no chunks (the ROLLING SESSION FLOW's "open an
+    // empty session, add chunks one at a time" pattern) must NOT be silently auto-completed by
+    // a second no-topic create_session call — zero chunks is not "all completed". Both sides
+    // are in the "no-topic bucket", so this is the same-bucket conflict, not an auto-complete.
     const now = Date.now();
 
     await sessionRepo.createSession({
@@ -115,9 +119,68 @@ describe('sessions service', () => {
 
     const result = await ctx.createSession({ mode: 'review' });
 
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('conflict');
+      expect(result.error.findings).toMatchObject({
+        code: 'active_session_exists_same_topic',
+        session_id: 's1',
+      });
+    }
+    const stillActive = await ctx.getSessionById('s1');
+    expect(stillActive?.status).toBe('active');
+  });
+
+  it('pauses (not auto-completes) a no-topic empty active session when a different topic is requested (NEU-1018)', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('topic-x', ['cx1'], now);
+
+    await sessionRepo.createSession({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+      id: 's1',
+      mode: 'learning',
+      startTime: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const result = await ctx.createSession({ mode: 'learning', topicId: 'topic-x' });
+
+    expect(result.success).toBe(true);
+    const paused = await ctx.getSessionById('s1');
+    expect(paused?.status).toBe('paused');
+    expect(paused?.pausedAt).toEqual(expect.any(Number));
+  });
+
+  it('auto-completes a non-empty, fully-completed active session before creating a new one (NEU-1018)', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('topic-y', ['cy1'], now);
+
+    await sessionRepo.createSession({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+      id: 's1',
+      topicId: 'topic-y',
+      mode: 'learning',
+      startTime: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ctx.createSessionChunk({
+      id: 'sc1',
+      sessionId: 's1',
+      chunkId: 'cy1',
+      status: 'completed',
+      timeSpentMs: 500,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const result = await ctx.createSession({ mode: 'review' });
+
     expect(result.success).toBe(true);
     const completed = await ctx.getSessionById('s1');
     expect(completed?.status).toBe('completed');
+    expect(completed?.pausedAt).toBeNull();
   });
 
   it('manages active sessions correctly', async () => {

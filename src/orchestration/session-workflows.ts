@@ -87,8 +87,13 @@ export async function createSession(
     const activeSession = await deps.sessions.getActiveSession(learnerKey);
     if (activeSession) {
       const activeSessionChunks = await deps.sessions.getSessionChunks(activeSession.id);
+      // NEU-1018: unlike startLearning's always-populated sessions, create_session legitimately
+      // creates sessions with zero chunks (the ROLLING SESSION FLOW pattern — chunks are added
+      // one at a time via create_session_chunk afterward). Treating a fresh, empty session as
+      // "all completed" would silently auto-complete it instead of running the pause/reject
+      // check below, so only a non-empty, fully-completed chunk set counts here.
       const allCompleted =
-        activeSessionChunks.length === 0 ||
+        activeSessionChunks.length > 0 &&
         activeSessionChunks.every(sc => sc.status === 'completed');
 
       if (allCompleted) {
