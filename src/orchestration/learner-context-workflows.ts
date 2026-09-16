@@ -98,7 +98,7 @@ export async function buildLearnerContext(
       deps.chunks.batchFetchMinimal(),
       deps.topics.batchFetchMinimal(),
       deps.sessions.getActiveSession(learnerKey),
-      deps.sessions.listSessions({ status: 'completed', limit: 1 }),
+      deps.sessions.listSessions(learnerKey, { status: 'completed', limit: 1 }),
       deps.reviewPersistence.getWeakAreas(),
       deps.reviewPersistence.getReviewsByDateRange(sevenDaysAgo, tomorrow),
     ]);

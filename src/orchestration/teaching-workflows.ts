@@ -612,7 +612,7 @@ export async function getNextTeachingStep(
   // 7. Fetch prerequisite context, historical feedback, notes, and topic chunks (parallel)
   const [prerequisiteRows, historicalFeedback, chunkNotes, topicChunksMinimal] = await Promise.all([
     deps.chunks.getPrerequisiteContext(chunkData.topicId, chunkData.orderIndex),
-    deps.sessions.getHistoricalFeedbackForChunks([selected.chunkId], {
+    deps.sessions.getHistoricalFeedbackForChunks([selected.chunkId], learnerKey, {
       excludeSessionId: session.id,
       limit: 5,
     }),

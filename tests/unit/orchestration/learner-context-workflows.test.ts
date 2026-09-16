@@ -534,6 +534,17 @@ describe('buildLearnerContext', () => {
     expect(result.overdueTopics[1]!.daysOverdue).toBe(1);
   });
 
+  it("scopes listSessions by the caller's learnerKey (NEU-1044)", async () => {
+    const listSessions = vi.fn().mockResolvedValue([]);
+    const deps = makeDeps({
+      sessions: { listSessions },
+    });
+
+    await buildLearnerContext('learner-a-sub', deps, NOW);
+
+    expect(listSessions).toHaveBeenCalledWith('learner-a-sub', { status: 'completed', limit: 1 });
+  });
+
   it('all port queries are called exactly once', async () => {
     const batchFetchChunks = vi.fn().mockResolvedValue([]);
     const batchFetchTopics = vi.fn().mockResolvedValue([]);

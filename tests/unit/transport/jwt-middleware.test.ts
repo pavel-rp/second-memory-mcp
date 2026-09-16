@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
 import type { AuthConfig } from '../../../src/config/resolve-auth-config.js';
+import { getResolvedLearnerAuth } from '../../../src/shared/learner-context.js';
 
 // Mock jose before importing the module under test
 const mockJwtVerify = vi.fn();
@@ -394,6 +395,49 @@ describe('createJwtMiddleware', () => {
 
     expect(res._status).toBe(401);
     expect(next).not.toHaveBeenCalled();
+  });
+
+  // ── NEU-1044: empty-string sub is refused the same as an absent sub ──
+
+  it('empty-string sub claim resolves rawSub to undefined, same as a missing sub claim (NEU-1044)', async () => {
+    // Both requests carry a usable `azp` fallback so the audience/subject gate
+    // passes and next() is called — isolating the assertion to the *rawSub*
+    // AsyncLocalStorage value the composition-root boundary reads, not to the
+    // 401/next() branch (already covered by the "empty sub claim ... returns
+    // 401" case above for the no-azp path).
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: '', azp: 'my-service-client', aud: AUTH_CONFIG.audience },
+    });
+    const reqEmptySub = createMockReq({ authorization: 'Bearer empty-sub-with-azp' });
+    const resEmptySub = createMockRes();
+    let emptySubAuth: ReturnType<typeof getResolvedLearnerAuth> | undefined;
+    const nextForEmptySub = vi.fn(() => {
+      emptySubAuth = getResolvedLearnerAuth();
+    });
+
+    await middleware(reqEmptySub, resEmptySub, nextForEmptySub);
+
+    expect(nextForEmptySub).toHaveBeenCalled();
+    expect(emptySubAuth).toEqual({ source: 'http', rawSub: undefined });
+
+    mockJwtVerify.mockResolvedValue({
+      payload: { azp: 'my-service-client', aud: AUTH_CONFIG.audience },
+    });
+    const reqMissingSub = createMockReq({ authorization: 'Bearer missing-sub-with-azp' });
+    const resMissingSub = createMockRes();
+    let missingSubAuth: ReturnType<typeof getResolvedLearnerAuth> | undefined;
+    const nextForMissingSub = vi.fn(() => {
+      missingSubAuth = getResolvedLearnerAuth();
+    });
+
+    await middleware(reqMissingSub, resMissingSub, nextForMissingSub);
+
+    expect(nextForMissingSub).toHaveBeenCalled();
+    expect(missingSubAuth).toEqual({ source: 'http', rawSub: undefined });
+
+    // The two are identical — an empty-string sub is indistinguishable from a
+    // missing one at the learner-key resolution boundary.
+    expect(emptySubAuth).toEqual(missingSubAuth);
   });
 
   // ── client_credentials: azp fallback when sub is null ─────

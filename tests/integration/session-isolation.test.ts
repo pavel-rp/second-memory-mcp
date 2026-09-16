@@ -236,6 +236,78 @@ describe('learner session isolation (NEU-1015)', () => {
     }
   });
 
+  // ── NEU-1044: submit_answer never submits or retries another learner's question ──
+
+  it("submit_answer refuses to submit or retry another learner's question, and nothing is written", async () => {
+    const now = Date.now();
+    await seedTopicAndChunk('topic-submit', 'chunk-submit', now);
+
+    // Learner A creates an assessment session (skips the teaching-mode
+    // in-progress-chunk requirement) with one explicit pending question.
+    const createdA = await withLearnerAuthContext(LEARNER_A, () =>
+      ctx.createSession({ mode: 'assessment', chunkIds: ['chunk-submit'] })
+    );
+    expect(createdA.success).toBe(true);
+    if (!createdA.success) throw new Error('setup failed');
+    const sessionIdA = createdA.data.sessionId;
+
+    const questionsResult = await withLearnerAuthContext(LEARNER_A, () =>
+      ctx.createSessionQuestions({
+        sessionId: sessionIdA,
+        questions: [{ promptText: 'What is 2+2?', chunkIds: ['chunk-submit'] }],
+      })
+    );
+    expect(questionsResult.action).toBe('created');
+    if (questionsResult.action !== 'created') throw new Error('setup failed');
+    const sessionQuestionId = questionsResult.questionIds[0] as string;
+
+    const grading = {
+      criteria: {
+        core_correctness: true,
+        completeness: true,
+        reasoning_validity: true,
+        precision: true,
+      },
+      justifying_spans: {
+        core_correctness: '4',
+        completeness: '4',
+        reasoning_validity: '4',
+        precision: '4',
+      },
+    };
+
+    // Learner B attempts to submit/retry Learner A's question by id.
+    const crossSubmit = await withLearnerAuthContext(LEARNER_B, () =>
+      ctx.submitAnswer({
+        sessionQuestionId,
+        response: '4',
+        grading,
+        questionType: 'recall',
+        feedback: '',
+        timeSpentMs: 1000,
+      })
+    );
+    expect(crossSubmit.action).toBe('error');
+    if (crossSubmit.action === 'error') {
+      expect(crossSubmit.message).toContain('not found');
+    }
+
+    // Nothing was written: the question is still pending and Learner A's own
+    // genuine retry against the same id still succeeds (an "already answered"
+    // refusal here would mean Learner B's attempt was in fact recorded).
+    const ownSubmit = await withLearnerAuthContext(LEARNER_A, () =>
+      ctx.submitAnswer({
+        sessionQuestionId,
+        response: '4',
+        grading,
+        questionType: 'recall',
+        feedback: '',
+        timeSpentMs: 1000,
+      })
+    );
+    expect(ownSubmit.action).not.toBe('error');
+  });
+
   // ── azp-only / sub-less token principal: refused before any lookup ──
 
   describe('a principal with no sub is refused before any session is read or written', () => {

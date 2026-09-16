@@ -227,7 +227,7 @@ export interface AppContext {
     sessionId: string,
     operations: BatchOperation[]
   ) => Promise<ServiceResult<{ created: number; updated: number; unchanged: number }>>;
-  createSessionChunk: (input: CreateSessionChunkInput) => Promise<SessionChunk>;
+  createSessionChunk: (input: CreateSessionChunkInput) => Promise<ServiceResult<SessionChunk>>;
   validateChunkIds: (chunkIds: string[]) => Promise<ChunkValidationResult>;
   getSessionChunks: (sessionId: string) => Promise<SessionChunk[]>;
   resolveSessionChunkDependencies: (chunkIds: string[]) => Promise<{
@@ -614,7 +614,12 @@ export function createAppContext(
         sessionDeps
       ),
     getHistoricalFeedback: (chunkIds, options) =>
-      sessionWorkflows.getHistoricalFeedback(chunkIds, options, sessionDeps),
+      sessionWorkflows.getHistoricalFeedback(
+        chunkIds,
+        options,
+        resolveLearnerKeyOrThrow(),
+        sessionDeps
+      ),
     batchUpdateSessionChunks: (sessionId, operations) => {
       const resolved = resolveLearnerKey();
       if (!resolved.ok)
@@ -626,7 +631,8 @@ export function createAppContext(
         sessionDeps
       );
     },
-    createSessionChunk: input => sessionWorkflows.createSessionChunk(input, sessionDeps),
+    createSessionChunk: input =>
+      sessionWorkflows.createSessionChunk(input, resolveLearnerKeyOrThrow(), sessionDeps),
     validateChunkIds: chunkIds => sessionWorkflows.validateChunkIds(chunkIds, sessionDeps),
     getSessionChunks: sessionId =>
       sessionWorkflows.getSessionChunks(sessionId, resolveLearnerKeyOrThrow(), sessionDeps),

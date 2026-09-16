@@ -530,7 +530,9 @@ describe('sessions service', () => {
       const stillActive = await sessionRepo.getSessionById('s1', STDIO_PLACEHOLDER_LEARNER_KEY);
       expect(stillActive?.status).toBe('active');
       expect(stillActive?.pausedAt).toBeNull();
-      const activeSessions = await sessionRepo.listSessions({ status: 'active' });
+      const activeSessions = await sessionRepo.listSessions(STDIO_PLACEHOLDER_LEARNER_KEY, {
+        status: 'active',
+      });
       expect(activeSessions).toHaveLength(1);
       expect(activeSessions[0]?.id).toBe('s1');
     });

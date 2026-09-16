@@ -27,7 +27,7 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
           const validatedInput = CreateSessionChunkToolInputSchema.parse(input);
           const now = Date.now();
 
-          const sessionChunk = await ctx.createSessionChunk({
+          const result = await ctx.createSessionChunk({
             id: crypto.randomUUID(),
             sessionId: validatedInput.sessionId,
             chunkId: validatedInput.chunkId,
@@ -37,12 +37,19 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
             updatedAt: now,
           });
 
+          if (!result.success) {
+            return toolError(`Failed to create session chunk: ${result.error.message}`, {
+              type: result.error.type,
+              message: result.error.message,
+            });
+          }
+
           getRequestLogger().info(
-            `Created session chunk ${sessionChunk.id} for session ${validatedInput.sessionId}`
+            `Created session chunk ${result.data.id} for session ${validatedInput.sessionId}`
           );
           return toolData(
             toSnakeCase({
-              sessionChunkId: sessionChunk.id,
+              sessionChunkId: result.data.id,
               message: 'Session chunk created successfully',
             })
           );
