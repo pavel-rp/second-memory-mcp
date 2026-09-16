@@ -508,6 +508,21 @@ describe('completeSession', () => {
     expect(deps.sessions.completeSession).toHaveBeenCalledWith('sess-1', 'Good session', 'active');
   });
 
+  it('completes a paused session without a false CAS conflict (NEU-1042 verify-spec regression)', async () => {
+    // The CAS guard must compare against the status just read, not a hardcoded 'active' —
+    // completing a paused session is a legitimate call, distinct from the internal
+    // active-session auto-complete/pause call sites.
+    const deps = stubDeps();
+    (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubSession({ status: 'paused' })
+    );
+
+    const result = await completeSession('sess-1', 'Good session', null, deps);
+
+    expect(result.success).toBe(true);
+    expect(deps.sessions.completeSession).toHaveBeenCalledWith('sess-1', 'Good session', 'paused');
+  });
+
   it('returns not_found when session does not exist', async () => {
     const deps = stubDeps();
     (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);

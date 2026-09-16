@@ -324,7 +324,15 @@ export async function completeSession(
     if (!session) {
       return serviceFail({ type: 'not_found', message: `Session ${sessionId} not found` });
     }
-    const completedRowCount = await deps.sessions.completeSession(sessionId, feedback, 'active');
+    // NEU-1042 verify-spec finding: the CAS guard must compare against the status just read,
+    // not a hardcoded 'active' — completing a paused session (a legitimate `complete_session`
+    // call, not only the internal active-session auto-complete/pause call sites) would otherwise
+    // always lose the race against its own read and report a false conflict.
+    const completedRowCount = await deps.sessions.completeSession(
+      sessionId,
+      feedback,
+      session.status as 'active' | 'paused' | 'completed'
+    );
     if (completedRowCount === 0) {
       // NEU-1033: the session existed at the read above but the write itself affected zero
       // rows — it changed concurrently between the read and the write. Report a structured
