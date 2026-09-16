@@ -433,7 +433,10 @@ describe('Integration: Session Management Tools', () => {
     const getParsed = parseToolResult(getResult);
     expect(getParsed.status).toBe('ok');
     expect(getParsed.data.action).toBe('found');
-    expect(getParsed.data.session.chunks).toHaveLength(2);
+    // NEU-1042: the test now updates the single auto-created session_chunks row (from
+    // chunk_ids at session creation) to 'completed' instead of inserting a second row for the
+    // same (session_id, chunk_id) pair — so there is exactly one chunk here, not two.
+    expect(getParsed.data.session.chunks).toHaveLength(1);
     const completedChunk = getParsed.data.session.chunks.find(
       (chunk: any) => chunk.status === 'completed'
     );
