@@ -73,6 +73,86 @@ export async function resolveRequestTopicId(
   return resolveChunkTopicId(input.chunkIds ?? [], deps);
 }
 
+/**
+ * NEU-1021: find the learner's most recently paused session whose *resolved* topic
+ * (via `resolveActiveSessionTopicId` — never a bare `topic_id` column check) matches the
+ * requested scope: a real topic id, or `null` for the no-topic bucket. `getPausedSessions`
+ * already orders most-recently-paused first, so the first match wins.
+ */
+export async function findMostRecentlyPausedSession(
+  learnerKey: string | null,
+  requestedTopicId: string | null,
+  deps: SessionDeps
+): Promise<LearningSession | null> {
+  const pausedSessions = await deps.sessions.getPausedSessions(learnerKey);
+  for (const session of pausedSessions) {
+    const resolvedTopicId = await resolveActiveSessionTopicId(session, deps);
+    if (resolvedTopicId === requestedTopicId) {
+      return session;
+    }
+  }
+  return null;
+}
+
+/**
+ * NEU-1021: recompute a paused session's `session_chunks` against the current review
+ * schedule. `completed` rows are never touched. Non-completed rows no longer due (per the
+ * same canonical due/draft/leech filter `generateRecommendations` uses, scoped to the
+ * session's own existing chunk ids) are removed — their attempt history lives on
+ * `session_question_attempts`/`session_questions`, keyed off the chunk id, not the
+ * `session_chunks` row, so it survives the removal. For a real `topicId`, chunks newly due
+ * in that topic and not already present are admitted as `pending`. The no-topic bucket
+ * (`topicId === null`) has no single topic to source additions from, so it only ever sheds
+ * chunks that fell out of due — it never gains new ones.
+ */
+export async function recomputePausedSessionChunks(
+  session: Pick<LearningSession, 'id'>,
+  topicId: string | null,
+  deps: SessionDeps
+): Promise<void> {
+  const existingChunks = await deps.sessions.getSessionChunks(session.id);
+  const existingChunkIds = new Set(existingChunks.map(sc => sc.chunkId));
+  const nonCompleted = existingChunks.filter(sc => sc.status !== 'completed');
+
+  if (nonCompleted.length > 0) {
+    const stillDue = await deps.chunks.list({
+      dueOnly: true,
+      excludeDraft: true,
+      isLeech: false,
+      chunkIds: nonCompleted.map(sc => sc.chunkId),
+    });
+    const stillDueIds = new Set(stillDue.map(c => c.id));
+    for (const sc of nonCompleted) {
+      if (!stillDueIds.has(sc.chunkId)) {
+        await deps.sessions.deleteSessionChunk(sc.id);
+      }
+    }
+  }
+
+  if (topicId !== null) {
+    const dueInTopic = await deps.chunks.list({
+      topicId,
+      dueOnly: true,
+      excludeDraft: true,
+      isLeech: false,
+    });
+    const now = Date.now();
+    let index = 0;
+    for (const chunk of dueInTopic) {
+      if (existingChunkIds.has(chunk.id)) continue;
+      await deps.sessions.createSessionChunk({
+        id: crypto.randomUUID(),
+        sessionId: session.id,
+        chunkId: chunk.id,
+        status: 'pending',
+        createdAt: now + index,
+        updatedAt: now + index,
+      });
+      index++;
+    }
+  }
+}
+
 export async function createSession(
   input: {
     topicId?: string;

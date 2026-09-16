@@ -164,6 +164,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'If an active session exists on a different topic than the one requested, it is paused (chunk progress intact) and the requested topic starts instead. ' +
         'If an active session exists with remaining chunks, it is resumed and action will be "resumed" with the next teaching step. ' +
         'If the active session is fully completed, it is auto-completed and a fresh session is started (action: "started"). ' +
+        'If there is no active session (or one was just paused above) and the resolved topic — the explicit topic_id, the no-topic bucket via no_topic: true, or the auto-picked topic — has a paused session, that session resumes (action: "resumed") instead of starting fresh: its queue is recomputed against the current review schedule first (completed chunks stay completed, chunks no longer due leave the queue with their attempts kept, newly due chunks join). ' +
+        'The no-topic bucket only ever resumes through an explicit no_topic: true — it is never auto-picked. With no_topic: true and no matching paused session, action is "nothing_due" rather than starting something new. ' +
         'For interactive topic selection, use what_to_learn_today instead. ' +
         'When action is "started" or "resumed", check first_chunk.action: "teach" means follow first_chunk.instruction verbatim; "blocked" or "error" means surface first_chunk.message and stop. ' +
         'Action "nothing_due" or "error" means the session could not start — surface the message and stop. ' +

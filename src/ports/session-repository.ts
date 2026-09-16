@@ -84,6 +84,14 @@ export interface SessionRepository {
    * written for the active-session lookup.
    */
   getActiveSession(learnerKey: string | null): Promise<LearningSession | null>;
+  /**
+   * NEU-1021 / NEU-1015 enforcement point: the only place a `learner_key`
+   * predicate is written for the paused-session lookup. Returns every
+   * `status = 'paused'` session for the learner, most-recently-paused first
+   * (`ORDER BY paused_at DESC`) — the order `findMostRecentlyPausedSession`
+   * relies on to pick the first topic-matching session.
+   */
+  getPausedSessions(learnerKey: string | null): Promise<LearningSession[]>;
   updateSession(id: string, changes: UpdateSessionInput): Promise<number>;
   completeSession(id: string, feedback?: string): Promise<number>;
   deleteSession(id: string): Promise<number>;

@@ -62,6 +62,7 @@ export function stubSessionRepository(overrides?: Partial<SessionRepository>): S
     createSession: vi.fn().mockResolvedValue(undefined),
     getSessionById: vi.fn().mockResolvedValue(null),
     getActiveSession: vi.fn().mockResolvedValue(null),
+    getPausedSessions: vi.fn().mockResolvedValue([]),
     updateSession: vi.fn().mockResolvedValue(1),
     completeSession: vi.fn().mockResolvedValue(1),
     deleteSession: vi.fn().mockResolvedValue(1),

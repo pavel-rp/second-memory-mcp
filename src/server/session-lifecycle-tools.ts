@@ -69,7 +69,9 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         'If an active session exists on a different topic, it is paused (chunk progress intact) and this one is created. ' +
         'If an active session already exists for this same topic, the call is rejected with error.findings.code ' +
         '"active_session_exists_same_topic" (carrying session_id, topic_id, mode, started_at) — call start_learning ' +
-        'with that topic to resume it instead.',
+        'with that topic to resume it instead. ' +
+        'create_session never resumes a paused session (one set aside by a topic switch) — start_learning is the ' +
+        'resume path, including for the no-topic bucket via start_learning(no_topic: true).',
       inputSchema: CreateSessionToolInputShape,
     },
     async (input: unknown) =>
@@ -171,7 +173,8 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
       title: 'Get Active Session',
       description:
         'Retrieve the current active learning session to continue where you left off. ' +
-        'A paused session (one set aside by a topic switch) is never returned here — resume it via start_learning(topic_id). ' +
+        'A paused session (one set aside by a topic switch) is never returned here — resume it via start_learning: ' +
+        'pass its topic_id, no_topic: true for the no-topic bucket, or no argument if it is the most urgent topic. ' +
         'For review and retrieval sessions, historical feedback from past sessions is automatically included ' +
         'to help inform teaching strategy based on previously reported difficulties. ' +
         'Use the fields parameter to request only specific parts of the session (e.g. ["mode", "chunks.status"]).',

@@ -1,0 +1,57 @@
+{
+  "formatVersion": 2,
+  "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+  "records": [
+    {
+      "kind": "phase-receipt",
+      "subject": "spec",
+      "taskId": "NEU-1021",
+      "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+      "workspaceFingerprint": "fd14587e6fcf0c978b88f6be84a771a9232b85b939c60ba4ead57d79878907f7",
+      "issuedAt": "2026-09-16T15:03:01.490Z",
+      "sequence": 0,
+      "artifact": {
+        "path": "_local/NEU-1021/01_spec.md",
+        "sha256": "689c3d1d1f444580b7db67aeb2b4357d1f8f939f0e0ed936c246911b311a4a1c",
+        "bytes": 11005
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "a7daee8818451ca4a96d1bfe06d7cf929a18dc5848d359461eb0c60a5d166b12"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "plan",
+      "taskId": "NEU-1021",
+      "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+      "workspaceFingerprint": "fd14587e6fcf0c978b88f6be84a771a9232b85b939c60ba4ead57d79878907f7",
+      "issuedAt": "2026-09-16T15:13:56.660Z",
+      "sequence": 1,
+      "artifact": {
+        "path": "_local/NEU-1021/02_plan.md",
+        "sha256": "78ca5785b7b0e5bf6c7fbbb38e3c8fbcf25950bf2bfc5f123801c7e7f76d33d6",
+        "bytes": 20842
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "3e2bd0ff8bc358b6709e2680ad2612591f534d76ae943ad92b9d7de5c500a806"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "implement",
+      "taskId": "NEU-1021",
+      "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+      "workspaceFingerprint": "fd14587e6fcf0c978b88f6be84a771a9232b85b939c60ba4ead57d79878907f7",
+      "issuedAt": "2026-09-16T15:28:34.199Z",
+      "sequence": 2,
+      "artifact": {
+        "path": "_local/NEU-1021/02_plan.md",
+        "sha256": "7deffb96a132e0ead1324f6548278526fa25ce529af22c27960e6d796520ac29",
+        "bytes": 25599
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "04f059e95e5d2be2aa91e0896de8415bf8c35664e0892bf0202e7cd943518c68"
+    }
+  ]
+}

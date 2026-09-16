@@ -15,7 +15,8 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
     {
       title: 'Get Session Status',
       description:
-        'Get session progress metrics and completion evaluation. Returns chunks completed/remaining, quality, time elapsed, and a continue/complete/break recommendation.',
+        'Get session progress metrics and completion evaluation. Returns chunks completed/remaining, quality, time elapsed, and a continue/complete/break recommendation. ' +
+        'Works for a session in any status, including a paused one — resuming a paused session for further teaching happens via start_learning, not here.',
       inputSchema: SessionStatusInputShape,
     },
     async (input: unknown) =>

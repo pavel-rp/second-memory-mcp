@@ -33,7 +33,9 @@ describe('createMcpServer', () => {
     expect(instructions).toBeTypeOf('string');
     // MCP initialize response includes instructions; keep them concise to avoid bloating handshakes.
     // Raised from 6800 (NEU-847): the correct_answer presentation clause is genuine new content.
-    expect(instructions!.length).toBeLessThan(7000);
+    // Raised from 7000 (NEU-1021): the TOOL DISAMBIGUATION line documenting paused-session
+    // resume via start_learning (including the no-topic bucket) is genuine new content.
+    expect(instructions!.length).toBeLessThan(7200);
     expect(instructions).toContain('start_learning');
     expect(instructions).toContain('submit_answer');
     expect(instructions).toContain('roadblock');

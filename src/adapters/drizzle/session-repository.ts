@@ -114,6 +114,14 @@ export class DrizzleSessionRepository implements SessionRepository {
     return row || null;
   }
 
+  async getPausedSessions(learnerKey: string | null): Promise<LearningSession[]> {
+    return await this.db
+      .select()
+      .from(learningSessions)
+      .where(and(eq(learningSessions.status, 'paused'), this.learnerKeyPredicate(learnerKey)))
+      .orderBy(desc(learningSessions.pausedAt));
+  }
+
   async updateSession(id: string, changes: UpdateSessionInput): Promise<number> {
     const res = await this.db
       .update(learningSessions)
