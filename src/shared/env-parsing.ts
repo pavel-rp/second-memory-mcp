@@ -28,6 +28,27 @@ export function parsePositiveInteger(envValue: string | undefined, fallback: num
   return Math.max(1, Math.trunc(parsed));
 }
 
+/**
+ * Parse an integer clamped to a caller-supplied minimum. Truncates fractional
+ * values toward zero, then clamps to `minimum`, so a too-small or fractional
+ * value (e.g. `"1"` or `"6.5"` with `minimum: 2`) resolves to `minimum` rather
+ * than risking a downstream divide-by-a-too-small-window. Empty/whitespace or
+ * non-finite input falls back. Same truncate-then-clamp shape as
+ * `parsePositiveInteger`, generalized to a configurable floor (NEU-1043) so
+ * that existing `CLASSIFIER_SAMPLES` call, hardcoded to a minimum of 1, is
+ * left untouched.
+ */
+export function parseIntegerWithMinimum(
+  envValue: string | undefined,
+  fallback: number,
+  minimum: number
+): number {
+  if (envValue == null || envValue.trim() === '') return fallback;
+  const parsed = Number(envValue);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(minimum, Math.trunc(parsed));
+}
+
 export function parseRecord(envValue: string | undefined): Record<string, number> {
   // Expect JSON like {"tagA":1.2,"tagB":0.8}
   if (!envValue) return {};

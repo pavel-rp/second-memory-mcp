@@ -548,6 +548,7 @@ export const StartLearningInputShape = {
   subject_filter: z.string().optional().describe('Filter recommendations by subject'),
   topic_id: z
     .string()
+    .min(1)
     .optional()
     .describe(
       'Explicit topic to start or continue learning. Omit for "no topic" — the currently ' +

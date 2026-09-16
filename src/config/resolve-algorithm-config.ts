@@ -3,7 +3,13 @@
 
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../domain/config/algorithm-defaults.js';
-import { parseNumber, parseBoolean, parseRecord, parseEnum } from '../shared/env-parsing.js';
+import {
+  parseNumber,
+  parseBoolean,
+  parseRecord,
+  parseEnum,
+  parseIntegerWithMinimum,
+} from '../shared/env-parsing.js';
 import { logger } from '../shared/logger.js';
 
 export function resolveAlgorithmConfig(
@@ -107,9 +113,13 @@ export function resolveAlgorithmConfig(
       ),
       // PROVISIONAL DEFAULT, not evidence-derived (NEU-1020; 5-8 is the stated
       // tuning band). Last-N-answers fatigue window, within the current sitting.
-      fatigueWindowSize: parseNumber(
+      // NEU-1043: parsed with a minimum of 2 — `computeFatigueTrend` silently
+      // no-ops below that, so a misconfigured `0`/`1`/fractional value should
+      // clamp up to the smallest workable window rather than reach the guard.
+      fatigueWindowSize: parseIntegerWithMinimum(
         env.SM_SESSION_FATIGUE_WINDOW_SIZE,
-        DEFAULT_ALGORITHM_CONFIG.sessionConfig.fatigueWindowSize
+        DEFAULT_ALGORITHM_CONFIG.sessionConfig.fatigueWindowSize,
+        2
       ),
     },
     recommendationConfig: {

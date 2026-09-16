@@ -60,10 +60,15 @@ export async function ensureSchema(): Promise<void> {
   const pool = getPool();
   const client = await pool.connect();
   try {
-    const ownerLearnerKey = (process.env.OWNER_LEARNER_KEY ?? '').trim();
+    // NEU-1043: trim only decides blank vs. non-blank — the value actually
+    // passed to `set_config` (and compared elsewhere against `learner_key`)
+    // must stay the raw, untrimmed string, or a legitimately whitespace-padded
+    // key would be silently mangled on backfill.
+    const rawOwnerLearnerKey = process.env.OWNER_LEARNER_KEY ?? '';
+    const isBlank = rawOwnerLearnerKey.trim() === '';
     await client.query('select set_config($1, $2, false)', [
       'app.owner_learner_key',
-      ownerLearnerKey,
+      isBlank ? '' : rawOwnerLearnerKey,
     ]);
     const drizzleDb = drizzle(client);
     const migrationsFolder = resolveMigrationsDir();

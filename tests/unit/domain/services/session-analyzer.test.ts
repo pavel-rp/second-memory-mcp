@@ -1343,6 +1343,75 @@ describe('Session Manager', () => {
       expect(unscoredResult.shouldComplete).toBe(false);
     });
 
+    it('recommends break, not complete, when quality+chunk thresholds are both met but a fatigue advisory also fires (NEU-1043 precedence)', () => {
+      // Both completion thresholds are comfortably met (all chunks completed,
+      // average quality 4.5 >= the 4.0 threshold), which used to short-circuit
+      // straight to 'complete' before the advisory check ever ran. The later
+      // window's quality still falls enough to fire fatigue, so a resolved
+      // advisory must win regardless — restoring the pre-NEU-1016 precedence
+      // where a fatigued/over-ceiling learner never gets congratulated instead
+      // of told to stop.
+      const earlierAttempts: ChunkAttempt[] = [
+        makeAttempt({ timestamp: '2024-01-01T09:50:00.000Z', time_spent_ms: 10000, quality: 5 }),
+        makeAttempt({ timestamp: '2024-01-01T09:51:00.000Z', time_spent_ms: 10000, quality: 5 }),
+        makeAttempt({ timestamp: '2024-01-01T09:52:00.000Z', time_spent_ms: 10000, quality: 5 }),
+      ];
+      const laterAttempts: ChunkAttempt[] = [
+        makeAttempt({ timestamp: '2024-01-01T10:00:00.000Z', time_spent_ms: 10000, quality: 4 }),
+        makeAttempt({ timestamp: '2024-01-01T10:01:00.000Z', time_spent_ms: 10000, quality: 4 }),
+        makeAttempt({ timestamp: '2024-01-01T10:02:00.000Z', time_spent_ms: 10000, quality: 4 }),
+      ];
+
+      const session: SessionInput = {
+        session_id: 'quality-and-chunk-met-but-fatigued',
+        mode: 'learning',
+        ...baseTimes,
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
+            title: 'Chunk 1',
+            status: 'completed',
+            attempts: earlierAttempts,
+            quality_scores: [5, 5, 5],
+            time_spent_ms: 30000,
+          },
+          {
+            chunk_id: 'chunk-2',
+            session_chunk_id: 'sc-2',
+            title: 'Chunk 2',
+            status: 'completed',
+            attempts: laterAttempts,
+            quality_scores: [4, 4, 4],
+            time_spent_ms: 30000,
+          },
+        ],
+      };
+
+      // Independently confirm both completion thresholds are met AND the
+      // advisory fires, so the assertion below is known to exercise the
+      // overlap rather than one branch masking the other.
+      const progress = calculateSessionProgress(session, NOW);
+      expect(progress.overall_progress).toBeGreaterThanOrEqual(
+        DEFAULT_ALGORITHM_CONFIG.sessionConfig.completionThreshold
+      );
+      expect(progress.average_quality).toBeGreaterThanOrEqual(
+        DEFAULT_ALGORITHM_CONFIG.sessionConfig.qualityThreshold
+      );
+      const expectedAdvisory = resolveSessionAdvisory({
+        attempts: toFatigueAttempts([...earlierAttempts, ...laterAttempts]),
+        activeTimeMs: 0,
+        activeTimeCeilingMs: DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs,
+        fatigueWindowSize: DEFAULT_FATIGUE_WINDOW,
+      });
+      expect(expectedAdvisory?.kind).toBe('fatigue');
+
+      const result = getSessionStatus(session, DEFAULT_ALGORITHM_CONFIG, NOW);
+      expect(result.shouldComplete).toBe(true);
+      expect(result.recommendation).toBe('break');
+      expect(result.reason).toBe(expectedAdvisory?.reason);
+    });
+
     it('still recommends break past the active-time ceiling even when the fatigue trend is silent', () => {
       const startMs = new Date('2024-01-01T08:00:00.000Z').getTime();
       const gapMs = 8 * 60 * 1000; // sub-idle-cutoff, so every gap counts

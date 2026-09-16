@@ -63,8 +63,11 @@ export function resolveSessionAdvisory(input: SessionAdvisoryInput): SessionAdvi
   if (trend.fatigued) {
     return {
       kind: 'fatigue',
-      reason:
-        'Response latency is rising and answer quality is slipping within this session — consider a break.',
+      // NEU-1043: latency is no longer an input to this module (see the file
+      // header) — the old wording claimed a latency signal this resolver no
+      // longer observes. Scoped to "this sitting" rather than "this session"
+      // to match the fatigue trend's own sitting-scoped basis.
+      reason: 'Answer quality is falling in this sitting — consider a break.',
     };
   }
 

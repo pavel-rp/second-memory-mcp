@@ -145,6 +145,28 @@ describe('computeFatigueTrend', () => {
         qualityDelta: null,
       });
     });
+
+    it('a fractional windowSize never fires (silent result, NEU-1043)', () => {
+      const attempts = deterioratingFixture();
+
+      expect(computeFatigueTrend(attempts, 6.5)).toEqual({
+        fatigued: false,
+        sampledCount: 0,
+        qualityDelta: null,
+      });
+    });
+
+    it('a windowSize of 1 never fires and never produces a NaN qualityDelta (NEU-1043)', () => {
+      // windowSize: 1 would otherwise split into an empty earlier half and a
+      // single-entry later half — `mean([])` divides 0 by 0 into NaN, which
+      // would silently corrupt qualityDelta instead of resolving cleanly.
+      const attempts = deterioratingFixture();
+
+      const result = computeFatigueTrend(attempts, 1);
+
+      expect(result).toEqual({ fatigued: false, sampledCount: 0, qualityDelta: null });
+      expect(Number.isNaN(result.qualityDelta)).toBe(false);
+    });
   });
 
   describe('ordering is self-sorted, not caller-supplied', () => {

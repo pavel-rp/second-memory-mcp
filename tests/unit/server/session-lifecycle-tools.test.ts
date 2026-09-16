@@ -187,6 +187,38 @@ describe('session-lifecycle-tools', () => {
       expect(parsed.error.retryable).toBe(true);
     });
 
+    it('surfaces a conflict error with its structured findings unchanged (NEU-1043)', async () => {
+      const findings = {
+        code: 'active_session_exists_same_topic',
+        session_id: 'sess-conflict',
+        topic_id: 'topic-a',
+        mode: 'learning',
+        started_at: 1700000000000,
+      };
+      ctx.createSession = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'conflict',
+          message:
+            'Active session already exists for this topic. Call start_learning to resume it.',
+          findings,
+        },
+      });
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('create_session')!.handler;
+
+      const result = await handler({
+        mode: 'learning',
+        topic_id: 'topic-a',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('conflict');
+      expect(parsed.error.findings).toEqual(findings);
+    });
+
     it('returns error for missing mode', async () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('create_session')!.handler;
