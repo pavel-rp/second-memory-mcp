@@ -8,6 +8,7 @@ import {
   sessionChunks,
 } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { STDIO_PLACEHOLDER_LEARNER_KEY } from '../../../src/shared/learner-context.js';
 
 describe('db/schema', () => {
   beforeAll(setupTestDb);
@@ -165,6 +166,7 @@ describe('db/schema', () => {
       const db = getSql();
       await db.insert(learningSessions).values({
         id: 'session-1',
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         mode: 'learning',
         startTime: now,
         createdAt: now,
@@ -181,6 +183,7 @@ describe('db/schema', () => {
       const db = getSql();
       await db.insert(learningSessions).values({
         id: 'session-no-topic',
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         mode: 'review',
         startTime: now,
         createdAt: now,
@@ -221,6 +224,7 @@ describe('db/schema', () => {
       });
       await db.insert(learningSessions).values({
         id: 'session-sc',
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         mode: 'learning',
         startTime: now,
         createdAt: now,
@@ -263,6 +267,7 @@ describe('db/schema', () => {
       });
       await db.insert(learningSessions).values({
         id: 'session-sc2',
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         mode: 'learning',
         startTime: now,
         createdAt: now,

@@ -49,6 +49,15 @@ export class DrizzleSessionRepository implements SessionRepository {
   }
 
   async createSession(input: CreateSessionInput): Promise<void> {
+    if (input.learnerKey === null) {
+      // NEU-1019: learning_sessions.learner_key is NOT NULL. CreateSessionInput
+      // keeps `string | null` because `null` still describes the pre-NEU-1015
+      // legacy row shape for query-filter callers (getSessionById et al.) — but
+      // composition-root never constructs a create input with `learnerKey: null`
+      // (a sub-less token principal is refused before this input exists), so a
+      // null here is a caller-contract violation, not a legitimate legacy write.
+      throw new Error('createSession requires a non-null learnerKey');
+    }
     const row: NewLearningSessionRow = {
       id: input.id,
       topicId: input.topicId || null,

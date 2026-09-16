@@ -112,12 +112,13 @@ export const learningSessions = pgTable(
     feedback: text('feedback'), // optional completion feedback
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
-    // NEU-1015: nullable learner-isolation key. On token transports this is the
+    // NEU-1015: learner-isolation key. On token transports this is the
     // verified token's raw `payload.sub`; on stdio (single fixed placeholder,
     // stdio is slated for deprecation) it is the fixed placeholder constant.
-    // Nullable here by design — NEU-1019 backfills existing rows and adds the
-    // NOT NULL constraint; do not tighten this column before that migration.
-    learnerKey: text('learner_key'),
+    // NEU-1019 backfilled every pre-existing row from the configured
+    // OWNER_LEARNER_KEY setting (migration 0028) and enforces NOT NULL —
+    // this model is tightened to match.
+    learnerKey: text('learner_key').notNull(),
   },
   table => [
     index('idx_learning_sessions_status').on(table.status),
