@@ -82,6 +82,7 @@ function computeStreakDays(reviews: Array<{ date: string }>, now: Date): number 
 }
 
 export async function buildLearnerContext(
+  learnerKey: string | null,
   deps: LearnerContextDeps,
   now: Date
 ): Promise<LearnerContext> {
@@ -96,7 +97,7 @@ export async function buildLearnerContext(
     await Promise.all([
       deps.chunks.batchFetchMinimal(),
       deps.topics.batchFetchMinimal(),
-      deps.sessions.getActiveSession(),
+      deps.sessions.getActiveSession(learnerKey),
       deps.sessions.listSessions({ status: 'completed', limit: 1 }),
       deps.reviewPersistence.getWeakAreas(),
       deps.reviewPersistence.getReviewsByDateRange(sevenDaysAgo, tomorrow),

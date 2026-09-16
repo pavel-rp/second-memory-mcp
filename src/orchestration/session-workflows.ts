@@ -33,10 +33,11 @@ export async function createSession(
     mode: string;
     estimatedDuration?: number;
   },
+  learnerKey: string | null,
   deps: SessionDeps
 ): Promise<ServiceResult<{ sessionId: string }>> {
   try {
-    const activeSession = await deps.sessions.getActiveSession();
+    const activeSession = await deps.sessions.getActiveSession(learnerKey);
     if (activeSession) {
       return serviceFail({
         type: 'conflict',
@@ -76,6 +77,7 @@ export async function createSession(
       startTime: now,
       createdAt: now,
       updatedAt: now,
+      learnerKey,
     };
 
     await deps.sessions.createSession(sessionInput);
@@ -96,10 +98,11 @@ export async function createSession(
 export async function completeSession(
   sessionId: string,
   feedback: string | undefined,
+  learnerKey: string | null,
   deps: SessionDeps
 ): Promise<ServiceResult<void>> {
   try {
-    const session = await deps.sessions.getSessionById(sessionId);
+    const session = await deps.sessions.getSessionById(sessionId, learnerKey);
     if (!session) {
       return serviceFail({ type: 'not_found', message: `Session ${sessionId} not found` });
     }
@@ -116,17 +119,19 @@ export async function completeSession(
 
 export async function getSessionWithChunks(
   sessionId: string,
+  learnerKey: string | null,
   deps: SessionDeps
 ): Promise<{ session: LearningSession | null; chunks: SessionChunk[] }> {
-  return deps.sessions.getSessionWithChunks(sessionId);
+  return deps.sessions.getSessionWithChunks(sessionId, learnerKey);
 }
 
 export async function convertSessionToSessionInput(
   sessionId: string,
   options: { includeHistoricalFeedback?: boolean; historicalFeedbackLimit?: number } | undefined,
+  learnerKey: string | null,
   deps: SessionDeps
 ): Promise<SessionInput | null> {
-  return deps.sessions.convertSessionToSessionInput(sessionId, options);
+  return deps.sessions.convertSessionToSessionInput(sessionId, learnerKey, options);
 }
 
 export async function getHistoricalFeedback(
@@ -140,10 +145,11 @@ export async function getHistoricalFeedback(
 export async function batchUpdateSessionChunks(
   sessionId: string,
   operations: BatchOperation[],
+  learnerKey: string | null,
   deps: SessionDeps
 ): Promise<ServiceResult<{ created: number; updated: number; unchanged: number }>> {
   try {
-    const session = await deps.sessions.getSessionById(sessionId);
+    const session = await deps.sessions.getSessionById(sessionId, learnerKey);
     if (!session) {
       return serviceFail({ type: 'not_found', message: `Session ${sessionId} not found` });
     }
@@ -176,13 +182,17 @@ export async function batchUpdateSessionChunks(
 
 export async function getSessionById(
   sessionId: string,
+  learnerKey: string | null,
   deps: SessionDeps
 ): Promise<LearningSession | null> {
-  return deps.sessions.getSessionById(sessionId);
+  return deps.sessions.getSessionById(sessionId, learnerKey);
 }
 
-export async function getActiveSession(deps: SessionDeps): Promise<LearningSession | null> {
-  return deps.sessions.getActiveSession();
+export async function getActiveSession(
+  learnerKey: string | null,
+  deps: SessionDeps
+): Promise<LearningSession | null> {
+  return deps.sessions.getActiveSession(learnerKey);
 }
 
 export async function createSessionChunk(
@@ -199,10 +209,19 @@ export async function validateChunkIds(
   return deps.sessions.validateChunkIds(chunkIds);
 }
 
+/**
+ * NEU-1015: `sessionId` here is a raw, caller-supplied id (the `ctx.getSessionChunks`
+ * entry point), not necessarily downstream of an already-scoped lookup in the same
+ * request — re-verify ownership via the now-scoped `getSessionById` first, so a
+ * not-found is reported (and no chunk read) before any chunk data is returned.
+ */
 export async function getSessionChunks(
   sessionId: string,
+  learnerKey: string | null,
   deps: SessionDeps
 ): Promise<SessionChunk[]> {
+  const session = await deps.sessions.getSessionById(sessionId, learnerKey);
+  if (!session) return [];
   return deps.sessions.getSessionChunks(sessionId);
 }
 

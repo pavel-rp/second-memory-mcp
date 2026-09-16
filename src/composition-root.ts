@@ -76,6 +76,8 @@ import type { CreateNoteInput } from './ports/notes-repository.js';
 import { createTier1aRules, createTier1bRules } from './domain/services/linter-rules/index.js';
 import { applyEligibilityToRules, validateRuleIntentParity } from './shared/linter/rule-intent.js';
 import { getRequestLogger } from './shared/logger.js';
+import { getResolvedLearnerAuth, STDIO_PLACEHOLDER_LEARNER_KEY } from './shared/learner-context.js';
+import { serviceFail } from './domain/types/service-result.js';
 import * as chunkWorkflows from './orchestration/chunk-workflows.js';
 import * as topicWorkflows from './orchestration/topic-workflows.js';
 import * as reviewWorkflows from './orchestration/review-workflows.js';
@@ -370,6 +372,48 @@ export async function loadInitialRuleReports(
  * asynchronously so this function can stay synchronous — call
  * `loadInitialRuleReports` first, then pass the result here.
  */
+/**
+ * NEU-1015: resolve the learner key for the current call from the transport-boundary
+ * context (`src/shared/learner-context.ts`), or report a refusal.
+ *
+ * - Token-transport request with a verified, non-empty `sub` → that `sub`, used verbatim.
+ * - Stdio (no learner-auth context at all) → the fixed `STDIO_PLACEHOLDER_LEARNER_KEY`
+ *   (stdio is slated for deprecation and is not per-learner scoped).
+ * - Token-transport request whose verified principal has no `sub` (including an
+ *   `azp`-only client_credentials principal) → refused. This is resolved and refused
+ *   once per `ctx.*` invocation, before any session is read or written.
+ */
+function resolveLearnerKey(): { ok: true; learnerKey: string } | { ok: false; message: string } {
+  const resolved = getResolvedLearnerAuth();
+  if (resolved.source === 'stdio') {
+    return { ok: true, learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY };
+  }
+  if (resolved.rawSub === undefined) {
+    return {
+      ok: false,
+      message:
+        'Refused: the authenticated principal has no sub claim. An azp-only ' +
+        'client_credentials principal is not a learner identity and cannot access session data.',
+    };
+  }
+  return { ok: true, learnerKey: resolved.rawSub };
+}
+
+/**
+ * Same resolution as `resolveLearnerKey`, but throws on refusal — for `ctx.*` closures
+ * whose own return type is a raw value (not `ServiceResult<T>`), so the refusal is
+ * caught and surfaced the same way every other server-tool error already is
+ * (`src/server/*-tools.ts` try/catch → `toolError()`, per this repo's error-handling
+ * convention).
+ */
+function resolveLearnerKeyOrThrow(): string {
+  const resolved = resolveLearnerKey();
+  if (!resolved.ok) {
+    throw new Error(resolved.message);
+  }
+  return resolved.learnerKey;
+}
+
 export function createAppContext(
   overrides?: Partial<AppPorts>,
   initialRuleValidationReports: readonly RuleValidationReport[] = []
@@ -539,32 +583,67 @@ export function createAppContext(
       reviewWorkflows.resolveLeech(chunkId, resolution, leechDeps),
 
     // Session orchestration
-    createSession: input => sessionWorkflows.createSession(input, sessionDeps),
-    completeSession: (sessionId, feedback) =>
-      sessionWorkflows.completeSession(sessionId, feedback, sessionDeps),
-    getSessionById: sessionId => sessionWorkflows.getSessionById(sessionId, sessionDeps),
-    getActiveSession: () => sessionWorkflows.getActiveSession(sessionDeps),
+    createSession: input => {
+      const resolved = resolveLearnerKey();
+      if (!resolved.ok)
+        return Promise.resolve(serviceFail({ type: 'validation', message: resolved.message }));
+      return sessionWorkflows.createSession(input, resolved.learnerKey, sessionDeps);
+    },
+    completeSession: (sessionId, feedback) => {
+      const resolved = resolveLearnerKey();
+      if (!resolved.ok)
+        return Promise.resolve(serviceFail({ type: 'validation', message: resolved.message }));
+      return sessionWorkflows.completeSession(
+        sessionId,
+        feedback,
+        resolved.learnerKey,
+        sessionDeps
+      );
+    },
+    getSessionById: sessionId =>
+      sessionWorkflows.getSessionById(sessionId, resolveLearnerKeyOrThrow(), sessionDeps),
+    getActiveSession: () =>
+      sessionWorkflows.getActiveSession(resolveLearnerKeyOrThrow(), sessionDeps),
     getSessionWithChunks: sessionId =>
-      sessionWorkflows.getSessionWithChunks(sessionId, sessionDeps),
+      sessionWorkflows.getSessionWithChunks(sessionId, resolveLearnerKeyOrThrow(), sessionDeps),
     convertSessionToInput: (sessionId, options) =>
-      sessionWorkflows.convertSessionToSessionInput(sessionId, options, sessionDeps),
+      sessionWorkflows.convertSessionToSessionInput(
+        sessionId,
+        options,
+        resolveLearnerKeyOrThrow(),
+        sessionDeps
+      ),
     getHistoricalFeedback: (chunkIds, options) =>
       sessionWorkflows.getHistoricalFeedback(chunkIds, options, sessionDeps),
-    batchUpdateSessionChunks: (sessionId, operations) =>
-      sessionWorkflows.batchUpdateSessionChunks(sessionId, operations, sessionDeps),
+    batchUpdateSessionChunks: (sessionId, operations) => {
+      const resolved = resolveLearnerKey();
+      if (!resolved.ok)
+        return Promise.resolve(serviceFail({ type: 'validation', message: resolved.message }));
+      return sessionWorkflows.batchUpdateSessionChunks(
+        sessionId,
+        operations,
+        resolved.learnerKey,
+        sessionDeps
+      );
+    },
     createSessionChunk: input => sessionWorkflows.createSessionChunk(input, sessionDeps),
     validateChunkIds: chunkIds => sessionWorkflows.validateChunkIds(chunkIds, sessionDeps),
-    getSessionChunks: sessionId => sessionWorkflows.getSessionChunks(sessionId, sessionDeps),
+    getSessionChunks: sessionId =>
+      sessionWorkflows.getSessionChunks(sessionId, resolveLearnerKeyOrThrow(), sessionDeps),
     resolveSessionChunkDependencies: chunkIds =>
       sessionWorkflows.resolveSessionChunkDependencies(chunkIds, sessionDeps),
 
     // Teaching orchestration
-    getNextTeachingStep: () => teachingWorkflows.getNextTeachingStep(teachingDeps),
-    submitAnswer: input => teachingWorkflows.submitAnswer(input, teachingDeps),
-    startLearning: input => teachingWorkflows.startLearning(input, startLearningDeps),
-    createSessionQuestions: input => teachingWorkflows.createSessionQuestions(input, teachingDeps),
+    getNextTeachingStep: () =>
+      teachingWorkflows.getNextTeachingStep(resolveLearnerKeyOrThrow(), teachingDeps),
+    submitAnswer: input =>
+      teachingWorkflows.submitAnswer(input, resolveLearnerKeyOrThrow(), teachingDeps),
+    startLearning: input =>
+      teachingWorkflows.startLearning(input, resolveLearnerKeyOrThrow(), startLearningDeps),
+    createSessionQuestions: input =>
+      teachingWorkflows.createSessionQuestions(input, resolveLearnerKeyOrThrow(), teachingDeps),
     reviseGrade: input =>
-      teachingWorkflows.reviseGrade(input, {
+      teachingWorkflows.reviseGrade(input, resolveLearnerKeyOrThrow(), {
         sessions: ports.sessions,
         sessionQuestions: ports.sessionQuestions,
         algorithmConfig,
@@ -627,12 +706,25 @@ export function createAppContext(
     applyBatchSessionChunkOperations,
 
     // Remediation orchestration
-    recommendRemediation: sessionId =>
-      remediationWorkflows.recommendRemediation(sessionId, remediationDeps, new Date()),
+    recommendRemediation: sessionId => {
+      const resolved = resolveLearnerKey();
+      if (!resolved.ok)
+        return Promise.resolve(serviceFail({ type: 'validation', message: resolved.message }));
+      return remediationWorkflows.recommendRemediation(
+        sessionId,
+        resolved.learnerKey,
+        remediationDeps,
+        new Date()
+      );
+    },
 
     // Learner context orchestration
     buildLearnerContext: () =>
-      learnerContextWorkflows.buildLearnerContext(learnerContextDeps, new Date()),
+      learnerContextWorkflows.buildLearnerContext(
+        resolveLearnerKeyOrThrow(),
+        learnerContextDeps,
+        new Date()
+      ),
   };
 
   return Object.freeze(ctx);

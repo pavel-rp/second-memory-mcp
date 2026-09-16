@@ -152,9 +152,12 @@ export type TeachingDeps = {
  * 7. Fetch historical feedback
  * 8. Hydrate PromptPack and mark chunk in_progress
  */
-export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNextResponse> {
+export async function getNextTeachingStep(
+  learnerKey: string | null,
+  deps: TeachingDeps
+): Promise<TeachNextResponse> {
   // 1. Get active session
-  const session = await deps.sessions.getActiveSession();
+  const session = await deps.sessions.getActiveSession(learnerKey);
   if (!session) {
     return {
       action: 'error',
@@ -844,6 +847,7 @@ function orderBySessionChunkIds(
  */
 export async function submitAnswer(
   input: SubmitAnswerInput,
+  learnerKey: string | null,
   deps: TeachingDeps
 ): Promise<SubmitAnswerResult> {
   // Retry path: delegate directly to submitAnswerForQuestion, which resolves
@@ -852,12 +856,12 @@ export async function submitAnswer(
   // (late submissions) and avoiding redundant validation already performed by
   // the inline path that created the question.
   if ('sessionQuestionId' in input) {
-    return submitAnswerForQuestion(input, input.sessionQuestionId, deps);
+    return submitAnswerForQuestion(input, input.sessionQuestionId, learnerKey, deps);
   }
 
   // Inline path: create the question, then delegate
   // 1. Get active session
-  const session = await deps.sessions.getActiveSession();
+  const session = await deps.sessions.getActiveSession(learnerKey);
   if (!session) {
     return {
       action: 'error',
@@ -913,7 +917,7 @@ export async function submitAnswer(
   }
 
   // 6. Delegate to shared explicit questions flow
-  return submitAnswerForQuestion(input, created[0].id, deps);
+  return submitAnswerForQuestion(input, created[0].id, learnerKey, deps);
 }
 
 // ── create_session_questions ─────────────────────────────────────
@@ -924,10 +928,11 @@ export async function submitAnswer(
  */
 export async function createSessionQuestions(
   input: CreateSessionQuestionsInput,
+  learnerKey: string | null,
   deps: TeachingDeps
 ): Promise<CreateSessionQuestionsResult> {
   // Validate active session exists
-  const session = await deps.sessions.getActiveSession();
+  const session = await deps.sessions.getActiveSession(learnerKey);
   if (!session) {
     return { action: 'error', message: 'No active session. Call create_session first.' };
   }
@@ -1113,6 +1118,7 @@ function buildCorrectAnswerBlock(chunk: {
 async function submitAnswerForQuestion(
   input: SubmitAnswerInput,
   sessionQuestionId: string,
+  learnerKey: string | null,
   deps: TeachingDeps
 ): Promise<SubmitAnswerResult> {
   // 1. Look up the question
@@ -1122,7 +1128,7 @@ async function submitAnswerForQuestion(
   }
 
   // 1b. Look up the session that owns this question (needed for mode-aware guards)
-  const session = await deps.sessions.getSessionById(question.sessionId);
+  const session = await deps.sessions.getSessionById(question.sessionId, learnerKey);
   if (!session) {
     return { action: 'error', message: 'Session not found for this question.' };
   }
@@ -1730,6 +1736,7 @@ export type StartLearningDeps = {
  */
 export async function startLearning(
   input: StartLearningInput,
+  learnerKey: string | null,
   deps: StartLearningDeps
 ): Promise<StartLearningResult> {
   // 1. Check for active session
@@ -1738,7 +1745,7 @@ export async function startLearning(
     chunks: deps.chunks,
     maxDependencyDepth: deps.algorithmConfig.maxDependencyDepth,
   };
-  const activeSession = await sessionWorkflows.getActiveSession(sessionDeps);
+  const activeSession = await sessionWorkflows.getActiveSession(learnerKey, sessionDeps);
   if (activeSession) {
     // Check if all session chunks are completed (or session is empty)
     const sessionChunks = await deps.sessions.getSessionChunks(activeSession.id);
@@ -1750,6 +1757,7 @@ export async function startLearning(
       const completeResult = await sessionWorkflows.completeSession(
         activeSession.id,
         undefined,
+        learnerKey,
         sessionDeps
       );
       if (!completeResult.success) {
@@ -1771,7 +1779,7 @@ export async function startLearning(
         sessionQuestions: deps.sessionQuestions,
         notes: deps.notes,
       };
-      const firstChunk = await getNextTeachingStep(teachingDeps);
+      const firstChunk = await getNextTeachingStep(learnerKey, teachingDeps);
       logEvent('startLearning', 'session_resumed', { sessionId: activeSession.id });
       return {
         action: 'resumed' as const,
@@ -1829,6 +1837,7 @@ export async function startLearning(
       mode,
       estimatedDuration,
     },
+    learnerKey,
     sessionDeps
   );
 
@@ -1848,7 +1857,7 @@ export async function startLearning(
     sessionQuestions: deps.sessionQuestions,
     notes: deps.notes,
   };
-  const firstChunk = await getNextTeachingStep(teachingDeps);
+  const firstChunk = await getNextTeachingStep(learnerKey, teachingDeps);
 
   logEvent('startLearning', 'session_started', {
     sessionId: sessionResult.data.sessionId,
@@ -1895,10 +1904,11 @@ export type ReviseGradeDeps = {
  */
 export async function reviseGrade(
   input: ReviseGradeInput,
+  learnerKey: string | null,
   deps: ReviseGradeDeps
 ): Promise<ReviseGradeResult> {
   // 1. Active-session gate
-  const session = await deps.sessions.getActiveSession();
+  const session = await deps.sessions.getActiveSession(learnerKey);
   if (!session || session.status !== 'active') {
     return {
       action: 'error',
