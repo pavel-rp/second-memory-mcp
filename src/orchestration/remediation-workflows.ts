@@ -24,11 +24,12 @@ export type RemediationDeps = {
 
 export async function recommendRemediation(
   sessionId: string,
+  learnerKey: string | null,
   deps: RemediationDeps,
   now: Date
 ): Promise<ServiceResult<RemediationPlan>> {
   try {
-    return await recommendRemediationImpl(sessionId, deps, now);
+    return await recommendRemediationImpl(sessionId, learnerKey, deps, now);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     getRequestLogger().error('recommendRemediation unexpected error:', error);
@@ -38,10 +39,11 @@ export async function recommendRemediation(
 
 async function recommendRemediationImpl(
   sessionId: string,
+  learnerKey: string | null,
   deps: RemediationDeps,
   now: Date
 ): Promise<ServiceResult<RemediationPlan>> {
-  const session = await deps.sessions.getSessionById(sessionId);
+  const session = await deps.sessions.getSessionById(sessionId, learnerKey);
   if (!session) {
     return serviceFail({ type: 'not_found', message: `Session not found: ${sessionId}` });
   }
@@ -52,7 +54,7 @@ async function recommendRemediationImpl(
     });
   }
 
-  const sessionInput = await deps.sessions.convertSessionToSessionInput(sessionId);
+  const sessionInput = await deps.sessions.convertSessionToSessionInput(sessionId, learnerKey);
   if (!sessionInput) {
     return serviceFail({ type: 'not_found', message: `Session data unavailable: ${sessionId}` });
   }

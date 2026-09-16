@@ -11,6 +11,15 @@ export type CreateSessionInput = {
   startTime: number;
   createdAt: number;
   updatedAt: number;
+  /**
+   * NEU-1015: the learner-isolation key. On token transports this is the
+   * verified token's raw, non-empty `payload.sub`; on stdio it is the fixed
+   * `STDIO_PLACEHOLDER_LEARNER_KEY` (stdio is slated for deprecation and is
+   * not per-learner scoped). `null` is reserved for the pre-NEU-1015 legacy
+   * row shape; composition-root never resolves it to `null` — a sub-less
+   * token principal is refused before this input is ever constructed.
+   */
+  learnerKey: string | null;
 };
 
 /** Input for updating a session. */
@@ -55,8 +64,18 @@ export type BatchSessionChunkResult = {
  */
 export interface SessionRepository {
   createSession(input: CreateSessionInput): Promise<void>;
-  getSessionById(id: string): Promise<LearningSession | null>;
-  getActiveSession(): Promise<LearningSession | null>;
+  /**
+   * NEU-1015 enforcement point: the only place a `learner_key` predicate is
+   * written for an id-based session lookup. `learnerKey` is required — every
+   * caller either has a resolved key (token `sub` or the stdio placeholder) or
+   * was refused before reaching here.
+   */
+  getSessionById(id: string, learnerKey: string | null): Promise<LearningSession | null>;
+  /**
+   * NEU-1015 enforcement point: the only place a `learner_key` predicate is
+   * written for the active-session lookup.
+   */
+  getActiveSession(learnerKey: string | null): Promise<LearningSession | null>;
   updateSession(id: string, changes: UpdateSessionInput): Promise<number>;
   completeSession(id: string, feedback?: string): Promise<number>;
   deleteSession(id: string): Promise<number>;
@@ -76,12 +95,24 @@ export interface SessionRepository {
   deleteSessionChunk(id: string): Promise<number>;
   batchCreateSessionChunks(inputs: CreateSessionChunkInput[]): Promise<void>;
 
-  getSessionWithChunks(sessionId: string): Promise<{
+  /**
+   * Re-verifies ownership via the now-scoped `getSessionById` internally
+   * (NEU-1015) rather than writing a second `learner_key` predicate here.
+   */
+  getSessionWithChunks(
+    sessionId: string,
+    learnerKey: string | null
+  ): Promise<{
     session: LearningSession | null;
     chunks: SessionChunk[];
   }>;
+  /**
+   * Re-verifies ownership via the now-scoped `getSessionById` internally
+   * (NEU-1015) rather than writing a second `learner_key` predicate here.
+   */
   convertSessionToSessionInput(
     sessionId: string,
+    learnerKey: string | null,
     options?: {
       includeHistoricalFeedback?: boolean;
       historicalFeedbackLimit?: number;

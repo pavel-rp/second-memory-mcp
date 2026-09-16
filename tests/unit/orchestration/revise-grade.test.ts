@@ -158,7 +158,7 @@ describe('reviseGrade', () => {
 
   it('returns session_not_active when no active session', async () => {
     const deps = happyDeps({ session: null });
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     expect(result.action).toBe('error');
     if (result.action !== 'error') throw new Error('unreachable');
     expect(result.error).toBe('session_not_active');
@@ -167,7 +167,7 @@ describe('reviseGrade', () => {
 
   it('returns session_not_active when session status is not active', async () => {
     const deps = happyDeps({ session: makeSession({ status: 'completed' }) });
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     expect(result.action).toBe('error');
     if (result.action !== 'error') throw new Error('unreachable');
     expect(result.error).toBe('session_not_active');
@@ -175,7 +175,7 @@ describe('reviseGrade', () => {
 
   it('returns question_not_found when question is null', async () => {
     const deps = happyDeps({ question: null });
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     expect(result.action).toBe('error');
     if (result.action !== 'error') throw new Error('unreachable');
     expect(result.error).toBe('question_not_found');
@@ -183,7 +183,7 @@ describe('reviseGrade', () => {
 
   it('returns question_not_found when question belongs to another session', async () => {
     const deps = happyDeps({ question: makeQuestion({ sessionId: 'other-session' }) });
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     expect(result.action).toBe('error');
     if (result.action !== 'error') throw new Error('unreachable');
     expect(result.error).toBe('question_not_found');
@@ -191,7 +191,7 @@ describe('reviseGrade', () => {
 
   it('returns question_not_found when no chunk linkage exists', async () => {
     const deps = happyDeps({ chunkIds: [], sessionChunks: [] });
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     expect(result.action).toBe('error');
     if (result.action !== 'error') throw new Error('unreachable');
     expect(result.error).toBe('question_not_found');
@@ -201,7 +201,7 @@ describe('reviseGrade', () => {
     const deps = happyDeps({
       sessionChunks: [makeSessionChunk({ status: 'completed' })],
     });
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     expect(result.action).toBe('error');
     if (result.action !== 'error') throw new Error('unreachable');
     expect(result.error).toBe('chunk_already_finalized');
@@ -210,7 +210,7 @@ describe('reviseGrade', () => {
 
   it('returns attempt_not_found when no attempt has been recorded', async () => {
     const deps = happyDeps({ attempts: [] });
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     expect(result.action).toBe('error');
     if (result.action !== 'error') throw new Error('unreachable');
     expect(result.error).toBe('attempt_not_found');
@@ -225,7 +225,7 @@ describe('reviseGrade', () => {
       reason: 'agent_misread_prompt',
     });
     const deps = happyDeps({ priorRevisions: [matching] });
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     expect(result.action).toBe('noop_already_revised');
     if (result.action !== 'noop_already_revised') throw new Error('unreachable');
     expect(result.revision_id).toBe(matching.id);
@@ -234,7 +234,7 @@ describe('reviseGrade', () => {
 
   it('persists the revision and returns success on the happy path', async () => {
     const deps = happyDeps();
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     expect(result.action).toBe('revised');
     if (result.action !== 'revised') throw new Error('unreachable');
     expect(result.revised_attempt.attempt_id).toBe('a1');
@@ -250,7 +250,7 @@ describe('reviseGrade', () => {
   it('derives new_passed=false from a mapper quality < 3', async () => {
     const deps = happyDeps();
     // Rubric mapping to quality 2 (recurrence only) → non-pass.
-    const result = await reviseGrade({ ...baseInput, grading: rubricForQuality(2) }, deps);
+    const result = await reviseGrade({ ...baseInput, grading: rubricForQuality(2) }, null, deps);
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
     expect(result.revised_attempt.new_quality).toBe(2);
     expect(result.revised_attempt.new_passed).toBe(false);
@@ -259,7 +259,7 @@ describe('reviseGrade', () => {
   it('derives new_passed=true from a mapper quality >= 3 (no agent override)', async () => {
     const deps = happyDeps();
     // Rubric mapping to quality 5 (all four criteria) → pass, deterministically.
-    const result = await reviseGrade({ ...baseInput, grading: rubricForQuality(5) }, deps);
+    const result = await reviseGrade({ ...baseInput, grading: rubricForQuality(5) }, null, deps);
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
     expect(result.revised_attempt.new_quality).toBe(5);
     expect(result.revised_attempt.new_passed).toBe(true);
@@ -293,7 +293,7 @@ describe('reviseGrade', () => {
       algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
       notes: stubNotesRepository(),
     };
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
     expect(result.roadblock_cancelled).toBe(true);
   });
@@ -321,7 +321,7 @@ describe('reviseGrade', () => {
       algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
       notes: stubNotesRepository(),
     };
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
     expect(result.roadblock_cancelled).toBe(false);
   });
@@ -358,7 +358,7 @@ describe('reviseGrade', () => {
       algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
       notes,
     };
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
     const createNoteMock = notes.createNote as ReturnType<typeof vi.fn>;
     expect(createNoteMock).toHaveBeenCalledTimes(1);
@@ -389,7 +389,7 @@ describe('reviseGrade', () => {
       algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
       notes,
     };
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
     const createNoteMock = notes.createNote as ReturnType<typeof vi.fn>;
     expect(createNoteMock.mock.calls[0]?.[0]?.targetId).toBe('c1');
@@ -397,7 +397,7 @@ describe('reviseGrade', () => {
 
   it('skips note creation when notes dep is absent and returns empty note_id', async () => {
     const deps = happyDeps({ withNotes: false });
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
     expect(result.note_id).toBe('');
   });
@@ -407,7 +407,7 @@ describe('reviseGrade', () => {
       createNote: vi.fn().mockRejectedValue(new Error('db down')),
     });
     const deps = happyDeps({ notesOverride: failingNotes });
-    const result = await reviseGrade(baseInput, deps);
+    const result = await reviseGrade(baseInput, null, deps);
     expect(result.action).toBe('revised');
     if (result.action !== 'revised') throw new Error('unreachable');
     expect(result.note_id).toBe('');
@@ -437,6 +437,7 @@ describe('reviseGrade — rebuttal-invariance (NEU-929)', () => {
         newFeedback: BARE_REBUTTAL,
         reason: 'learner_provided_clarification',
       },
+      null,
       deps
     );
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
@@ -458,6 +459,7 @@ describe('reviseGrade — rebuttal-invariance (NEU-929)', () => {
         newFeedback: BARE_REBUTTAL,
         reason: 'learner_provided_clarification',
       },
+      null,
       deps
     );
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
@@ -475,6 +477,7 @@ describe('reviseGrade — rebuttal-invariance (NEU-929)', () => {
         newFeedback: 'Minor clarifying note.',
         reason: 'other',
       },
+      null,
       happyDeps()
     );
     const persuasive = await reviseGrade(
@@ -484,6 +487,7 @@ describe('reviseGrade — rebuttal-invariance (NEU-929)', () => {
         newFeedback: BARE_REBUTTAL.repeat(3),
         reason: 'other',
       },
+      null,
       happyDeps()
     );
     if (mild.action !== 'revised' || persuasive.action !== 'revised') {
@@ -504,6 +508,7 @@ describe('reviseGrade — rebuttal-invariance (NEU-929)', () => {
         newFeedback: 'On review the recurrence, base case, and iteration order were all evidenced.',
         reason: 'agent_misjudged_correctness',
       },
+      null,
       deps
     );
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);

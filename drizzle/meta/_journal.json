@@ -176,6 +176,13 @@
       "when": 1774270000000,
       "tag": "0024_add_attempt_scheduling_snapshot",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1774280000000,
+      "tag": "0025_add_learning_sessions_learner_key",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, inArray } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, isNull } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { getSql, withTx, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
@@ -34,6 +34,18 @@ import { logger } from '../../shared/logger.js';
 export class DrizzleSessionRepository implements SessionRepository {
   constructor(private db: SqlDb = getSql()) {}
 
+  /**
+   * NEU-1015: build the `learner_key` predicate. `null` uses `IS NULL` (matches
+   * only pre-NEU-1015 legacy unkeyed rows) rather than `= NULL`, which would
+   * match no rows in SQL. In practice callers always pass a real string — a
+   * sub-less token principal is refused one layer up and never reaches here.
+   */
+  private learnerKeyPredicate(learnerKey: string | null) {
+    return learnerKey === null
+      ? isNull(learningSessions.learnerKey)
+      : eq(learningSessions.learnerKey, learnerKey);
+  }
+
   async createSession(input: CreateSessionInput): Promise<void> {
     const row: NewLearningSessionRow = {
       id: input.id,
@@ -45,6 +57,7 @@ export class DrizzleSessionRepository implements SessionRepository {
       startTime: input.startTime,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
+      learnerKey: input.learnerKey,
     };
     // Atomic: session row + auto-created session chunks in a single transaction
     await this.db.transaction(async tx => {
@@ -65,16 +78,19 @@ export class DrizzleSessionRepository implements SessionRepository {
     });
   }
 
-  async getSessionById(id: string): Promise<LearningSession | null> {
-    const [row] = await this.db.select().from(learningSessions).where(eq(learningSessions.id, id));
-    return row || null;
-  }
-
-  async getActiveSession(): Promise<LearningSession | null> {
+  async getSessionById(id: string, learnerKey: string | null): Promise<LearningSession | null> {
     const [row] = await this.db
       .select()
       .from(learningSessions)
-      .where(eq(learningSessions.status, 'active'))
+      .where(and(eq(learningSessions.id, id), this.learnerKeyPredicate(learnerKey)));
+    return row || null;
+  }
+
+  async getActiveSession(learnerKey: string | null): Promise<LearningSession | null> {
+    const [row] = await this.db
+      .select()
+      .from(learningSessions)
+      .where(and(eq(learningSessions.status, 'active'), this.learnerKeyPredicate(learnerKey)))
       .orderBy(desc(learningSessions.createdAt));
     return row || null;
   }
@@ -182,18 +198,20 @@ export class DrizzleSessionRepository implements SessionRepository {
   }
 
   async getSessionWithChunks(
-    sessionId: string
+    sessionId: string,
+    learnerKey: string | null
   ): Promise<{ session: LearningSession | null; chunks: SessionChunk[] }> {
-    const session = await this.getSessionById(sessionId);
+    const session = await this.getSessionById(sessionId, learnerKey);
     const chunks = session ? await this.getSessionChunks(sessionId) : [];
     return { session, chunks };
   }
 
   async convertSessionToSessionInput(
     sessionId: string,
+    learnerKey: string | null,
     options?: { includeHistoricalFeedback?: boolean; historicalFeedbackLimit?: number }
   ): Promise<SessionInput | null> {
-    const session = await this.getSessionById(sessionId);
+    const session = await this.getSessionById(sessionId, learnerKey);
     if (!session) return null;
 
     const sessionChunkRows = await this.getSessionChunks(sessionId);

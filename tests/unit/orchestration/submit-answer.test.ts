@@ -235,7 +235,7 @@ describe('submitAnswer', () => {
       sessions: { getActiveSession: vi.fn().mockResolvedValue(null) },
     });
 
-    const result = await submitAnswer(makeInput(), deps);
+    const result = await submitAnswer(makeInput(), null, deps);
 
     expect(result.action).toBe('error');
     expect(result).toHaveProperty('message');
@@ -255,7 +255,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput(), deps);
+    const result = await submitAnswer(makeInput(), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('No in-progress chunk');
@@ -276,7 +276,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -303,7 +303,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 1 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 1 }), null, deps);
 
     expect(result.action).toBe('retry');
     if (result.action !== 'retry') throw new Error('Expected retry');
@@ -342,7 +342,11 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 3 }), deps);
+    const result = await submitAnswer(
+      makeInput({ sessionQuestionId: 'sq-1', quality: 3 }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -379,7 +383,11 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+    const result = await submitAnswer(
+      makeInput({ sessionQuestionId: 'sq-1', quality: 1 }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -413,7 +421,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+    await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), null, deps);
 
     const statusCalls = vi
       .mocked(deps.sessions.updateSessionChunk)
@@ -436,7 +444,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    await submitAnswer(makeInput({ quality: 5 }), deps);
+    await submitAnswer(makeInput({ quality: 5 }), null, deps);
 
     const statusCalls = vi
       .mocked(deps.sessions.updateSessionChunk)
@@ -459,7 +467,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 4 }), deps);
+    await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 4 }), null, deps);
 
     const statusCalls = vi
       .mocked(deps.sessions.updateSessionChunk)
@@ -498,7 +506,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -530,6 +538,7 @@ describe('submitAnswer', () => {
         feedback: 'Correct explanation',
         timeSpentMs: 8000,
       }),
+      null,
       deps
     );
 
@@ -562,7 +571,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 5 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 5 }), null, deps);
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -584,7 +593,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 5 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 5 }), null, deps);
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -605,7 +614,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    await submitAnswer(makeInput({ quality: 1 }), deps);
+    await submitAnswer(makeInput({ quality: 1 }), null, deps);
 
     // createAttempt should have been called with agent-provided quality
     expect(deps.sessionQuestions.createAttempt).toHaveBeenCalledWith(
@@ -656,6 +665,7 @@ describe('submitAnswer', () => {
 
     await submitAnswer(
       makeInput({ sessionQuestionId: 'sq-1', response: 'A2', quality: 3, timeSpentMs: 3000 }),
+      null,
       deps
     );
 
@@ -686,7 +696,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    await submitAnswer(makeInput({ quality: 5 }), deps);
+    await submitAnswer(makeInput({ quality: 5 }), null, deps);
 
     expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
   });
@@ -722,7 +732,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 5 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 5 }), null, deps);
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -748,7 +758,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 5 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 5 }), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('Failed to create session question');
@@ -769,7 +779,11 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 5 }), deps);
+    const result = await submitAnswer(
+      makeInput({ sessionQuestionId: 'sq-1', quality: 5 }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('Max 2 attempts');
@@ -788,7 +802,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 5 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 5 }), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toBe('Attempt already recorded');
@@ -806,7 +820,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    await expect(submitAnswer(makeInput({ quality: 5 }), deps)).rejects.toThrow(
+    await expect(submitAnswer(makeInput({ quality: 5 }), null, deps)).rejects.toThrow(
       'duplicate key value violates unique constraint'
     );
   });
@@ -819,7 +833,9 @@ describe('submitAnswer', () => {
       },
     });
 
-    await expect(submitAnswer(makeInput({ quality: 5 }), deps)).rejects.toThrow('connection lost');
+    await expect(submitAnswer(makeInput({ quality: 5 }), null, deps)).rejects.toThrow(
+      'connection lost'
+    );
   });
 
   // NEU-117: Inline submitAnswer returns error when createQuestions throws unique violation
@@ -836,7 +852,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput(), deps);
+    const result = await submitAnswer(makeInput(), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toBe(
@@ -858,7 +874,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    await expect(submitAnswer(makeInput({ quality: 5 }), deps)).rejects.toThrow(
+    await expect(submitAnswer(makeInput({ quality: 5 }), null, deps)).rejects.toThrow(
       'duplicate key value violates unique constraint'
     );
   });
@@ -873,13 +889,15 @@ describe('submitAnswer', () => {
       },
     });
 
-    await expect(submitAnswer(makeInput({ quality: 5 }), deps)).rejects.toThrow('connection lost');
+    await expect(submitAnswer(makeInput({ quality: 5 }), null, deps)).rejects.toThrow(
+      'connection lost'
+    );
   });
 
   // Inline: chunkIds mismatch → error
   it('returns error when inline chunkIds does not match in-progress chunk', async () => {
     const deps = makeDeps();
-    const result = await submitAnswer(makeInput({ chunkIds: ['c-wrong'] }), deps);
+    const result = await submitAnswer(makeInput({ chunkIds: ['c-wrong'] }), null, deps);
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('in-progress chunk');
   });
@@ -887,7 +905,7 @@ describe('submitAnswer', () => {
   // Inline: multiple chunkIds in teaching mode → error
   it('returns error when inline chunkIds has multiple entries in teaching mode', async () => {
     const deps = makeDeps();
-    const result = await submitAnswer(makeInput({ chunkIds: ['c1', 'c2'] }), deps);
+    const result = await submitAnswer(makeInput({ chunkIds: ['c1', 'c2'] }), null, deps);
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('in-progress chunk');
   });
@@ -895,7 +913,7 @@ describe('submitAnswer', () => {
   // Inline: session_question_id returned in retry response
   it('returns session_question_id in retry response', async () => {
     const deps = makeDeps();
-    const result = await submitAnswer(makeInput({ quality: 1 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 1 }), null, deps);
     expect(result.action).toBe('retry');
     if (result.action !== 'retry') throw new Error('Expected retry');
     expect(result.session_question_id).toBe('sq-created');
@@ -904,7 +922,7 @@ describe('submitAnswer', () => {
   // Inline: session_question_id returned in recorded response
   it('returns session_question_id in recorded response', async () => {
     const deps = makeDeps();
-    const result = await submitAnswer(makeInput(), deps);
+    const result = await submitAnswer(makeInput(), null, deps);
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.session_question_id).toBe('sq-created');
@@ -924,7 +942,7 @@ describe('submitAnswer', () => {
         getQuestionsForSession: vi.fn().mockResolvedValue([]),
       },
     });
-    const result = await submitAnswer(makeInput(), deps);
+    const result = await submitAnswer(makeInput(), null, deps);
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('concurrent');
   });
@@ -943,7 +961,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 3 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 3 }), null, deps);
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -961,7 +979,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 2 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 2 }), null, deps);
 
     expect(result.action).toBe('retry');
     if (result.action !== 'retry') throw new Error('Expected retry');
@@ -980,7 +998,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 0 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 0 }), null, deps);
 
     expect(result.action).toBe('retry');
   });
@@ -998,7 +1016,7 @@ describe('submitAnswer', () => {
     });
 
     // A legacy passed=true is ignored — pass/fail is mapper-derived. quality 2 < 3 → fail → retry.
-    const result = await submitAnswer(makeInput({ passed: true, quality: 2 }), deps);
+    const result = await submitAnswer(makeInput({ passed: true, quality: 2 }), null, deps);
 
     expect(result.action).toBe('retry');
     if (result.action !== 'retry') throw new Error('Expected retry');
@@ -1017,7 +1035,7 @@ describe('submitAnswer', () => {
     });
 
     // A legacy passed=false is ignored — pass/fail is mapper-derived. quality 4 >= 3 → pass.
-    const result = await submitAnswer(makeInput({ passed: false, quality: 4 }), deps);
+    const result = await submitAnswer(makeInput({ passed: false, quality: 4 }), null, deps);
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -1039,7 +1057,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 3 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 3 }), null, deps);
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -1061,7 +1079,11 @@ describe('submitAnswer', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 0 }), deps);
+    const result = await submitAnswer(
+      makeInput({ sessionQuestionId: 'sq-1', quality: 0 }),
+      null,
+      deps
+    );
 
     // Second attempt always records, never retries
     expect(result.action).toBe('recorded');
@@ -1087,6 +1109,7 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(
       makeInput({ quality: 4, questionType: 'analyze_create' }),
+      null,
       deps
     );
 
@@ -1109,7 +1132,7 @@ describe('submitAnswer', () => {
       },
     });
 
-    await submitAnswer(makeInput({ quality: 3, questionType: 'analyze_create' }), deps);
+    await submitAnswer(makeInput({ quality: 3, questionType: 'analyze_create' }), null, deps);
 
     expect(deps.sessionQuestions.createAttempt).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1173,7 +1196,7 @@ describe('submitAnswer', () => {
       ['recall', 'Give specific feedback on what was wrong'],
     ] as const)('returns correct pivot for %s approach', async (approach, expectedStart) => {
       const deps = retryDeps(approach);
-      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), null, deps);
 
       expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
@@ -1190,7 +1213,7 @@ describe('submitAnswer', () => {
       'roadblock forecast for quality %d → required_followups %d',
       async (quality, expectedFollowups) => {
         const deps = retryDeps('recall', quality);
-        const result = await submitAnswer(makeInput({ quality, passed: false }), deps);
+        const result = await submitAnswer(makeInput({ quality, passed: false }), null, deps);
 
         expect(result.action).toBe('retry');
         const retry = result as SubmitAnswerRetry;
@@ -1202,7 +1225,7 @@ describe('submitAnswer', () => {
 
     it('quality_floor is always 3', async () => {
       const deps = retryDeps('scaffold', 1);
-      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), null, deps);
 
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance!.roadblock.quality_floor).toBe(3);
@@ -1210,7 +1233,7 @@ describe('submitAnswer', () => {
 
     it('completed_followups is always 0 on first retry', async () => {
       const deps = retryDeps('cued_recall', 2);
-      const result = await submitAnswer(makeInput({ quality: 2, passed: false }), deps);
+      const result = await submitAnswer(makeInput({ quality: 2, passed: false }), null, deps);
 
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance!.roadblock.completed_followups).toBe(0);
@@ -1261,7 +1284,7 @@ describe('submitAnswer', () => {
       });
 
       // The rubric maps to 5 but the cap reduces it to 3.
-      const result = await submitAnswer(makeInput({ quality: 5 }), deps);
+      const result = await submitAnswer(makeInput({ quality: 5 }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -1295,7 +1318,11 @@ describe('submitAnswer', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+      const result = await submitAnswer(
+        makeInput({ sessionQuestionId: 'sq-1', quality: 1 }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       expect(result).not.toHaveProperty('retry_guidance');
@@ -1303,7 +1330,7 @@ describe('submitAnswer', () => {
 
     it('omits retry_guidance when teachingApproach is null', async () => {
       const deps = retryDeps(null);
-      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), null, deps);
 
       expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
@@ -1312,7 +1339,7 @@ describe('submitAnswer', () => {
 
     it('omits retry_guidance when teachingApproach is an unrecognized string', async () => {
       const deps = retryDeps('unknown_tier');
-      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), null, deps);
 
       expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
@@ -1333,7 +1360,7 @@ describe('submitAnswer', () => {
         },
         algorithmConfig: { roadblockFollowups: {} },
       });
-      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), null, deps);
 
       expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
@@ -1382,7 +1409,7 @@ describe('submitAnswer', () => {
 
     it('quality 3 + passed → includes roadblock_forecast', async () => {
       const deps = makeDeps(singleAttemptMocks(3));
-      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), deps);
+      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -1396,7 +1423,7 @@ describe('submitAnswer', () => {
 
     it('quality 4 + passed → includes roadblock_forecast', async () => {
       const deps = makeDeps(singleAttemptMocks(4));
-      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), deps);
+      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -1410,7 +1437,7 @@ describe('submitAnswer', () => {
 
     it('quality 5 + passed → no roadblock_forecast', async () => {
       const deps = makeDeps(singleAttemptMocks(5));
-      const result = await submitAnswer(makeInput({ quality: 5, passed: true }), deps);
+      const result = await submitAnswer(makeInput({ quality: 5, passed: true }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -1460,6 +1487,7 @@ describe('submitAnswer', () => {
 
       const result = await submitAnswer(
         makeInput({ sessionQuestionId: 'sq-1', quality: 2, passed: false }),
+        null,
         deps
       );
 
@@ -1477,7 +1505,7 @@ describe('submitAnswer', () => {
         ...singleAttemptMocks(3),
         algorithmConfig: { roadblockFollowups: {} },
       });
-      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), deps);
+      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -1562,7 +1590,7 @@ describe('submitAnswer', () => {
         ...twoQuestionMocks(3, 4),
         algorithmConfig: { roadblockFollowups: { 3: 2, 4: 1, 5: 0 } },
       });
-      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), deps);
+      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -1573,7 +1601,7 @@ describe('submitAnswer', () => {
     it('current attempt qualifies → completed_followups: 1, remaining decrements to 0 → omits forecast', async () => {
       // Default config: roadblockFollowups[3] === 1. Prior=3, current=4 → completed=1, remaining=0.
       const deps = makeDeps(twoQuestionMocks(3, 4));
-      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), deps);
+      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -1587,7 +1615,7 @@ describe('submitAnswer', () => {
         ...twoQuestionMocks(3, 4),
         algorithmConfig: { roadblockFollowups: { 3: 2, 4: 1, 5: 0 } },
       });
-      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), deps);
+      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -1633,7 +1661,11 @@ describe('submitAnswer', () => {
         ),
       });
 
-      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+      const result = await submitAnswer(
+        makeInput({ sessionQuestionId: 'sq-1', quality: 1 }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -1650,7 +1682,11 @@ describe('submitAnswer', () => {
         getById: vi.fn().mockRejectedValue(new Error('db unavailable')),
       });
 
-      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+      const result = await submitAnswer(
+        makeInput({ sessionQuestionId: 'sq-1', quality: 1 }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -1664,7 +1700,11 @@ describe('submitAnswer', () => {
         getById: vi.fn().mockRejectedValue('boom'),
       });
 
-      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+      const result = await submitAnswer(
+        makeInput({ sessionQuestionId: 'sq-1', quality: 1 }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -1678,7 +1718,11 @@ describe('submitAnswer', () => {
         getById: vi.fn().mockResolvedValue(undefined),
       });
 
-      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+      const result = await submitAnswer(
+        makeInput({ sessionQuestionId: 'sq-1', quality: 1 }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -1725,7 +1769,7 @@ describe('submitAnswer', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+      const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -1748,7 +1792,7 @@ describe('submitAnswer', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 1 }), deps);
+      const result = await submitAnswer(makeInput({ quality: 1 }), null, deps);
 
       expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
@@ -1771,8 +1815,8 @@ describe('submitAnswer', () => {
         },
       });
 
-      const first = await submitAnswer(makeInput({ quality: 4 }), deps);
-      const second = await submitAnswer(makeInput({ quality: 4 }), deps);
+      const first = await submitAnswer(makeInput({ quality: 4 }), null, deps);
+      const second = await submitAnswer(makeInput({ quality: 4 }), null, deps);
 
       expect((first as SubmitAnswerRecorded).session_advisory?.kind).toBe('fatigue');
       expect((second as SubmitAnswerRecorded).session_advisory?.kind).toBe('fatigue');
@@ -1827,6 +1871,7 @@ describe('submitAnswer', () => {
 
       const result = await submitAnswer(
         makeInput({ sessionQuestionId: 'sq-1', quality: 2, passed: false }),
+        null,
         deps
       );
 
@@ -1864,7 +1909,7 @@ describe('submitAnswer', () => {
         });
 
       try {
-        const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+        const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
 
         expect(result.action).toBe('recorded');
         const recorded = result as SubmitAnswerRecorded;
@@ -1898,7 +1943,7 @@ describe('submitAnswer', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), deps);
+      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -1990,7 +2035,7 @@ describe('submitAnswer', () => {
 
       // quality 4 is a pass → recorded path, which still emits the gate-aligned
       // roadblock_forecast computed from the same session-wide attempt snapshot.
-      const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+      const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -2016,7 +2061,7 @@ describe('submitAnswer', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), deps);
+      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -2038,7 +2083,7 @@ describe('submitAnswer', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 5, passed: true }), deps);
+      const result = await submitAnswer(makeInput({ quality: 5, passed: true }), null, deps);
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
@@ -2067,7 +2112,7 @@ describe('submitAnswer', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), null, deps);
 
       expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
@@ -2105,7 +2150,7 @@ describe('submitAnswer', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), null, deps);
 
       expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
@@ -2232,6 +2277,7 @@ describe('createSessionQuestions', () => {
           { promptText: 'Q2', chunkIds: ['c1'] },
         ],
       },
+      null,
       deps
     );
 
@@ -2246,6 +2292,7 @@ describe('createSessionQuestions', () => {
 
     const result = await createSessionQuestions(
       { sessionId: 'sess-1', questions: [{ promptText: 'Q1', chunkIds: ['c-missing'] }] },
+      null,
       deps
     );
 
@@ -2268,6 +2315,7 @@ describe('createSessionQuestions', () => {
 
     const result = await createSessionQuestions(
       { sessionId: 'sess-1', questions: [{ promptText: 'Q1', chunkIds: ['c1'] }] },
+      null,
       deps
     );
 
@@ -2292,6 +2340,7 @@ describe('createSessionQuestions', () => {
 
     const result = await createSessionQuestions(
       { sessionId: 'sess-1', questions: [{ promptText: 'Q2', chunkIds: ['c1'] }] },
+      null,
       deps
     );
 
@@ -2324,6 +2373,7 @@ describe('createSessionQuestions', () => {
 
     const result = await createSessionQuestions(
       { sessionId: 'sess-1', questions: [{ promptText: 'Q3', chunkIds: ['c1'] }] },
+      null,
       deps
     );
 
@@ -2343,6 +2393,7 @@ describe('createSessionQuestions', () => {
 
     const result = await createSessionQuestions(
       { sessionId: 'sess-1', questions: [{ promptText: 'Q1', chunkIds: ['c1'] }] },
+      null,
       deps
     );
 
@@ -2359,6 +2410,7 @@ describe('createSessionQuestions', () => {
 
     const result = await createSessionQuestions(
       { sessionId: 'other-session', questions: [{ promptText: 'Q1', chunkIds: ['c1'] }] },
+      null,
       deps
     );
 
@@ -2384,6 +2436,7 @@ describe('createSessionQuestions', () => {
 
     const result = await createSessionQuestions(
       { sessionId: 'sess-1', questions: [{ promptText: 'Q1', chunkIds: ['c1'] }] },
+      null,
       deps
     );
 
@@ -2408,6 +2461,7 @@ describe('createSessionQuestions', () => {
     await expect(
       createSessionQuestions(
         { sessionId: 'sess-1', questions: [{ promptText: 'Q1', chunkIds: ['c1'] }] },
+        null,
         deps
       )
     ).rejects.toThrow('duplicate key value violates unique constraint');
@@ -2424,6 +2478,7 @@ describe('createSessionQuestions', () => {
     await expect(
       createSessionQuestions(
         { sessionId: 'sess-1', questions: [{ promptText: 'Q1', chunkIds: ['c1'] }] },
+        null,
         deps
       )
     ).rejects.toThrow('connection lost');
@@ -2439,7 +2494,11 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 2, sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(
+      makeInput({ quality: 2, sessionQuestionId: 'sq-1' }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('retry');
     if (result.action !== 'retry') throw new Error('Expected retry');
@@ -2464,7 +2523,11 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 4, sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(
+      makeInput({ quality: 4, sessionQuestionId: 'sq-1' }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -2483,7 +2546,11 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 3, sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(
+      makeInput({ quality: 3, sessionQuestionId: 'sq-1' }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -2498,7 +2565,11 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(
+      makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -2513,7 +2584,7 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+    await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), null, deps);
 
     expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
     const statusCalls = vi
@@ -2529,7 +2600,7 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('is already answered');
@@ -2542,7 +2613,7 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('"skipped"');
@@ -2565,7 +2636,7 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('expected "in_progress"');
@@ -2581,7 +2652,11 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 1, sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(
+      makeInput({ quality: 1, sessionQuestionId: 'sq-1' }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -2597,7 +2672,7 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-missing' }), deps);
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-missing' }), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('not found');
@@ -2613,10 +2688,12 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), null, deps);
 
     expect(result.action).toBe('error');
-    expect((result as { message: string }).message).toContain('Session not found');
+    // NEU-1015: normalized to the same "question not found" message as an unknown question id
+    // (no cross-learner existence oracle) — see the dedicated test below for the full proof.
+    expect((result as { message: string }).message).toContain('not found');
   });
 
   it('returns error when max attempts exceeded', async () => {
@@ -2632,7 +2709,7 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('Max 2 attempts');
@@ -2650,14 +2727,30 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('not found');
   });
 
-  it('returns error when session not found in question flow', async () => {
-    const deps = makeQuestionDeps({
+  it('returns the same not-found message whether the question or its session is missing (NEU-1015: no cross-learner existence oracle)', async () => {
+    // A question that exists but whose session belongs to another learner (getSessionById
+    // returns null under a scoped learnerKey lookup) must be indistinguishable from a
+    // question that doesn't exist at all — otherwise a caller could tell "no such question"
+    // apart from "that question belongs to someone else", leaking the existence of another
+    // learner's session question.
+    const questionNotFoundDeps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(null),
+      },
+    });
+    const questionNotFoundResult = await submitAnswer(
+      makeInput({ sessionQuestionId: 'sq-1' }),
+      null,
+      questionNotFoundDeps
+    );
+
+    const sessionNotFoundDeps = makeQuestionDeps({
       sessions: {
         getSessionById: vi.fn().mockResolvedValue(null),
       },
@@ -2665,17 +2758,24 @@ describe('submitAnswer with session_question_id', () => {
         getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
       },
     });
+    const sessionNotFoundResult = await submitAnswer(
+      makeInput({ sessionQuestionId: 'sq-1' }),
+      null,
+      sessionNotFoundDeps
+    );
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
-
-    expect(result.action).toBe('error');
-    expect((result as { message: string }).message).toContain('Session not found');
+    expect(questionNotFoundResult.action).toBe('error');
+    expect(sessionNotFoundResult.action).toBe('error');
+    expect((sessionNotFoundResult as { message: string }).message).toBe(
+      (questionNotFoundResult as { message: string }).message
+    );
+    expect((sessionNotFoundResult as { message: string }).message).toContain('not found');
   });
 
   it('uses inline path when session_question_id is absent', async () => {
     const deps = makeDeps();
 
-    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
 
     // Inline path: creates a new question via createQuestions
     expect(result.action).toBe('recorded');
@@ -2699,7 +2799,11 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(
+      makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toBe('Attempt already recorded');
@@ -2720,7 +2824,7 @@ describe('submitAnswer with session_question_id', () => {
     });
 
     await expect(
-      submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps)
+      submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), null, deps)
     ).rejects.toThrow('duplicate key value violates unique constraint');
   });
 
@@ -2735,7 +2839,7 @@ describe('submitAnswer with session_question_id', () => {
     });
 
     await expect(
-      submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps)
+      submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), null, deps)
     ).rejects.toThrow('connection lost');
   });
 
@@ -2747,7 +2851,11 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(
+      makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('error');
     if (result.action !== 'error') throw new Error('Expected error');
@@ -2763,7 +2871,11 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 4, sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(
+      makeInput({ quality: 4, sessionQuestionId: 'sq-1' }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -2821,6 +2933,7 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(
         makeInput({ quality: 5, sessionQuestionId: 'sq-1', timeSpentMs: 6000 }),
+        null,
         deps
       );
 
@@ -2835,7 +2948,11 @@ describe('submitAnswer with session_question_id', () => {
     it('assessment fail records the mapper quality with no retry (no binary collapse)', async () => {
       const deps = makeAssessmentDeps();
 
-      const result = await submitAnswer(makeInput({ quality: 1, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 1, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -2852,7 +2969,11 @@ describe('submitAnswer with session_question_id', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('error');
       if (result.action !== 'error') throw new Error('Expected error');
@@ -2864,6 +2985,7 @@ describe('submitAnswer with session_question_id', () => {
 
       await submitAnswer(
         makeInput({ quality: 5, sessionQuestionId: 'sq-1', timeSpentMs: 10000 }),
+        null,
         deps
       );
 
@@ -2875,7 +2997,11 @@ describe('submitAnswer with session_question_id', () => {
     it('leaves the snapshot NULL for a multi-chunk assessment attempt', async () => {
       const deps = makeAssessmentDeps();
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
       expect(result.action).toBe('recorded');
 
       const attempt = lastAttemptInput(deps);
@@ -2890,7 +3016,7 @@ describe('submitAnswer with session_question_id', () => {
     it('assessment marks session_chunks completed when all questions answered', async () => {
       const deps = makeAssessmentDeps();
 
-      await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), null, deps);
 
       // Both sc-1 (c1) and sc-2 (c2) should be marked completed
       expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
@@ -2918,7 +3044,11 @@ describe('submitAnswer with session_question_id', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
     });
@@ -2939,7 +3069,11 @@ describe('submitAnswer with session_question_id', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('error');
       if (result.action !== 'error') throw new Error('Expected error');
@@ -2954,7 +3088,11 @@ describe('submitAnswer with session_question_id', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       // Aligned with teaching mode: SR failures are now fatal
       expect(result.action).toBe('error');
@@ -2979,7 +3117,11 @@ describe('submitAnswer with session_question_id', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       // The key assertion: no "completed" status update since already completed
@@ -2999,7 +3141,11 @@ describe('submitAnswer with session_question_id', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 1, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 1, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       // Should still succeed — missing chunks are gracefully skipped
       expect(result.action).toBe('recorded');
@@ -3032,7 +3178,11 @@ describe('submitAnswer with session_question_id', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -3080,7 +3230,11 @@ describe('submitAnswer with session_question_id', () => {
     it('records answer against a completed session with late_submission flag', async () => {
       const deps = makeLateSubmissionDeps();
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -3090,7 +3244,11 @@ describe('submitAnswer with session_question_id', () => {
     it('does not trigger SR update on late submission (deferred to teach_next)', async () => {
       const deps = makeLateSubmissionDeps();
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -3102,7 +3260,11 @@ describe('submitAnswer with session_question_id', () => {
     it('returns static complete response for next field on late submission', async () => {
       const deps = makeLateSubmissionDeps();
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -3134,7 +3296,11 @@ describe('submitAnswer with session_question_id', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -3157,7 +3323,11 @@ describe('submitAnswer with session_question_id', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
 
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
@@ -3175,7 +3345,7 @@ describe('submitAnswer with session_question_id', () => {
     });
 
     // No sessionQuestionId → inline flow
-    const result = await submitAnswer(makeInput(), deps);
+    const result = await submitAnswer(makeInput(), null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('No active session');
@@ -3191,7 +3361,11 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 1, sessionQuestionId: 'sq-1' }), deps);
+    const result = await submitAnswer(
+      makeInput({ quality: 1, sessionQuestionId: 'sq-1' }),
+      null,
+      deps
+    );
 
     expect(result.action).toBe('retry');
     expect('reflect' in result).toBe(false);
@@ -3204,7 +3378,7 @@ describe('submitAnswer with session_question_id', () => {
       },
     });
 
-    const result = await submitAnswer(makeInput(), deps);
+    const result = await submitAnswer(makeInput(), null, deps);
 
     expect(result.action).toBe('error');
     expect('reflect' in result).toBe(false);
@@ -3594,7 +3768,7 @@ describe('submit_answer scheduling snapshot', () => {
     });
     const deps = makeDeps({ chunks: { getById: vi.fn().mockResolvedValue(chunk) } });
 
-    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
     expect(result.action).toBe('recorded');
 
     const attempt = lastAttemptInput(deps);
@@ -3630,7 +3804,7 @@ describe('submit_answer scheduling snapshot', () => {
     });
     const deps = makeDeps({ chunks: { getById: vi.fn().mockResolvedValue(chunk) } });
 
-    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
     expect(result.action).toBe('recorded');
 
     const attempt = lastAttemptInput(deps);
@@ -3644,7 +3818,7 @@ describe('submit_answer scheduling snapshot', () => {
   it('records an all-NULL snapshot when the chunk read finds nothing', async () => {
     const deps = makeDeps({ chunks: { getById: vi.fn().mockResolvedValue(undefined) } });
 
-    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
     expect(result.action).toBe('recorded');
 
     const attempt = lastAttemptInput(deps);
@@ -3660,7 +3834,7 @@ describe('submit_answer scheduling snapshot', () => {
     });
 
     // Fail-open: a measurement feature never fails a scored answer.
-    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
     expect(result.action).toBe('recorded');
     if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(4);
@@ -3677,7 +3851,7 @@ describe('submit_answer scheduling snapshot', () => {
       chunks: { getById: vi.fn().mockRejectedValue('pool exhausted') },
     });
 
-    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    const result = await submitAnswer(makeInput({ quality: 4 }), null, deps);
     expect(result.action).toBe('recorded');
 
     const attempt = lastAttemptInput(deps);

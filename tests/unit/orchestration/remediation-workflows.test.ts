@@ -172,7 +172,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -189,7 +189,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -212,7 +212,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -226,7 +226,7 @@ describe('recommendRemediation', () => {
       sessions: { getSessionById: vi.fn().mockResolvedValue(null) },
     });
 
-    const result = await recommendRemediation('no-such-session', deps, NOW);
+    const result = await recommendRemediation('no-such-session', null, deps, NOW);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -242,7 +242,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -289,7 +289,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -325,7 +325,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -359,7 +359,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -399,7 +399,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -435,7 +435,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -528,7 +528,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -557,7 +557,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    await recommendRemediation('sess-1', deps, NOW);
+    await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(logEvent).toHaveBeenCalledWith(
       'recommendRemediation',
@@ -589,7 +589,7 @@ describe('recommendRemediation', () => {
       notes: { createNote },
     });
 
-    await recommendRemediation('sess-1', deps, NOW);
+    await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(createNote).toHaveBeenCalledTimes(1);
     expect(createNote).toHaveBeenCalledWith(
@@ -621,7 +621,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -649,7 +649,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -695,7 +695,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -767,7 +767,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -787,7 +787,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -844,7 +844,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -876,7 +876,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -908,7 +908,7 @@ describe('recommendRemediation', () => {
       },
     });
 
-    const result = await recommendRemediation('sess-1', deps, NOW);
+    const result = await recommendRemediation('sess-1', null, deps, NOW);
 
     expect(result.success).toBe(true);
     if (result.success) {

@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
 import { logger } from '../shared/logger.js';
+import { withLearnerAuthContext } from '../shared/learner-context.js';
 
 async function discoverJwksUri(issuer: string): Promise<string> {
   const discoveryUrl = `${issuer}/.well-known/openid-configuration`;
@@ -134,7 +135,15 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
         sub: subject,
         email: typeof payload.email === 'string' ? payload.email : undefined,
       };
-      next();
+
+      // NEU-1015: independently read the *raw* `sub` claim (never derived from
+      // `subject` above, which already folds in the `azp` fallback) and carry it
+      // via AsyncLocalStorage to the composition-root boundary, where it resolves
+      // (or refuses) the learner key. A sub-less token principal — including an
+      // azp-only client_credentials client — carries `rawSub: undefined` here;
+      // the refusal itself happens one layer up, never inside this middleware.
+      const rawSub = typeof payload.sub === 'string' ? payload.sub : undefined;
+      withLearnerAuthContext(rawSub, () => next());
     } catch (err) {
       return reply401(res, prmUrl, `token verification failed: ${String(err)}`);
     }
