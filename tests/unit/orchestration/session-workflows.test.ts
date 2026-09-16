@@ -215,6 +215,38 @@ describe('createSession', () => {
     expect(deps.sessions.createSession).toHaveBeenCalledOnce();
   });
 
+  it('returns a structured conflict and creates no session when the pause write affects zero rows (NEU-1033)', async () => {
+    const deps = stubDeps();
+    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubSession({ id: 'active-sess', topicId: 'topic-1' })
+    );
+    (deps.sessions.getSessionChunks as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'sc-1',
+        sessionId: 'active-sess',
+        chunkId: 'c1',
+        status: 'pending',
+        teachingApproach: null,
+        timeSpentMs: 0,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    ]);
+    (deps.sessions.updateSession as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+    const result = await createSession({ mode: 'guided', topicId: 'topic-2' }, null, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('conflict');
+      expect(result.error.findings).toEqual({
+        code: 'active_session_concurrently_modified',
+        session_id: 'active-sess',
+      });
+    }
+    expect(deps.sessions.createSession).not.toHaveBeenCalled();
+  });
+
   it('rejects a same-topic request with the structured active_session_exists_same_topic payload (NEU-1018)', async () => {
     const deps = stubDeps();
     (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(

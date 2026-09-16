@@ -359,6 +359,88 @@ describe('sessions service', () => {
       expect(learner2Active?.status).toBe('active');
       expect(learner2Active?.pausedAt).toBeNull();
     });
+
+    it('rejects an assessment-mode request with missing chunk_ids before pausing the active session, leaving it unchanged (NEU-1033 AC2)', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ca1'], now);
+      await seedTopicAndChunks('topic-b', ['cb1'], now);
+
+      await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+        id: 's1',
+        topicId: 'topic-a',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.createSessionChunk({
+        id: 'sc1',
+        sessionId: 's1',
+        chunkId: 'ca1',
+        status: 'pending',
+        timeSpentMs: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const result = await ctx.createSession({ topicId: 'topic-b', mode: 'assessment' });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe('validation');
+      }
+
+      // Session A is untouched — the rejected request never reached the pause write.
+      const stillActive = await ctx.getSessionById('s1');
+      expect(stillActive?.status).toBe('active');
+      expect(stillActive?.pausedAt).toBeNull();
+      const active = await ctx.getActiveSession();
+      expect(active?.id).toBe('s1');
+    });
+
+    it('still pauses the active session and creates the new one when assessment-mode input is valid (NEU-1033 AC3)', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ca1'], now);
+      await seedTopicAndChunks('topic-b', ['cb1'], now);
+
+      await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+        id: 's1',
+        topicId: 'topic-a',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.createSessionChunk({
+        id: 'sc1',
+        sessionId: 's1',
+        chunkId: 'ca1',
+        status: 'pending',
+        timeSpentMs: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const result = await ctx.createSession({
+        topicId: 'topic-b',
+        mode: 'assessment',
+        chunkIds: ['cb1'],
+      });
+
+      expect(result.success).toBe(true);
+
+      const paused = await ctx.getSessionById('s1');
+      expect(paused?.status).toBe('paused');
+      expect(paused?.pausedAt).toEqual(expect.any(Number));
+
+      const active = await ctx.getActiveSession();
+      expect(active?.id).not.toBe('s1');
+      if (result.success) {
+        expect(active?.id).toBe(result.data.sessionId);
+      }
+    });
   });
 
   it('creates and manages session chunks', async () => {
