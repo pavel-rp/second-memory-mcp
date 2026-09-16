@@ -1202,7 +1202,9 @@ async function submitAnswerForQuestion(
   }
 
   // Teaching mode
-  const isLateSubmission = session.status === 'completed';
+  // NEU-1018: a paused session's retry is treated the same as a completed one's — neither is
+  // "active", so a submission against either is late.
+  const isLateSubmission = session.status === 'completed' || session.status === 'paused';
 
   // Find the single mapped session chunk
   const primaryChunkId = questionChunkIds[0] as string;
@@ -1630,7 +1632,8 @@ async function submitAnswerForAssessmentQuestion(
     }
   }
 
-  const isLateSubmission = session.status === 'completed';
+  // NEU-1018: a paused session's retry is treated the same as a completed one's.
+  const isLateSubmission = session.status === 'completed' || session.status === 'paused';
 
   return {
     action: 'recorded',
@@ -1804,24 +1807,51 @@ export async function startLearning(
         };
       }
     } else {
-      // Resume the active session — get the next teaching step
-      const teachingDeps: TeachingDeps = {
-        sessions: deps.sessions,
-        chunks: deps.chunks,
-        reviewPersistence: deps.reviewPersistence,
-        algorithmConfig: deps.algorithmConfig,
-        sessionQuestions: deps.sessionQuestions,
-        notes: deps.notes,
-      };
-      const firstChunk = await getNextTeachingStep(learnerKey, teachingDeps);
-      logEvent('startLearning', 'session_resumed', { sessionId: activeSession.id });
-      return {
-        action: 'resumed' as const,
-        session_id: activeSession.id,
-        mode: activeSession.mode as SessionMode,
-        total_chunks: sessionChunks.length,
-        first_chunk: firstChunk,
-      };
+      // NEU-1018: a topic switch pauses the active session instead of resuming it. No
+      // requested topic always resumes as before; a requested topic that matches the active
+      // session's own single topic also resumes — only a genuine mismatch (including an
+      // active session whose own topic is indeterminate) pauses.
+      let shouldPause = false;
+      if (input.topicId) {
+        const activeTopicId = await sessionWorkflows.resolveActiveSessionTopicId(
+          activeSession,
+          sessionDeps
+        );
+        shouldPause = activeTopicId !== input.topicId;
+      }
+
+      if (shouldPause) {
+        const pausedAt = Date.now();
+        await deps.sessions.updateSession(activeSession.id, {
+          status: 'paused',
+          pausedAt,
+          updatedAt: pausedAt,
+        });
+        logEvent('startLearning', 'session_paused', {
+          sessionId: activeSession.id,
+          requestedTopicId: input.topicId,
+        });
+        // Fall through to step 2 below, which starts/continues the requested topic.
+      } else {
+        // Resume the active session — get the next teaching step
+        const teachingDeps: TeachingDeps = {
+          sessions: deps.sessions,
+          chunks: deps.chunks,
+          reviewPersistence: deps.reviewPersistence,
+          algorithmConfig: deps.algorithmConfig,
+          sessionQuestions: deps.sessionQuestions,
+          notes: deps.notes,
+        };
+        const firstChunk = await getNextTeachingStep(learnerKey, teachingDeps);
+        logEvent('startLearning', 'session_resumed', { sessionId: activeSession.id });
+        return {
+          action: 'resumed' as const,
+          session_id: activeSession.id,
+          mode: activeSession.mode as SessionMode,
+          total_chunks: sessionChunks.length,
+          first_chunk: firstChunk,
+        };
+      }
     }
   }
 
@@ -1832,7 +1862,7 @@ export async function startLearning(
   };
   const now = new Date();
   const recommendations = await recommendationWorkflows.generateRecommendations(
-    { subjectFilter: input.subjectFilter, limit: 1 },
+    { subjectFilter: input.subjectFilter, topicId: input.topicId, limit: 1 },
     recDeps,
     now
   );

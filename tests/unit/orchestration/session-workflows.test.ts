@@ -41,6 +41,7 @@ function stubSession(overrides?: Partial<LearningSession>): LearningSession {
     feedback: null,
     createdAt: NOW,
     updatedAt: NOW,
+    pausedAt: null,
     ...overrides,
   };
 }
@@ -133,16 +134,126 @@ describe('createSession', () => {
     expect(deps.sessions.createSession).toHaveBeenCalledOnce();
   });
 
-  it('returns conflict when active session exists', async () => {
+  // ── NEU-1018: pause-vs-reject-vs-auto-complete on an active session ────
+
+  it('auto-completes an active session with no session_chunks before creating (NEU-1018)', async () => {
     const deps = stubDeps();
-    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(stubSession());
+    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubSession({ id: 'active-sess' })
+    );
+
+    const result = await createSession({ mode: 'guided', topicId: 'topic-2' }, null, deps);
+
+    expect(deps.sessions.completeSession).toHaveBeenCalledWith('active-sess', undefined);
+    expect(result.success).toBe(true);
+    expect(deps.sessions.createSession).toHaveBeenCalledOnce();
+  });
+
+  it('pauses the active session and creates the new one for a different topic (NEU-1018)', async () => {
+    const deps = stubDeps();
+    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubSession({ id: 'active-sess', topicId: 'topic-1' })
+    );
+    (deps.sessions.getSessionChunks as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'sc-1',
+        sessionId: 'active-sess',
+        chunkId: 'c1',
+        status: 'pending',
+        teachingApproach: null,
+        timeSpentMs: 0,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    ]);
+
+    const result = await createSession({ mode: 'guided', topicId: 'topic-2' }, null, deps);
+
+    expect(deps.sessions.updateSession).toHaveBeenCalledWith(
+      'active-sess',
+      expect.objectContaining({ status: 'paused', pausedAt: expect.any(Number) })
+    );
+    expect(result.success).toBe(true);
+    expect(deps.sessions.createSession).toHaveBeenCalledOnce();
+  });
+
+  it('rejects a same-topic request with the structured active_session_exists_same_topic payload (NEU-1018)', async () => {
+    const deps = stubDeps();
+    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubSession({ id: 'active-sess', topicId: 'topic-1', mode: 'learning', startTime: NOW })
+    );
+    (deps.sessions.getSessionChunks as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'sc-1',
+        sessionId: 'active-sess',
+        chunkId: 'c1',
+        status: 'pending',
+        teachingApproach: null,
+        timeSpentMs: 0,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    ]);
+
+    const result = await createSession({ mode: 'guided', topicId: 'topic-1' }, null, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('conflict');
+      expect(result.error.findings).toEqual({
+        code: 'active_session_exists_same_topic',
+        session_id: 'active-sess',
+        topic_id: 'topic-1',
+        mode: 'learning',
+        started_at: NOW,
+      });
+    }
+    expect(deps.sessions.createSession).not.toHaveBeenCalled();
+    expect(deps.sessions.updateSession).not.toHaveBeenCalled();
+  });
+
+  it('rejects a no-topic request against a no-topic (ambiguous) active session with the same conflict code (NEU-1018)', async () => {
+    const deps = stubDeps();
+    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubSession({ id: 'active-sess', topicId: null, mode: 'learning', startTime: NOW })
+    );
+    (deps.sessions.getSessionChunks as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'sc-1',
+        sessionId: 'active-sess',
+        chunkId: 'ca',
+        status: 'pending',
+        teachingApproach: null,
+        timeSpentMs: 0,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+      {
+        id: 'sc-2',
+        sessionId: 'active-sess',
+        chunkId: 'cb',
+        status: 'pending',
+        teachingApproach: null,
+        timeSpentMs: 0,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    ]);
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation((id: string) =>
+      Promise.resolve(stubChunk({ id, topicId: id === 'ca' ? 'topic-a' : 'topic-b' }))
+    );
 
     const result = await createSession({ mode: 'guided' }, null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.type).toBe('conflict');
+      expect(result.error.findings).toMatchObject({
+        code: 'active_session_exists_same_topic',
+        session_id: 'active-sess',
+      });
     }
+    expect(deps.sessions.createSession).not.toHaveBeenCalled();
   });
 
   it('returns validation error for invalid chunk IDs', async () => {
@@ -245,13 +356,32 @@ describe('createSession', () => {
     });
   });
 
-  it('does not call logEvent when active session already exists', async () => {
+  it('does not call session_created logEvent when the request conflicts with the active session (NEU-1018)', async () => {
     const deps = stubDeps();
-    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(stubSession());
+    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubSession({ id: 'active-sess', topicId: 'topic-1' })
+    );
+    (deps.sessions.getSessionChunks as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'sc-1',
+        sessionId: 'active-sess',
+        chunkId: 'c1',
+        status: 'pending',
+        teachingApproach: null,
+        timeSpentMs: 0,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    ]);
 
-    await createSession({ mode: 'guided' }, null, deps);
+    const result = await createSession({ mode: 'guided', topicId: 'topic-1' }, null, deps);
 
-    expect(logEvent).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(logEvent).not.toHaveBeenCalledWith(
+      'createSession',
+      'session_created',
+      expect.anything()
+    );
   });
 });
 

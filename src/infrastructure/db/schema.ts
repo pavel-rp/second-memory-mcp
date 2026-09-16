@@ -104,9 +104,11 @@ export const learningSessions = pgTable(
     chunkIds: jsonb('chunk_ids').$type<string[]>(),
     mode: text('mode').notNull(), // CHECK('scaffolding','learning','retrieval','review','assessment') — enforced at DB level
     estimatedDuration: integer('estimated_duration'), // minutes
-    status: text('status').notNull().default('active'), // CHECK('active','completed') — enforced at DB level
+    status: text('status').notNull().default('active'), // CHECK('active','completed','paused') — enforced at DB level
     startTime: bigint('start_time', { mode: 'number' }).notNull(), // epoch ms
     endTime: bigint('end_time', { mode: 'number' }), // epoch ms, set on completion
+    // NEU-1018: epoch ms, set when a topic switch pauses this session; null otherwise.
+    pausedAt: bigint('paused_at', { mode: 'number' }),
     feedback: text('feedback'), // optional completion feedback
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
@@ -126,7 +128,7 @@ export const learningSessions = pgTable(
       'chk_session_mode',
       sql`${table.mode} IN ('scaffolding', 'learning', 'retrieval', 'review', 'assessment')`
     ),
-    check('chk_session_status', sql`${table.status} IN ('active', 'completed')`),
+    check('chk_session_status', sql`${table.status} IN ('active', 'completed', 'paused')`),
   ]
 );
 

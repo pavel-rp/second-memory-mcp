@@ -63,6 +63,7 @@ function makeSession(overrides?: Partial<LearningSession>): LearningSession {
     feedback: null,
     createdAt: NOW,
     updatedAt: NOW,
+    pausedAt: null,
     ...overrides,
   };
 }
@@ -3677,6 +3678,213 @@ describe('startLearning', () => {
 
     expect(logEvent).toHaveBeenCalledWith('startLearning', 'session_resumed', {
       sessionId: 'active-sess',
+    });
+  });
+
+  // ── NEU-1018: pause on topic switch ──────────────────────────────
+
+  describe('topic switch (NEU-1018)', () => {
+    beforeEach(() => {
+      vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(
+        makeSession({ id: 'active-sess', topicId: 'topic-1', status: 'active' })
+      );
+    });
+
+    it('pauses the active session and starts the requested topic on a topic switch', async () => {
+      const updateSessionMock = vi.fn().mockResolvedValue(1);
+      const deps = makeStartLearningDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ id: 'active-sess', topicId: 'topic-1' })),
+          getSessionChunks: vi.fn().mockImplementation((sessionId: string) =>
+            Promise.resolve(
+              sessionId === 'active-sess'
+                ? [
+                    makeSessionChunk({
+                      id: 'sc-a',
+                      chunkId: 'ca',
+                      status: 'pending',
+                      sessionId: 'active-sess',
+                    }),
+                  ]
+                : [
+                    makeSessionChunk({
+                      id: 'sc-1',
+                      chunkId: 'c1',
+                      status: 'pending',
+                      sessionId: 'new-sess',
+                    }),
+                  ]
+            )
+          ),
+          updateSession: updateSessionMock,
+        },
+      });
+
+      const result = await startLearning({ topicId: 'topic-2' }, null, deps);
+
+      expect(updateSessionMock).toHaveBeenCalledWith(
+        'active-sess',
+        expect.objectContaining({ status: 'paused', pausedAt: expect.any(Number) })
+      );
+      expect(result.action).toBe('started');
+      if (result.action !== 'started') throw new Error('Expected started');
+      expect(result.session_id).toBe('new-sess');
+    });
+
+    it('resumes rather than pausing when the requested topic matches the active session', async () => {
+      const updateSessionMock = vi.fn().mockResolvedValue(1);
+      const deps = makeStartLearningDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ id: 'active-sess', topicId: 'topic-1' })),
+          getSessionChunks: vi.fn().mockResolvedValue([
+            makeSessionChunk({
+              id: 'sc-a',
+              chunkId: 'ca',
+              status: 'pending',
+              sessionId: 'active-sess',
+            }),
+          ]),
+          updateSession: updateSessionMock,
+        },
+      });
+
+      const result = await startLearning({ topicId: 'topic-1' }, null, deps);
+
+      expect(updateSessionMock).not.toHaveBeenCalled();
+      expect(result.action).toBe('resumed');
+      if (result.action !== 'resumed') throw new Error('Expected resumed');
+      expect(result.session_id).toBe('active-sess');
+    });
+
+    it('leaves the active session paused, not completed, when the requested topic has nothing due', async () => {
+      vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue({
+        recommendations: [],
+        totalDueTopics: 0,
+        totalDueChunks: 0,
+      });
+      const updateSessionMock = vi.fn().mockResolvedValue(1);
+      const completeSpy = vi.spyOn(sessionWorkflows, 'completeSession');
+      const deps = makeStartLearningDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ id: 'active-sess', topicId: 'topic-1' })),
+          getSessionChunks: vi.fn().mockResolvedValue([
+            makeSessionChunk({
+              id: 'sc-a',
+              chunkId: 'ca',
+              status: 'pending',
+              sessionId: 'active-sess',
+            }),
+          ]),
+          updateSession: updateSessionMock,
+        },
+      });
+
+      const result = await startLearning({ topicId: 'topic-2' }, null, deps);
+
+      expect(updateSessionMock).toHaveBeenCalledWith(
+        'active-sess',
+        expect.objectContaining({ status: 'paused' })
+      );
+      expect(completeSpy).not.toHaveBeenCalled();
+      expect(result.action).toBe('nothing_due');
+    });
+
+    it('auto-completes rather than pauses a fully-completed active session on a topic switch', async () => {
+      const updateSessionMock = vi.fn().mockResolvedValue(1);
+      const completeSpy = vi
+        .spyOn(sessionWorkflows, 'completeSession')
+        .mockResolvedValue(serviceOk());
+      const getSessionChunksMock = vi
+        .fn()
+        .mockResolvedValueOnce([
+          makeSessionChunk({
+            id: 'sc-a',
+            chunkId: 'ca',
+            status: 'completed',
+            sessionId: 'active-sess',
+          }),
+        ])
+        .mockResolvedValue([
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending', sessionId: 'new-sess' }),
+        ]);
+      const deps = makeStartLearningDeps({
+        sessions: {
+          getActiveSession: vi.fn().mockResolvedValue(makeSession({ id: 'new-sess' })),
+          getSessionChunks: getSessionChunksMock,
+          updateSession: updateSessionMock,
+        },
+      });
+
+      const result = await startLearning({ topicId: 'topic-2' }, null, deps);
+
+      expect(completeSpy).toHaveBeenCalledWith('active-sess', undefined, null, expect.anything());
+      expect(updateSessionMock).not.toHaveBeenCalledWith(
+        'active-sess',
+        expect.objectContaining({ status: 'paused' })
+      );
+      expect(result.action).toBe('started');
+    });
+
+    it('pauses a no-topic active session on any topic switch', async () => {
+      const updateSessionMock = vi.fn().mockResolvedValue(1);
+      const deps = makeStartLearningDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ id: 'active-sess', topicId: null })),
+          getSessionChunks: vi.fn().mockImplementation((sessionId: string) =>
+            Promise.resolve(
+              sessionId === 'active-sess'
+                ? [
+                    makeSessionChunk({
+                      id: 'sc-a',
+                      chunkId: 'ca',
+                      status: 'pending',
+                      sessionId: 'active-sess',
+                    }),
+                    makeSessionChunk({
+                      id: 'sc-b',
+                      chunkId: 'cb',
+                      status: 'pending',
+                      sessionId: 'active-sess',
+                    }),
+                  ]
+                : [
+                    makeSessionChunk({
+                      id: 'sc-1',
+                      chunkId: 'c1',
+                      status: 'pending',
+                      sessionId: 'new-sess',
+                    }),
+                  ]
+            )
+          ),
+          updateSession: updateSessionMock,
+        },
+        chunks: {
+          getById: vi
+            .fn()
+            .mockImplementation((id: string) =>
+              Promise.resolve(
+                makeChunkListRow({ id, topicId: id === 'ca' ? 'topic-a' : 'topic-b' })
+              )
+            ),
+        },
+      });
+
+      const result = await startLearning({ topicId: 'topic-2' }, null, deps);
+
+      expect(updateSessionMock).toHaveBeenCalledWith(
+        'active-sess',
+        expect.objectContaining({ status: 'paused' })
+      );
+      expect(result.action).toBe('started');
     });
   });
 

@@ -501,6 +501,8 @@ export const ReviseGradeInputSchema = z
 
 export type StartLearningInput = {
   subjectFilter?: string;
+  /** NEU-1018: explicit topic to start/continue. Omitted means "no topic" — resume/auto-pick as today. */
+  topicId?: string;
 };
 
 export type StartLearningStarted = {
@@ -539,6 +541,14 @@ export type StartLearningResult =
 
 export const StartLearningInputShape = {
   subject_filter: z.string().optional().describe('Filter recommendations by subject'),
+  topic_id: z
+    .string()
+    .optional()
+    .describe(
+      'Explicit topic to start or continue learning. Omit for "no topic" — the currently ' +
+        'active session (if any) is resumed and the most urgent topic is auto-picked otherwise. ' +
+        'A different topic than the active session pauses it and starts this one instead.'
+    ),
   context_token: z
     .string()
     .min(1)
@@ -550,8 +560,9 @@ export const StartLearningInputShape = {
 
 export const StartLearningInputSchema = z
   .object(StartLearningInputShape)
-  .transform(({ subject_filter }) => ({
+  .transform(({ subject_filter, topic_id }) => ({
     subjectFilter: subject_filter,
+    topicId: topic_id,
   }));
 
 // ── create_session_questions types ─────────────────────────────

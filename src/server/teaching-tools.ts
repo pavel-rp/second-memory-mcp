@@ -160,7 +160,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
     {
       title: 'Start Learning Session',
       description:
-        'Quick-start a session with the most urgent topic. Picks the highest-urgency topic automatically and creates a single-topic session. ' +
+        'Quick-start a session with the most urgent topic, or an explicit one via topic_id. Without topic_id, picks the highest-urgency topic automatically and creates a single-topic session. ' +
+        'If an active session exists on a different topic than the one requested, it is paused (chunk progress intact) and the requested topic starts instead. ' +
         'If an active session exists with remaining chunks, it is resumed and action will be "resumed" with the next teaching step. ' +
         'If the active session is fully completed, it is auto-completed and a fresh session is started (action: "started"). ' +
         'For interactive topic selection, use what_to_learn_today instead. ' +

@@ -34,6 +34,7 @@ export async function generateRecommendations(
     isLeech: false,
     excludeDraft: true,
     subjectFilter: input.subjectFilter,
+    topicId: input.topicId,
     limit: MAX_DUE_CHUNKS,
   });
 

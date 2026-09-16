@@ -63,6 +63,11 @@ export type RecommendationInput = {
   subjectFilter?: string;
   limit?: number; // max topics returned, default 10
   recommendationType?: RecommendationType; // filter results to a specific category
+  /**
+   * NEU-1018: internal-only topic scope for a `start_learning(topic_id)` request. Not part of
+   * `RecommendationInputShape`/`RecommendationInputSchema` — `what_to_learn_today` never accepts it.
+   */
+  topicId?: string;
 };
 
 // Zod schemas for runtime validation
