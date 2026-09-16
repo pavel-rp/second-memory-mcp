@@ -26,9 +26,8 @@ describe('session-progress-tools', () => {
   describe('create_session_chunk', () => {
     it('creates session chunk on success', async () => {
       ctx.createSessionChunk = vi.fn().mockResolvedValue({
-        id: 'sc1',
-        sessionId: 's1',
-        chunkId: 'c1',
+        success: true,
+        data: { id: 'sc1', sessionId: 's1', chunkId: 'c1' },
       });
       registerSessionProgressTools(server as any, ctx);
       const handler = server.tools.get('create_session_chunk')!.handler;
@@ -48,7 +47,7 @@ describe('session-progress-tools', () => {
     });
 
     it('maps attempts correctly', async () => {
-      const mockFn = vi.fn().mockResolvedValue({ id: 'sc1' });
+      const mockFn = vi.fn().mockResolvedValue({ success: true, data: { id: 'sc1' } });
       ctx.createSessionChunk = mockFn;
       registerSessionProgressTools(server as any, ctx);
       const handler = server.tools.get('create_session_chunk')!.handler;
@@ -81,6 +80,26 @@ describe('session-progress-tools', () => {
       expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
+    });
+
+    it('returns not_found error when the session does not belong to the caller (NEU-1044)', async () => {
+      ctx.createSessionChunk = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'not_found', message: 'Session s1 not found' },
+      });
+      registerSessionProgressTools(server as any, ctx);
+      const handler = server.tools.get('create_session_chunk')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        chunk_id: 'c1',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('not_found');
+      expect(parsed.error.message).toContain('Session s1 not found');
     });
 
     it('returns error for missing session_id', async () => {

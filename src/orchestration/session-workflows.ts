@@ -345,9 +345,10 @@ export async function convertSessionToSessionInput(
 export async function getHistoricalFeedback(
   chunkIds: string[],
   options: { limit?: number; excludeSessionId?: string } | undefined,
+  learnerKey: string | null,
   deps: SessionDeps
 ): Promise<HistoricalFeedback[]> {
-  return deps.sessions.getHistoricalFeedbackForChunks(chunkIds, options);
+  return deps.sessions.getHistoricalFeedbackForChunks(chunkIds, learnerKey, options);
 }
 
 export async function batchUpdateSessionChunks(
@@ -403,11 +404,31 @@ export async function getActiveSession(
   return deps.sessions.getActiveSession(learnerKey);
 }
 
+/**
+ * NEU-1044: verify the target session belongs to the calling learner (via the
+ * already-scoped `getSessionById`) before inserting a `session_chunks` row —
+ * mirrors the `getSessionById`-then-fail pattern `batchUpdateSessionChunks`
+ * already uses, so a caller can no longer insert a chunk into any session by
+ * guessing/observing its id.
+ */
 export async function createSessionChunk(
   input: CreateSessionChunkInput,
+  learnerKey: string | null,
   deps: SessionDeps
-): Promise<SessionChunk> {
-  return deps.sessions.createSessionChunk(input);
+): Promise<ServiceResult<SessionChunk>> {
+  try {
+    const session = await deps.sessions.getSessionById(input.sessionId, learnerKey);
+    if (!session) {
+      return serviceFail({ type: 'not_found', message: `Session ${input.sessionId} not found` });
+    }
+    const chunk = await deps.sessions.createSessionChunk(input);
+    return serviceOk(chunk);
+  } catch (error) {
+    return serviceFail({
+      type: 'database',
+      message: error instanceof Error ? error.message : 'Failed to create session chunk',
+    });
+  }
 }
 
 export async function validateChunkIds(

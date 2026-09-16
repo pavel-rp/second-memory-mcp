@@ -444,7 +444,7 @@ describe('getNextTeachingStep', () => {
 
     await getNextTeachingStep(null, deps);
 
-    expect(deps.sessions.getHistoricalFeedbackForChunks).toHaveBeenCalledWith(['c1'], {
+    expect(deps.sessions.getHistoricalFeedbackForChunks).toHaveBeenCalledWith(['c1'], null, {
       excludeSessionId: 'sess-1',
       limit: 5,
     });

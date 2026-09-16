@@ -691,13 +691,17 @@ describe('pass-through delegations', () => {
     );
   });
 
-  it('getHistoricalFeedback delegates with options', async () => {
+  it('getHistoricalFeedback delegates with learnerKey and options', async () => {
     const deps = stubDeps();
     const options = { limit: 10, excludeSessionId: 'sess-2' };
 
-    await getHistoricalFeedback(['c1'], options, deps);
+    await getHistoricalFeedback(['c1'], options, null, deps);
 
-    expect(deps.sessions.getHistoricalFeedbackForChunks).toHaveBeenCalledWith(['c1'], options);
+    expect(deps.sessions.getHistoricalFeedbackForChunks).toHaveBeenCalledWith(
+      ['c1'],
+      null,
+      options
+    );
   });
 
   it('getSessionById delegates to sessions port', async () => {
@@ -717,7 +721,7 @@ describe('pass-through delegations', () => {
     expect(deps.sessions.getActiveSession).toHaveBeenCalledOnce();
   });
 
-  it('createSessionChunk delegates to sessions port', async () => {
+  it('createSessionChunk verifies ownership then delegates to sessions port', async () => {
     const deps = stubDeps();
     const input = {
       id: 'sc-1',
@@ -727,10 +731,34 @@ describe('pass-through delegations', () => {
       updatedAt: NOW,
     };
 
-    const result = await createSessionChunk(input, deps);
+    const result = await createSessionChunk(input, null, deps);
 
+    expect(deps.sessions.getSessionById).toHaveBeenCalledWith('sess-1', null);
     expect(deps.sessions.createSessionChunk).toHaveBeenCalledWith(input);
-    expect(result.id).toBe('sc-1');
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.id).toBe('sc-1');
+    }
+  });
+
+  it('createSessionChunk refuses when the session does not belong to the caller', async () => {
+    const deps = stubDeps();
+    (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    const input = {
+      id: 'sc-1',
+      sessionId: 'sess-1',
+      chunkId: 'c1',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+
+    const result = await createSessionChunk(input, null, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('not_found');
+    }
+    expect(deps.sessions.createSessionChunk).not.toHaveBeenCalled();
   });
 
   it('validateChunkIds delegates to sessions port', async () => {

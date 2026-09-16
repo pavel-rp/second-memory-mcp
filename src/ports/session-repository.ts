@@ -95,10 +95,18 @@ export interface SessionRepository {
   updateSession(id: string, changes: UpdateSessionInput): Promise<number>;
   completeSession(id: string, feedback?: string): Promise<number>;
   deleteSession(id: string): Promise<number>;
-  listSessions(options?: {
-    status?: 'active' | 'completed';
-    limit?: number;
-  }): Promise<LearningSession[]>;
+  /**
+   * NEU-1044 enforcement point: the only place a `learner_key` predicate is
+   * written for the session-listing read. `learnerKey` is required — its
+   * single caller (`buildLearnerContext`) always has a resolved key.
+   */
+  listSessions(
+    learnerKey: string | null,
+    options?: {
+      status?: 'active' | 'completed';
+      limit?: number;
+    }
+  ): Promise<LearningSession[]>;
 
   createSessionChunk(input: CreateSessionChunkInput): Promise<SessionChunk>;
   getSessionChunks(sessionId: string): Promise<SessionChunk[]>;
@@ -134,8 +142,17 @@ export interface SessionRepository {
       historicalFeedbackLimit?: number;
     }
   ): Promise<SessionInput | null>;
+  /**
+   * NEU-1044 enforcement point: the only place a `learner_key` predicate is
+   * written for the historical-feedback read — closes the cross-learner leak
+   * left over from NEU-1015 (this method previously filtered only on
+   * `status = 'completed'`). `learnerKey` is required for the same reason it
+   * is required on `getSessionById` et al.: every caller either has a
+   * resolved key or was refused before reaching here.
+   */
   getHistoricalFeedbackForChunks(
     chunkIds: string[],
+    learnerKey: string | null,
     options?: { limit?: number; excludeSessionId?: string }
   ): Promise<HistoricalFeedback[]>;
   persistBatchSessionChunkOperations(args: {

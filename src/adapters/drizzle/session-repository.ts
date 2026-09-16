@@ -154,14 +154,17 @@ export class DrizzleSessionRepository implements SessionRepository {
     return res.rowCount ?? 0;
   }
 
-  async listSessions(options?: {
-    status?: 'active' | 'completed';
-    limit?: number;
-  }): Promise<LearningSession[]> {
-    let query = this.db.select().from(learningSessions);
-    if (options?.status) {
-      query = query.where(eq(learningSessions.status, options.status)) as typeof query;
+  async listSessions(
+    learnerKey: string | null,
+    options?: {
+      status?: 'active' | 'completed';
+      limit?: number;
     }
+  ): Promise<LearningSession[]> {
+    const condition = options?.status
+      ? and(eq(learningSessions.status, options.status), this.learnerKeyPredicate(learnerKey))
+      : this.learnerKeyPredicate(learnerKey);
+    let query = this.db.select().from(learningSessions).where(condition);
     query = query.orderBy(desc(learningSessions.createdAt)) as typeof query;
     if (options?.limit && options.limit > 0) {
       return await query.limit(options.limit);
@@ -360,7 +363,7 @@ export class DrizzleSessionRepository implements SessionRepository {
 
     let historical_feedback: HistoricalFeedback[] = [];
     if (options?.includeHistoricalFeedback) {
-      historical_feedback = await this.getHistoricalFeedbackForChunks(chunkIds, {
+      historical_feedback = await this.getHistoricalFeedbackForChunks(chunkIds, learnerKey, {
         limit: options.historicalFeedbackLimit,
         excludeSessionId: sessionId,
       });
@@ -396,6 +399,7 @@ export class DrizzleSessionRepository implements SessionRepository {
 
   async getHistoricalFeedbackForChunks(
     chunkIds: string[],
+    learnerKey: string | null,
     options?: { limit?: number; excludeSessionId?: string }
   ): Promise<HistoricalFeedback[]> {
     if (chunkIds.length === 0) return [];
@@ -403,7 +407,7 @@ export class DrizzleSessionRepository implements SessionRepository {
     const query = this.db
       .select()
       .from(learningSessions)
-      .where(eq(learningSessions.status, 'completed'))
+      .where(and(eq(learningSessions.status, 'completed'), this.learnerKeyPredicate(learnerKey)))
       .orderBy(desc(learningSessions.createdAt));
 
     const sessions = await (options?.limit ? query.limit(options.limit * 2) : query);

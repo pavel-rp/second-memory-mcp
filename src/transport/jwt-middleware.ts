@@ -142,7 +142,11 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
       // (or refuses) the learner key. A sub-less token principal — including an
       // azp-only client_credentials client — carries `rawSub: undefined` here;
       // the refusal itself happens one layer up, never inside this middleware.
-      const rawSub = typeof payload.sub === 'string' ? payload.sub : undefined;
+      // NEU-1044: an empty-string `sub` is treated the same as an absent one —
+      // `resolveLearnerKey()` only ever refused `undefined`, so a token with
+      // `sub: ""` (and a usable `azp` fallback for the audience/subject check
+      // above) previously flowed through as a silently shared learner key.
+      const rawSub = typeof payload.sub === 'string' && payload.sub ? payload.sub : undefined;
       withLearnerAuthContext(rawSub, () => next());
     } catch (err) {
       return reply401(res, prmUrl, `token verification failed: ${String(err)}`);
