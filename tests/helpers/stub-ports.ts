@@ -98,6 +98,9 @@ export function stubSessionRepository(overrides?: Partial<SessionRepository>): S
       invalidIds: [],
       validIds: [],
     }),
+    // NEU-1016
+    recordSessionEvent: vi.fn().mockResolvedValue(undefined),
+    getSessionEventTimestamps: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }

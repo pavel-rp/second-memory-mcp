@@ -72,6 +72,14 @@ export interface SessionRepository {
    */
   getSessionById(id: string, learnerKey: string | null): Promise<LearningSession | null>;
   /**
+   * NEU-1016: persist one `teach_next` event timestamp for a session — the
+   * server-side moment `active-time.ts`'s gap-based sitting computation merges
+   * with `session_question_attempts.created_at`.
+   */
+  recordSessionEvent(sessionId: string, timestamp: number): Promise<void>;
+  /** NEU-1016: read back a session's recorded event timestamps, in no guaranteed order. */
+  getSessionEventTimestamps(sessionId: string): Promise<number[]>;
+  /**
    * NEU-1015 enforcement point: the only place a `learner_key` predicate is
    * written for the active-session lookup.
    */

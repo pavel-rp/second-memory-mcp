@@ -1823,11 +1823,21 @@ describe('submitAnswer', () => {
     });
 
     it('coexists with correct_answer and roadblock_forecast on a second-attempt-failure response', async () => {
-      const pastCeiling = Date.now() - (DEFAULT_ALGORITHM_CONFIG.sessionConfig.maxTimeMs + 60_000);
+      // Basis is gap-based sitting active time over recorded event
+      // timestamps, never wall-clock session duration. The event series ends
+      // right where the attempt series (NOW, NOW+1000, below) begins, so the
+      // whole thing is ONE continuous sitting: 6 event gaps of 8min
+      // (sub-idle-cutoff, so each counts) plus the 1s attempt gap sum to
+      // ~48min, past the 45min default ceiling. A series built off a
+      // different clock (e.g. real `Date.now()`) would land in a different
+      // sitting entirely once merged with the fixed-`NOW` attempts below.
+      const gapMs = 8 * 60 * 1000;
+      const eventTimestamps = Array.from({ length: 6 }, (_, i) => NOW - (6 - i) * gapMs);
       const sq1 = makeQuestion({ id: 'sq-1', sessionId: 'sess-1', status: 'pending' });
       const deps = makeQuestionDeps({
         sessions: {
-          getSessionById: vi.fn().mockResolvedValue(makeSession({ startTime: pastCeiling })),
+          getSessionById: vi.fn().mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+          getSessionEventTimestamps: vi.fn().mockResolvedValue(eventTimestamps),
         },
         chunks: {
           getById: vi.fn().mockResolvedValue(
@@ -1885,7 +1895,7 @@ describe('submitAnswer', () => {
         directive: expect.any(String),
       });
       expect(recorded.session_advisory).toEqual({
-        kind: 'time_ceiling',
+        kind: 'active_time_ceiling',
         reason: expect.any(String),
         directive: expect.any(String),
       });

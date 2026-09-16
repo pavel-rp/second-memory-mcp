@@ -1,5 +1,5 @@
 /**
- * Pure single shared advisory resolver (NEU-848).
+ * Pure single shared advisory resolver (NEU-848, active-time basis NEU-1016).
  *
  * The one and only producer of within-session stopping guidance. Both
  * `session-analyzer.ts` (`session_status`) and `teaching-workflows.ts`
@@ -8,8 +8,12 @@
  *
  * At most one advisory is ever returned. `fatigue` — a relative, within-
  * session trend computed by `fatigue-trend.ts` — takes precedence over
- * `time_ceiling` when both would apply, since a fatigued learner needs the
- * break framed as fatigue even if they also happen to be past the clock.
+ * `active_time_ceiling` when both would apply, since a fatigued learner
+ * needs the break framed as fatigue even if they also happen to be past the
+ * ceiling. `active_time_ceiling` fires on the current sitting's *active*
+ * learning time only (`active-time.ts`'s gap-based computation) — never on
+ * wall-clock elapsed time — so a learner returning from an idle gap or a
+ * multi-day break is never told to take a break they haven't earned.
  *
  * No I/O, never throws.
  */
@@ -18,7 +22,7 @@ import { computeFatigueTrend } from './fatigue-trend.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type SessionAdvisoryKind = 'fatigue' | 'time_ceiling';
+export type SessionAdvisoryKind = 'fatigue' | 'active_time_ceiling';
 
 export type SessionAdvisory = {
   kind: SessionAdvisoryKind;
@@ -29,8 +33,10 @@ export type SessionAdvisory = {
 export type SessionAdvisoryInput = {
   /** Attempt-shaped records; validated defensively by `computeFatigueTrend`. */
   attempts: unknown;
-  elapsedMs: number | null | undefined;
-  maxTimeMs: number | null | undefined;
+  /** The current sitting's active learning time, in ms (gap-based, never wall-clock). */
+  activeTimeMs: number | null | undefined;
+  /** The configured sitting active-time ceiling, in ms. */
+  activeTimeCeilingMs: number | null | undefined;
 };
 
 // ── Core function ────────────────────────────────────────────────────────
@@ -38,9 +44,9 @@ export type SessionAdvisoryInput = {
 /**
  * Resolve at most one stopping advisory for the current session state.
  *
- * Totally defensive: a non-finite or absent `elapsedMs`/`maxTimeMs` never
- * fires the time ceiling, and a malformed `attempts` population never
- * fires fatigue (see `computeFatigueTrend`). Never throws.
+ * Totally defensive: a non-finite or absent `activeTimeMs`/`activeTimeCeilingMs`
+ * never fires the ceiling, and a malformed `attempts` population never fires
+ * fatigue (see `computeFatigueTrend`). Never throws.
  */
 export function resolveSessionAdvisory(input: SessionAdvisoryInput): SessionAdvisory | null {
   const trend = computeFatigueTrend(input.attempts);
@@ -52,18 +58,22 @@ export function resolveSessionAdvisory(input: SessionAdvisoryInput): SessionAdvi
     };
   }
 
-  const { elapsedMs, maxTimeMs } = input;
+  const { activeTimeMs, activeTimeCeilingMs } = input;
   const ceilingReached =
-    typeof elapsedMs === 'number' &&
-    Number.isFinite(elapsedMs) &&
-    typeof maxTimeMs === 'number' &&
-    Number.isFinite(maxTimeMs) &&
-    elapsedMs >= maxTimeMs;
+    typeof activeTimeMs === 'number' &&
+    Number.isFinite(activeTimeMs) &&
+    typeof activeTimeCeilingMs === 'number' &&
+    Number.isFinite(activeTimeCeilingMs) &&
+    activeTimeMs >= activeTimeCeilingMs;
 
   if (ceilingReached) {
+    const activeMinutes = Math.round(activeTimeMs / 60_000);
+    const ceilingMinutes = Math.round(activeTimeCeilingMs / 60_000);
     return {
-      kind: 'time_ceiling',
-      reason: 'Maximum session time reached. Take a break to maintain effectiveness.',
+      kind: 'active_time_ceiling',
+      reason:
+        `This sitting's active learning time (${activeMinutes} min) has reached the configured ` +
+        `ceiling (${ceilingMinutes} min). Take a break to maintain effectiveness.`,
     };
   }
 

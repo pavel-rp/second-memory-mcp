@@ -128,14 +128,66 @@ describe('resolveAlgorithmConfig', () => {
       SM_SESSION_QUALITY_THRESHOLD: '3.5',
       SM_SESSION_TIME_THRESHOLD_MS: '3600000',
       SM_SESSION_COMPLETION_THRESHOLD: '0.9',
-      SM_SESSION_MAX_TIME_MS: '7200000',
+      SM_SESSION_IDLE_CUTOFF_MS: '900000',
+      SM_SESSION_ACTIVE_TIME_CEILING_MS: '2700000',
     });
     expect(result.sessionConfig).toEqual({
       qualityThreshold: 3.5,
       timeThresholdMs: 3600000,
       completionThreshold: 0.9,
-      maxTimeMs: 7200000,
+      idleCutoffMs: 900000,
+      activeTimeCeilingMs: 2700000,
     });
+  });
+
+  // ── NEU-1016: idleCutoffMs / activeTimeCeilingMs ────────────
+
+  it('defaults idleCutoffMs when unset', () => {
+    const result = resolveAlgorithmConfig({});
+    expect(result.sessionConfig.idleCutoffMs).toBe(
+      DEFAULT_ALGORITHM_CONFIG.sessionConfig.idleCutoffMs
+    );
+  });
+
+  it('overrides idleCutoffMs from env', () => {
+    const result = resolveAlgorithmConfig({ SM_SESSION_IDLE_CUTOFF_MS: '600000' });
+    expect(result.sessionConfig.idleCutoffMs).toBe(600000);
+  });
+
+  it('falls back to default idleCutoffMs for a non-numeric env value', () => {
+    const result = resolveAlgorithmConfig({ SM_SESSION_IDLE_CUTOFF_MS: 'not-a-number' });
+    expect(result.sessionConfig.idleCutoffMs).toBe(
+      DEFAULT_ALGORITHM_CONFIG.sessionConfig.idleCutoffMs
+    );
+  });
+
+  it('defaults activeTimeCeilingMs when unset', () => {
+    const result = resolveAlgorithmConfig({});
+    expect(result.sessionConfig.activeTimeCeilingMs).toBe(
+      DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs
+    );
+  });
+
+  it('overrides activeTimeCeilingMs from env', () => {
+    const result = resolveAlgorithmConfig({ SM_SESSION_ACTIVE_TIME_CEILING_MS: '3000000' });
+    expect(result.sessionConfig.activeTimeCeilingMs).toBe(3000000);
+  });
+
+  it('falls back to default activeTimeCeilingMs for an empty env value', () => {
+    const result = resolveAlgorithmConfig({ SM_SESSION_ACTIVE_TIME_CEILING_MS: '' });
+    expect(result.sessionConfig.activeTimeCeilingMs).toBe(
+      DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs
+    );
+  });
+
+  it('no longer recognizes the removed wall-clock session-ceiling env var (NEU-1016)', () => {
+    // The old env key is unrecognized post-rename — the new keys stay at
+    // their defaults, and `sessionConfig` carries exactly the current five
+    // keys (asserted via the exact-shape `toEqual` above).
+    const result = resolveAlgorithmConfig({ SM_SESSION_MAX_TIME_MS: '7200000' });
+    expect(result.sessionConfig.activeTimeCeilingMs).toBe(
+      DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs
+    );
   });
 
   // ── Nested: recommendationConfig.conversation ───────────────

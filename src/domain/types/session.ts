@@ -64,6 +64,10 @@ export type SessionInput = {
   feedback?: string; // current session feedback (if completed)
   historical_feedback?: HistoricalFeedback[]; // feedback from past sessions on same chunks
   session_questions?: SessionQuestionSummary[]; // assessment-mode only
+  // NEU-1016: persisted `teach_next` event epoch-ms timestamps for this session,
+  // merged with attempt timestamps by `active-time.ts`'s gap-based sitting
+  // computation. Never used as a standalone elapsed-time source.
+  teach_event_timestamps?: number[];
 };
 
 // Session progress output
@@ -182,6 +186,7 @@ export const SessionInputSchema = z.object({
   context: z.record(z.unknown()).optional(),
   feedback: z.string().optional(),
   historical_feedback: z.array(HistoricalFeedbackSchema).optional(),
+  teach_event_timestamps: z.array(z.number()).optional(),
 });
 
 // Batch update types and schemas

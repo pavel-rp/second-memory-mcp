@@ -7,6 +7,7 @@ import {
 } from '../../../../src/domain/services/session-analyzer.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import { resolveSessionAdvisory } from '../../../../src/domain/algorithms/session-advisory.js';
+import { computeActiveTime } from '../../../../src/domain/algorithms/active-time.js';
 import type { FatigueAttempt } from '../../../../src/domain/algorithms/fatigue-trend.js';
 import type {
   SessionInput,
@@ -34,6 +35,16 @@ function toFatigueAttempts(attempts: ChunkAttempt[]): FatigueAttempt[] {
 // fixtures constructed to already contain each attempt exactly once.
 function flattenChunkAttempts(chunks: SessionChunk[]): FatigueAttempt[] {
   return toFatigueAttempts(chunks.flatMap(chunk => chunk.attempts));
+}
+
+// NEU-1016: mirrors session-analyzer's merged active-time series (attempt
+// timestamps + recorded teach_event_timestamps) so tests can independently
+// derive the same `activeTimeMs` `getSessionStatus` computes internally.
+function toActiveTimeSeries(session: SessionInput): number[] {
+  return [
+    ...flattenChunkAttempts(session.chunks).map(a => a.timestamp),
+    ...(session.teach_event_timestamps ?? []),
+  ];
 }
 
 describe('Session Manager', () => {
@@ -181,17 +192,56 @@ describe('Session Manager', () => {
       expect(result.recommendation).toBe('continue');
     });
 
-    it('returns should_complete=true with recommendation=break when max time exceeded', () => {
-      const longSession: SessionInput = {
+    it('returns should_complete=true with recommendation=break when the sitting active-time ceiling is exceeded (NEU-1016)', () => {
+      // Basis is gap-based sitting active time, never wall-clock elapsed
+      // time — build it via `teach_event_timestamps` spaced 8 min apart
+      // (under the 10-min idle cutoff, so every gap counts): 6 gaps * 8min =
+      // 48min, past the 45-min default ceiling. No chunk attempts here — a
+      // stray attempt timestamp far outside this window would merge into a
+      // separate sitting (a large gap resets the computation) and mask the
+      // very thing this test exercises.
+      const startMs = new Date('2024-01-01T09:00:00.000Z').getTime();
+      const gapMs = 8 * 60 * 1000;
+      const teach_event_timestamps = Array.from({ length: 7 }, (_, i) => startMs + i * gapMs);
+
+      const longActiveSession: SessionInput = {
+        session_id: 'long-active-session',
+        mode: 'learning',
+        start_time: '2024-01-01T09:00:00.000Z',
+        current_time: '2024-01-01T10:30:00.000Z',
+        teach_event_timestamps,
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
+            title: 'Chunk 1',
+            status: 'pending',
+            attempts: [],
+            quality_scores: [],
+            time_spent_ms: 0,
+          },
+        ],
+      };
+
+      const result = getSessionStatus(longActiveSession, DEFAULT_ALGORITHM_CONFIG, NOW);
+      expect(result.shouldComplete).toBe(true);
+      expect(result.recommendation).toBe('break');
+      expect(result.reason).toContain('active learning time');
+    });
+
+    it('does NOT fire the ceiling on wall-clock elapsed time alone (NEU-1016 regression guard)', () => {
+      // Old basis: 2.5 hours of wall-clock session duration used to exceed
+      // the old 2h wall-clock ceiling. New basis is active time only — with
+      // no event/attempt gaps building up active time, the ceiling must not
+      // fire no matter how long the session has been open.
+      const wallClockOnlySession: SessionInput = {
         ...mockSessionInput,
         start_time: '2024-01-01T08:00:00.000Z', // 2.5 hours ago
         current_time: '2024-01-01T10:30:00.000Z',
       };
 
-      const result = getSessionStatus(longSession, DEFAULT_ALGORITHM_CONFIG, NOW);
-      expect(result.shouldComplete).toBe(true);
-      expect(result.recommendation).toBe('break');
-      expect(result.reason).toContain('Maximum session time');
+      const result = getSessionStatus(wallClockOnlySession, DEFAULT_ALGORITHM_CONFIG, NOW);
+      expect(result.reason).not.toContain('active learning time');
     });
 
     it('returns should_complete=true with recommendation=complete when quality+chunk met', () => {
@@ -438,8 +488,10 @@ describe('Session Manager', () => {
       // ties to structured resolver output rather than a hardcoded string.
       const expectedAdvisory = resolveSessionAdvisory({
         attempts: toFatigueAttempts([...earlierAttempts, ...laterAttempts]),
-        elapsedMs: 45 * 60 * 1000,
-        maxTimeMs: DEFAULT_ALGORITHM_CONFIG.sessionConfig.maxTimeMs,
+        // Fatigue takes precedence over the ceiling regardless of active
+        // time, so the exact value fed here is irrelevant to the outcome.
+        activeTimeMs: 0,
+        activeTimeCeilingMs: DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs,
       });
       expect(expectedAdvisory?.kind).toBe('fatigue');
 
@@ -1122,12 +1174,17 @@ describe('Session Manager', () => {
       expect(unscoredResult.shouldComplete).toBe(false);
     });
 
-    it('still recommends break past maxTimeMs even when the fatigue trend is silent', () => {
+    it('still recommends break past the active-time ceiling even when the fatigue trend is silent', () => {
+      const startMs = new Date('2024-01-01T08:00:00.000Z').getTime();
+      const gapMs = 8 * 60 * 1000; // sub-idle-cutoff, so every gap counts
+      const teach_event_timestamps = Array.from({ length: 7 }, (_, i) => startMs + i * gapMs); // 48min
+
       const session: SessionInput = {
         session_id: 'past-ceiling-silent-fatigue',
         mode: 'learning',
-        start_time: '2024-01-01T08:00:00.000Z', // 2.5 hours ago — past the 2h maxTimeMs ceiling
+        start_time: '2024-01-01T08:00:00.000Z',
         current_time: '2024-01-01T10:30:00.000Z',
+        teach_event_timestamps,
         chunks: [
           {
             chunk_id: 'chunk-1',
@@ -1147,12 +1204,13 @@ describe('Session Manager', () => {
         ],
       };
 
-      // Only one attempt — far below the fatigue module's minimum sample
-      // size, so the trend is silent; the ceiling branch must still fire.
+      // Only one scored attempt — far below the fatigue module's minimum
+      // sample size, so the trend is silent; the ceiling branch must still
+      // fire, driven entirely by the (unscored) teach_event_timestamps.
       const result = getSessionStatus(session, DEFAULT_ALGORITHM_CONFIG, NOW);
       expect(result.shouldComplete).toBe(true);
       expect(result.recommendation).toBe('break');
-      expect(result.reason).toContain('Maximum session time');
+      expect(result.reason).toContain('active learning time');
     });
 
     it('never leaves the learner silent: no fired advisory yields continue, not break or complete', () => {
@@ -1189,11 +1247,13 @@ describe('Session Manager', () => {
         ],
       };
 
-      const progress = calculateSessionProgress(session, NOW);
       const expectedAdvisory = resolveSessionAdvisory({
         attempts: flattenChunkAttempts(session.chunks),
-        elapsedMs: progress.time_elapsed_ms,
-        maxTimeMs: DEFAULT_ALGORITHM_CONFIG.sessionConfig.maxTimeMs,
+        activeTimeMs: computeActiveTime({
+          timestamps: toActiveTimeSeries(session),
+          idleCutoffMs: DEFAULT_ALGORITHM_CONFIG.sessionConfig.idleCutoffMs,
+        }).activeTimeMs,
+        activeTimeCeilingMs: DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs,
       });
       expect(expectedAdvisory).toBeNull();
 
@@ -1205,20 +1265,21 @@ describe('Session Manager', () => {
       // For every fixture below: an advisory firing must never leave the
       // learner on 'continue', and a 'break' recommendation must never occur
       // without a fired advisory. Both directions hold because
-      // `evaluateCompletionCriteria`'s `maxTimeExceeded` threshold and the
-      // resolver's time-ceiling check are the exact same comparison
-      // (`progress.time_elapsed_ms >= config.maxTimeMs`), and the fatigue
-      // branch is keyed directly off the resolver's advisory kind.
+      // `evaluateCompletionCriteria` now maps ANY non-null advisory
+      // (`fatigue` or `active_time_ceiling`) straight to 'break', driven by
+      // the exact same resolver call `getSessionStatus` makes internally.
       function checkAgreement(session: SessionInput): {
         advisoryPresent: boolean;
         recommendation: 'continue' | 'complete' | 'break';
       } {
         const config = DEFAULT_ALGORITHM_CONFIG;
-        const progress = calculateSessionProgress(session, NOW);
         const advisory = resolveSessionAdvisory({
           attempts: flattenChunkAttempts(session.chunks),
-          elapsedMs: progress.time_elapsed_ms,
-          maxTimeMs: config.sessionConfig.maxTimeMs,
+          activeTimeMs: computeActiveTime({
+            timestamps: toActiveTimeSeries(session),
+            idleCutoffMs: config.sessionConfig.idleCutoffMs,
+          }).activeTimeMs,
+          activeTimeCeilingMs: config.sessionConfig.activeTimeCeilingMs,
         });
         const result = getSessionStatus(session, config, NOW);
 
@@ -1326,12 +1387,17 @@ describe('Session Manager', () => {
         expect(recommendation).toBe('break');
       });
 
-      it('holds for a session past the max-time ceiling (break via maxTimeExceeded)', () => {
+      it('holds for a session past the sitting active-time ceiling (break via active_time_ceiling)', () => {
+        const startMs = new Date('2024-01-01T08:00:00.000Z').getTime();
+        const gapMs = 8 * 60 * 1000; // sub-idle-cutoff, so every gap counts
+        const teach_event_timestamps = Array.from({ length: 7 }, (_, i) => startMs + i * gapMs); // 48min
+
         const session: SessionInput = {
           session_id: 'invariant-ceiling',
           mode: 'learning',
-          start_time: '2024-01-01T08:00:00.000Z', // 2.5 hours ago
+          start_time: '2024-01-01T08:00:00.000Z',
           current_time: '2024-01-01T10:30:00.000Z',
+          teach_event_timestamps,
           chunks: [
             {
               chunk_id: 'chunk-1',

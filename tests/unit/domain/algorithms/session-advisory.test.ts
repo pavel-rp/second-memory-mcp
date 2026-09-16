@@ -7,6 +7,7 @@ import type { FatigueAttempt } from '../../../../src/domain/algorithms/fatigue-t
 
 const T0 = 1_700_000_000_000;
 const HOUR = 3_600_000;
+const MIN = 60_000;
 
 function attempt(index: number, latencyMs: number, quality: number | null): FatigueAttempt {
   return { timestamp: T0 + index * HOUR, quality, latencyMs };
@@ -33,8 +34,8 @@ function shortHealthyFixture(): FatigueAttempt[] {
 
 const baseInput: SessionAdvisoryInput = {
   attempts: shortHealthyFixture(),
-  elapsedMs: 10 * 60 * 1000,
-  maxTimeMs: 2 * 60 * 60 * 1000,
+  activeTimeMs: 10 * MIN,
+  activeTimeCeilingMs: 45 * MIN,
 };
 
 describe('resolveSessionAdvisory', () => {
@@ -50,22 +51,24 @@ describe('resolveSessionAdvisory', () => {
     expect(result?.reason.length).toBeGreaterThan(0);
   });
 
-  it('fires the time ceiling past maxTimeMs while the trend is silent', () => {
+  it('fires the active-time ceiling past activeTimeCeilingMs while the trend is silent', () => {
     const result = resolveSessionAdvisory({
       attempts: shortHealthyFixture(),
-      elapsedMs: 2 * 60 * 60 * 1000,
-      maxTimeMs: 2 * 60 * 60 * 1000,
+      activeTimeMs: 45 * MIN,
+      activeTimeCeilingMs: 45 * MIN,
     });
 
     expect(result).not.toBeNull();
-    expect(result?.kind).toBe('time_ceiling');
+    expect(result?.kind).toBe('active_time_ceiling');
+    expect(result?.reason).toContain('active learning time');
+    expect(result?.reason).toContain('45 min');
   });
 
-  it('fatigue wins when both fatigue and the time ceiling apply', () => {
+  it('fatigue wins when both fatigue and the active-time ceiling apply', () => {
     const result = resolveSessionAdvisory({
       attempts: deterioratingFixture(),
-      elapsedMs: 3 * 60 * 60 * 1000,
-      maxTimeMs: 2 * 60 * 60 * 1000,
+      activeTimeMs: 60 * MIN,
+      activeTimeCeilingMs: 45 * MIN,
     });
 
     expect(result).not.toBeNull();
@@ -79,41 +82,41 @@ describe('resolveSessionAdvisory', () => {
   });
 
   describe('guards — never throws', () => {
-    it('non-finite elapsedMs never fires the ceiling', () => {
+    it('non-finite activeTimeMs never fires the ceiling', () => {
       const result = resolveSessionAdvisory({
         attempts: shortHealthyFixture(),
-        elapsedMs: Number.NaN,
-        maxTimeMs: 2 * 60 * 60 * 1000,
+        activeTimeMs: Number.NaN,
+        activeTimeCeilingMs: 45 * MIN,
       });
 
       expect(result).toBeNull();
     });
 
-    it('non-finite maxTimeMs never fires the ceiling', () => {
+    it('non-finite activeTimeCeilingMs never fires the ceiling', () => {
       const result = resolveSessionAdvisory({
         attempts: shortHealthyFixture(),
-        elapsedMs: 10 * 60 * 1000,
-        maxTimeMs: Number.POSITIVE_INFINITY,
+        activeTimeMs: 10 * MIN,
+        activeTimeCeilingMs: Number.POSITIVE_INFINITY,
       });
 
       expect(result).toBeNull();
     });
 
-    it('absent (undefined) elapsedMs and maxTimeMs never fires the ceiling', () => {
+    it('absent (undefined) activeTimeMs and activeTimeCeilingMs never fires the ceiling', () => {
       const result = resolveSessionAdvisory({
         attempts: shortHealthyFixture(),
-        elapsedMs: undefined,
-        maxTimeMs: undefined,
+        activeTimeMs: undefined,
+        activeTimeCeilingMs: undefined,
       });
 
       expect(result).toBeNull();
     });
 
-    it('absent (null) elapsedMs and maxTimeMs never fires the ceiling', () => {
+    it('absent (null) activeTimeMs and activeTimeCeilingMs never fires the ceiling', () => {
       const result = resolveSessionAdvisory({
         attempts: shortHealthyFixture(),
-        elapsedMs: null,
-        maxTimeMs: null,
+        activeTimeMs: null,
+        activeTimeCeilingMs: null,
       });
 
       expect(result).toBeNull();
@@ -123,15 +126,15 @@ describe('resolveSessionAdvisory', () => {
       expect(() =>
         resolveSessionAdvisory({
           attempts: 'not an array',
-          elapsedMs: 10 * 60 * 1000,
-          maxTimeMs: 2 * 60 * 60 * 1000,
+          activeTimeMs: 10 * MIN,
+          activeTimeCeilingMs: 45 * MIN,
         })
       ).not.toThrow();
 
       const result = resolveSessionAdvisory({
         attempts: 'not an array',
-        elapsedMs: 10 * 60 * 1000,
-        maxTimeMs: 2 * 60 * 60 * 1000,
+        activeTimeMs: 10 * MIN,
+        activeTimeCeilingMs: 45 * MIN,
       });
 
       expect(result).toBeNull();

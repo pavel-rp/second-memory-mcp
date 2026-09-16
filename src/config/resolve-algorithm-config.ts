@@ -100,13 +100,19 @@ export function resolveAlgorithmConfig(
         env.SM_SESSION_COMPLETION_THRESHOLD,
         DEFAULT_ALGORITHM_CONFIG.sessionConfig.completionThreshold
       ),
-      // ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy audit found no
-      // anchoring evidence for this value). Remains the hard 2-hour ceiling
-      // backstop, now surfaced both through `session_status` and in-band as a
-      // recurring `time_ceiling` stopping advisory.
-      maxTimeMs: parseNumber(
-        env.SM_SESSION_MAX_TIME_MS,
-        DEFAULT_ALGORITHM_CONFIG.sessionConfig.maxTimeMs
+      // PROVISIONAL DEFAULT, not evidence-derived (NEU-1016). Gap size (ms)
+      // at/above which a sitting ends and a new one starts at zero active time.
+      idleCutoffMs: parseNumber(
+        env.SM_SESSION_IDLE_CUTOFF_MS,
+        DEFAULT_ALGORITHM_CONFIG.sessionConfig.idleCutoffMs
+      ),
+      // PROVISIONAL DEFAULT, not evidence-derived (NEU-1016). Replaces the old
+      // wall-clock session-time ceiling backstop; fires the `active_time_ceiling`
+      // stopping advisory once the sitting's gap-based active time reaches this
+      // value, surfaced both through `session_status` and in-band.
+      activeTimeCeilingMs: parseNumber(
+        env.SM_SESSION_ACTIVE_TIME_CEILING_MS,
+        DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs
       ),
     },
     recommendationConfig: {

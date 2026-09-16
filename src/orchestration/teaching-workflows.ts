@@ -35,6 +35,7 @@ import { promptPack } from '../shared/prompts/prompt-pack.js';
 import { getRequestLogger, logEvent } from '../shared/logger.js';
 import type { FatigueAttempt } from '../domain/algorithms/fatigue-trend.js';
 import * as sessionAdvisoryAlgorithm from '../domain/algorithms/session-advisory.js';
+import { computeActiveTime } from '../domain/algorithms/active-time.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
@@ -83,24 +84,30 @@ function toFatigueAttempts(attempts: SessionQuestionAttempt[]): FatigueAttempt[]
 }
 
 /**
- * Pure: derive the in-band session-advisory block (NEU-848) from an attempt
- * population, elapsed session time, and the configured max session time —
- * both `getNextTeachingStep` and `submitAnswerForQuestion` call this same
- * derivation over the SAME shared resolver (`resolveSessionAdvisory`), the
- * agreement invariant with `session-analyzer.ts`. Kept pure and throw-free
- * per `resolveSessionAdvisory`'s own contract; callers still wrap their call
- * site fail-open since the attempt population itself may come from a fresh,
- * fallible fetch.
+ * Pure: derive the in-band session-advisory block (NEU-848, active-time basis
+ * NEU-1016) from an attempt population, a session's recorded `teach_next`
+ * event timestamps, the idle cutoff, and the configured sitting active-time
+ * ceiling — both `getNextTeachingStep` and `submitAnswerForQuestion` call this
+ * same derivation over the SAME shared resolver (`resolveSessionAdvisory`),
+ * the agreement invariant with `session-analyzer.ts`. The attempt timestamps
+ * and the event timestamps are merged into one series and fed through
+ * `active-time.ts`'s gap-based sitting computation — never wall-clock elapsed
+ * time. Kept pure and throw-free per `resolveSessionAdvisory`'s own contract;
+ * callers still wrap their call site fail-open since the attempt/event
+ * populations themselves may come from a fresh, fallible fetch.
  */
 function deriveSessionAdvisoryBlock(
   attempts: SessionQuestionAttempt[],
-  elapsedMs: number,
-  maxTimeMs: number
+  eventTimestamps: number[],
+  idleCutoffMs: number,
+  activeTimeCeilingMs: number
 ): SessionAdvisoryBlock | undefined {
+  const mergedTimestamps = [...eventTimestamps, ...attempts.map(a => a.createdAt)];
+  const { activeTimeMs } = computeActiveTime({ timestamps: mergedTimestamps, idleCutoffMs });
   const advisory = sessionAdvisoryAlgorithm.resolveSessionAdvisory({
     attempts: toFatigueAttempts(attempts),
-    elapsedMs,
-    maxTimeMs,
+    activeTimeMs,
+    activeTimeCeilingMs,
   });
   if (!advisory) return undefined;
   return {
@@ -163,6 +170,18 @@ export async function getNextTeachingStep(
       action: 'error',
       message: 'No active session. Call create_session first.',
     };
+  }
+
+  // NEU-1016: persist one server-side event timestamp per teach_next call —
+  // the learner-driven-event series the sitting active-time computation reads
+  // back. Fail-open: a write failure here must never fail an otherwise-
+  // successful teach_next call.
+  try {
+    await deps.sessions.recordSessionEvent(session.id, Date.now());
+  } catch (err: unknown) {
+    getRequestLogger().warn(
+      `teach_next: failed to record session event for session ${session.id}: ${extractErrorMessage(err)}`
+    );
   }
 
   // 2. Get session chunks, ordered by session's chunkIds (pedagogical sequence)
@@ -688,15 +707,20 @@ export async function getNextTeachingStep(
 
   const previousFeedbackStrings = historicalFeedback.map(hf => hf.feedback);
 
-  // NEU-848: within-session stopping advisory, built from the already-loaded
-  // `allAttempts` — zero additional queries on this path. Fail-open: a throw
-  // anywhere in assembly must never fail an otherwise-successful teach_next call.
+  // NEU-848/NEU-1016: within-session stopping advisory, built from the
+  // already-loaded `allAttempts` plus this session's recorded teach-event
+  // timestamps (one added `getSessionEventTimestamps` call — the event just
+  // recorded at the top of this function is already included). Fail-open: a
+  // throw anywhere in the fetch or assembly must never fail an otherwise-
+  // successful teach_next call.
   let sessionAdvisory: SessionAdvisoryBlock | undefined;
   try {
+    const eventTimestamps = await deps.sessions.getSessionEventTimestamps(session.id);
     sessionAdvisory = deriveSessionAdvisoryBlock(
       allAttempts,
-      now.getTime() - session.startTime,
-      deps.algorithmConfig.sessionConfig.maxTimeMs
+      eventTimestamps,
+      deps.algorithmConfig.sessionConfig.idleCutoffMs,
+      deps.algorithmConfig.sessionConfig.activeTimeCeilingMs
     );
   } catch (err: unknown) {
     getRequestLogger().warn(
@@ -1263,18 +1287,23 @@ async function submitAnswerForQuestion(
     ...(wasCapped && { wasCapped: true, rubricQuality }),
   });
 
-  // NEU-848: within-session stopping advisory. One added `getAllAttemptsForSession`
-  // call, placed after the attempt above is persisted so the just-recorded attempt
-  // is in the population fed to the shared resolver. Fail-open: a throw anywhere
-  // in the fetch or assembly must never fail an otherwise-successful submit_answer
+  // NEU-848/NEU-1016: within-session stopping advisory. Two added reads
+  // (`getAllAttemptsForSession`, `getSessionEventTimestamps`), placed after the
+  // attempt above is persisted so the just-recorded attempt is in the
+  // population fed to the shared resolver. Fail-open: a throw anywhere in the
+  // fetch or assembly must never fail an otherwise-successful submit_answer
   // call — the block is simply omitted.
   let sessionAdvisory: SessionAdvisoryBlock | undefined;
   try {
-    const advisoryAttempts = await deps.sessionQuestions.getAllAttemptsForSession(session.id);
+    const [advisoryAttempts, eventTimestamps] = await Promise.all([
+      deps.sessionQuestions.getAllAttemptsForSession(session.id),
+      deps.sessions.getSessionEventTimestamps(session.id),
+    ]);
     sessionAdvisory = deriveSessionAdvisoryBlock(
       advisoryAttempts,
-      now.getTime() - session.startTime,
-      deps.algorithmConfig.sessionConfig.maxTimeMs
+      eventTimestamps,
+      deps.algorithmConfig.sessionConfig.idleCutoffMs,
+      deps.algorithmConfig.sessionConfig.activeTimeCeilingMs
     );
   } catch (err: unknown) {
     getRequestLogger().warn(
