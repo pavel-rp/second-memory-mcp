@@ -208,7 +208,7 @@ describe('getNextTeachingStep', () => {
       sessions: { getActiveSession: vi.fn().mockResolvedValue(null) },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('error');
     expect(result).toHaveProperty('message');
@@ -221,7 +221,7 @@ describe('getNextTeachingStep', () => {
       sessions: { getSessionChunks: vi.fn().mockResolvedValue([]) },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('no chunks');
@@ -243,7 +243,7 @@ describe('getNextTeachingStep', () => {
     });
     // No attempts mocked — default stub returns empty arrays
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('blocked');
     expect(result).toHaveProperty('current_chunk_id', 'c1');
@@ -269,7 +269,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     expect(result).toHaveProperty('chunk_id', 'c2');
@@ -280,7 +280,7 @@ describe('getNextTeachingStep', () => {
   it('returns teach with learning mode for fresh pending chunk', async () => {
     const deps = makeDeps();
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -299,7 +299,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -316,7 +316,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -346,7 +346,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -379,7 +379,7 @@ describe('getNextTeachingStep', () => {
     vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([]);
     vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(new Map([['sq-orphan', ['c1']]]));
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     // Chunk is treated as fresh (learning mode) since question has no attempts
     expect(result.action).toBe('teach');
@@ -404,7 +404,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -430,7 +430,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -441,7 +441,7 @@ describe('getNextTeachingStep', () => {
   it('passes limit to getHistoricalFeedbackForChunks', async () => {
     const deps = makeDeps();
 
-    await getNextTeachingStep(deps);
+    await getNextTeachingStep(null, deps);
 
     expect(deps.sessions.getHistoricalFeedbackForChunks).toHaveBeenCalledWith(['c1'], {
       excludeSessionId: 'sess-1',
@@ -474,7 +474,7 @@ describe('getNextTeachingStep', () => {
       { chunkId: 'c2', attempts: [{ passed: false }, { passed: true }] },
     ]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -515,7 +515,7 @@ describe('getNextTeachingStep', () => {
       { chunkId: 'c3', attempts: [{ passed: false }, { passed: false }, { passed: true }] }, // needed retry
     ]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -544,7 +544,7 @@ describe('getNextTeachingStep', () => {
       { chunkId: 'c2', attempts: [{ passed: false }, { passed: false }] }, // all failed
     ]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -559,7 +559,7 @@ describe('getNextTeachingStep', () => {
       chunks: { getWithContent: vi.fn().mockResolvedValue(null) },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('not found');
@@ -569,7 +569,7 @@ describe('getNextTeachingStep', () => {
   it('marks selected chunk as in_progress', async () => {
     const deps = makeDeps();
 
-    await getNextTeachingStep(deps);
+    await getNextTeachingStep(null, deps);
 
     expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith('sc-1', {
       status: 'in_progress',
@@ -589,7 +589,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -618,7 +618,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -653,7 +653,7 @@ describe('getNextTeachingStep', () => {
       { chunkId: 'c2', attempts: [{ passed: true }] },
     ]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     // c2 was completed, all chunks done → session complete
     expect(result.action).toBe('complete');
@@ -663,7 +663,7 @@ describe('getNextTeachingStep', () => {
   it('omits previous_feedback when no historical feedback exists', async () => {
     const deps = makeDeps();
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -693,7 +693,7 @@ describe('getNextTeachingStep', () => {
       }),
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -715,7 +715,7 @@ describe('getNextTeachingStep', () => {
       }),
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -726,7 +726,7 @@ describe('getNextTeachingStep', () => {
   it('omits notes when notes port is undefined', async () => {
     const deps = makeDeps(); // no notes override
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -741,7 +741,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -758,7 +758,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -773,7 +773,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -797,7 +797,7 @@ describe('getNextTeachingStep', () => {
     });
     // Default stub returns empty arrays — no questions/attempts
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     // Empty = no attempts → gating blocks
     expect(result.action).toBe('blocked');
@@ -827,7 +827,7 @@ describe('getNextTeachingStep', () => {
     // sc-1 has no attempts, sc-2 has a passed attempt
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c2', attempts: [{ passed: true }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -856,7 +856,7 @@ describe('getNextTeachingStep', () => {
       { chunkId: 'c1', attempts: [{ passed: false }, { passed: false }] },
     ]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -884,7 +884,7 @@ describe('getNextTeachingStep', () => {
     const exhaustedAttempts = Array.from({ length: 8 }, () => ({ passed: false }));
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: exhaustedAttempts }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -929,7 +929,7 @@ describe('getNextTeachingStep', () => {
       { chunkId: 'c3', attempts: exhaustedAttempts },
     ]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -959,7 +959,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -984,7 +984,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1009,7 +1009,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -1042,7 +1042,7 @@ describe('getNextTeachingStep', () => {
       { chunkId: 'c2', attempts: [{ passed: false }, { passed: true }] },
     ]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -1068,7 +1068,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1092,7 +1092,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1116,7 +1116,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1144,7 +1144,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c3', attempts: [{ passed: true }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1180,7 +1180,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c3', attempts: [{ passed: true }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1203,7 +1203,7 @@ describe('getNextTeachingStep', () => {
     });
     // No attempts mocked — default stub returns empty
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -1228,7 +1228,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -1244,7 +1244,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
     expect(result.action).toBe('teach');
     if (result.action === 'teach') {
       expect(result.content_status).toBe('draft');
@@ -1268,7 +1268,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('error');
     expect(result).toHaveProperty('message');
@@ -1293,7 +1293,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1311,7 +1311,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1328,7 +1328,7 @@ describe('getNextTeachingStep', () => {
       },
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1350,7 +1350,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('blocked');
     if (result.action !== 'blocked') throw new Error('Expected blocked');
@@ -1399,7 +1399,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1442,7 +1442,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1490,7 +1490,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -1527,7 +1527,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1577,7 +1577,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -1616,7 +1616,7 @@ describe('getNextTeachingStep', () => {
     // SR update requires a valid chunk
     vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1739,7 +1739,7 @@ describe('getNextTeachingStep', () => {
     });
     vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     // SR was called for c1 with aggregated quality from 3 mixed-quality questions
@@ -1813,7 +1813,7 @@ describe('getNextTeachingStep', () => {
     });
     vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     // SR called with quality 5 (only from the answered question; unanswered excluded).
@@ -1842,7 +1842,7 @@ describe('getNextTeachingStep', () => {
     });
     vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
@@ -1874,7 +1874,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -1907,7 +1907,7 @@ describe('getNextTeachingStep', () => {
     // getChunk returns undefined → SR fails
     vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(undefined);
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     // Should still succeed — chunk completed without SR
     expect(result.action).toBe('teach');
@@ -1960,7 +1960,7 @@ describe('getNextTeachingStep', () => {
     });
     vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
 
-    await getNextTeachingStep(deps);
+    await getNextTeachingStep(null, deps);
 
     expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
       'sc-1',
@@ -1992,7 +1992,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
 
-    const result = await getNextTeachingStep(deps);
+    const result = await getNextTeachingStep(null, deps);
 
     expect(result.action).toBe('teach');
     if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2022,7 +2022,7 @@ describe('getNextTeachingStep', () => {
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true, quality: 5 }] }]);
     vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
 
-    await getNextTeachingStep(deps);
+    await getNextTeachingStep(null, deps);
 
     expect(logEvent).toHaveBeenCalledWith('submitAnswer', 'chunk_completed', {
       sessionId: 'sess-1',
@@ -2055,7 +2055,7 @@ describe('getNextTeachingStep', () => {
       { chunkId: 'c2', attempts: [{ passed: true }] },
     ]);
 
-    await getNextTeachingStep(deps);
+    await getNextTeachingStep(null, deps);
 
     expect(logEvent).toHaveBeenCalledWith('teachNext', 'session_complete', {
       sessionId: 'sess-1',
@@ -2067,7 +2067,7 @@ describe('getNextTeachingStep', () => {
   it('emits next_chunk_selected with fresh_pending reason for new chunk', async () => {
     const deps = makeDeps();
 
-    await getNextTeachingStep(deps);
+    await getNextTeachingStep(null, deps);
 
     expect(logEvent).toHaveBeenCalledWith('teachNext', 'next_chunk_selected', {
       sessionId: 'sess-1',
@@ -2090,7 +2090,7 @@ describe('getNextTeachingStep', () => {
     });
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
-    await getNextTeachingStep(deps);
+    await getNextTeachingStep(null, deps);
 
     expect(logEvent).toHaveBeenCalledWith('teachNext', 'next_chunk_selected', {
       sessionId: 'sess-1',
@@ -2106,7 +2106,7 @@ describe('getNextTeachingStep', () => {
       sessions: { getActiveSession: vi.fn().mockResolvedValue(null) },
     });
 
-    await getNextTeachingStep(deps);
+    await getNextTeachingStep(null, deps);
 
     expect(logEvent).not.toHaveBeenCalled();
   });
@@ -2152,7 +2152,7 @@ describe('getNextTeachingStep', () => {
         sessionQuestions: sqRepo,
       });
 
-      const result = (await getNextTeachingStep(deps)) as TeachNextTeach;
+      const result = (await getNextTeachingStep(null, deps)) as TeachNextTeach;
 
       expect(result.action).toBe('teach');
       expect(result.session_advisory).toEqual({
@@ -2174,8 +2174,8 @@ describe('getNextTeachingStep', () => {
         sessionQuestions: sqRepo,
       });
 
-      const first = (await getNextTeachingStep(deps)) as TeachNextTeach;
-      const second = (await getNextTeachingStep(deps)) as TeachNextTeach;
+      const first = (await getNextTeachingStep(null, deps)) as TeachNextTeach;
+      const second = (await getNextTeachingStep(null, deps)) as TeachNextTeach;
 
       expect(first.session_advisory?.kind).toBe('fatigue');
       expect(second.session_advisory?.kind).toBe('fatigue');
@@ -2191,7 +2191,7 @@ describe('getNextTeachingStep', () => {
       });
       // Default stub: getAllAttemptsForSession resolves to [] — fatigue silent.
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       expect(result).not.toHaveProperty('session_advisory');
@@ -2206,7 +2206,7 @@ describe('getNextTeachingStep', () => {
       });
       // Default stub: getAllAttemptsForSession resolves to [] — fatigue silent, only ceiling can fire.
 
-      const result = (await getNextTeachingStep(deps)) as TeachNextTeach;
+      const result = (await getNextTeachingStep(null, deps)) as TeachNextTeach;
 
       expect(result.action).toBe('teach');
       expect(result.session_advisory).toEqual({
@@ -2234,7 +2234,7 @@ describe('getNextTeachingStep', () => {
         });
 
       try {
-        const result = (await getNextTeachingStep(deps)) as TeachNextTeach;
+        const result = (await getNextTeachingStep(null, deps)) as TeachNextTeach;
 
         expect(result.action).toBe('teach');
         expect(result.chunk_id).toBe('c1');
@@ -2257,7 +2257,7 @@ describe('getNextTeachingStep', () => {
         sessionQuestions: sqRepo,
       });
 
-      await getNextTeachingStep(deps);
+      await getNextTeachingStep(null, deps);
 
       expect(sqRepo.getAllAttemptsForSession).toHaveBeenCalledTimes(1);
     });
@@ -2296,7 +2296,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2318,7 +2318,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2340,7 +2340,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2374,7 +2374,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2410,7 +2410,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2445,7 +2445,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2470,7 +2470,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2499,7 +2499,7 @@ describe('getNextTeachingStep', () => {
       // c1 completed with attempts so it doesn't block
       mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2544,7 +2544,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2594,7 +2594,7 @@ describe('getNextTeachingStep', () => {
       });
       mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2609,7 +2609,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2625,7 +2625,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      await getNextTeachingStep(deps);
+      await getNextTeachingStep(null, deps);
 
       expect(logEvent).toHaveBeenCalledWith(
         'teachNext',
@@ -2718,7 +2718,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2761,7 +2761,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2787,7 +2787,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       // Should fall through to original chunk
       expect(result.action).toBe('teach');
@@ -2823,7 +2823,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -2878,7 +2878,7 @@ describe('getNextTeachingStep', () => {
         chunks: { getWithContent, batchFetchMinimal },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       expect(warnSpy).toHaveBeenCalledWith(
@@ -2931,7 +2931,7 @@ describe('getNextTeachingStep', () => {
       });
       deps.algorithmConfig = { ...DEFAULT_ALGORITHM_CONFIG, maxDependencyDepth: 1 };
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       expect(warnSpy).toHaveBeenCalledWith(
@@ -2950,7 +2950,7 @@ describe('getNextTeachingStep', () => {
         },
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('teach');
       if (result.action !== 'teach') throw new Error('Expected teach');
@@ -3031,7 +3031,7 @@ describe('getNextTeachingStep', () => {
         { chunkId: 'c1', attempts: [{ passed: false, quality: 2 }] },
       ]);
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('roadblock');
       if (result.action !== 'roadblock') throw new Error('Expected roadblock');
@@ -3046,7 +3046,7 @@ describe('getNextTeachingStep', () => {
     it('completes chunk normally when quality is 5', async () => {
       const deps = makeRoadblockDeps([{ chunkId: 'c1', attempts: [{ passed: true, quality: 5 }] }]);
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       // Should proceed past roadblock gate → teach next chunk (c2)
       expect(result.action).toBe('teach');
@@ -3064,7 +3064,7 @@ describe('getNextTeachingStep', () => {
         },
       ]);
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       // quality 2 → needs 2 follow-ups, has 2 qualifying → auto-clear → teach next chunk
       expect(result.action).toBe('teach');
@@ -3089,7 +3089,7 @@ describe('getNextTeachingStep', () => {
         sessionQuestions: sqRepo,
       });
 
-      const result = await getNextTeachingStep(deps);
+      const result = await getNextTeachingStep(null, deps);
 
       expect(result.action).toBe('blocked');
       if (result.action !== 'blocked') throw new Error('Expected blocked');
@@ -3232,7 +3232,7 @@ describe('startLearning', () => {
       },
     });
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
     expect(result.action).toBe('resumed');
     if (result.action !== 'resumed') throw new Error('Expected resumed');
@@ -3268,7 +3268,7 @@ describe('startLearning', () => {
       },
     });
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
     expect(result.action).toBe('resumed');
     if (result.action !== 'resumed') throw new Error('Expected resumed');
@@ -3306,9 +3306,9 @@ describe('startLearning', () => {
       },
     });
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
-    expect(completeSpy).toHaveBeenCalledWith('done-sess', undefined, expect.anything());
+    expect(completeSpy).toHaveBeenCalledWith('done-sess', undefined, null, expect.anything());
     expect(result.action).toBe('started');
     if (result.action !== 'started') throw new Error('Expected started');
     expect(result.session_id).toBe('new-sess');
@@ -3335,7 +3335,7 @@ describe('startLearning', () => {
       },
     });
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
     expect(result.action).toBe('resumed');
     expect(completeSpy).not.toHaveBeenCalled();
@@ -3361,7 +3361,7 @@ describe('startLearning', () => {
       },
     });
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
     expect(result.action).toBe('error');
     if (result.action !== 'error') throw new Error('Expected error');
@@ -3396,9 +3396,9 @@ describe('startLearning', () => {
       },
     });
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
-    expect(completeSpy).toHaveBeenCalledWith('empty-sess', undefined, expect.anything());
+    expect(completeSpy).toHaveBeenCalledWith('empty-sess', undefined, null, expect.anything());
     expect(result.action).toBe('started');
     if (result.action !== 'started') throw new Error('Expected started');
     expect(result.session_id).toBe('new-sess');
@@ -3412,7 +3412,7 @@ describe('startLearning', () => {
     });
     const deps = makeStartLearningDeps();
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
     expect(result.action).toBe('nothing_due');
   });
@@ -3425,7 +3425,7 @@ describe('startLearning', () => {
     });
     const deps = makeStartLearningDeps();
 
-    const result = await startLearning({ subjectFilter: 'Math' }, deps);
+    const result = await startLearning({ subjectFilter: 'Math' }, null, deps);
 
     expect(result.action).toBe('nothing_due');
     expect((result as { message: string }).message).toContain('Math');
@@ -3439,7 +3439,7 @@ describe('startLearning', () => {
     });
     const deps = makeStartLearningDeps();
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
     expect(result.action).toBe('nothing_due');
   });
@@ -3447,7 +3447,7 @@ describe('startLearning', () => {
   it('auto-detects mode as review when due review items exist', async () => {
     const deps = makeStartLearningDeps();
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
     expect(result.action).toBe('started');
     if (result.action !== 'started') throw new Error('Expected started');
@@ -3475,7 +3475,7 @@ describe('startLearning', () => {
     );
     const deps = makeStartLearningDeps();
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
     expect(result.action).toBe('started');
     if (result.action !== 'started') throw new Error('Expected started');
@@ -3485,7 +3485,7 @@ describe('startLearning', () => {
   it('returns started with sessionId, totalChunks, firstChunk on success', async () => {
     const deps = makeStartLearningDeps();
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
     expect(result.action).toBe('started');
     if (result.action !== 'started') throw new Error('Expected started');
@@ -3503,7 +3503,7 @@ describe('startLearning', () => {
     );
     const deps = makeStartLearningDeps();
 
-    const result = await startLearning({}, deps);
+    const result = await startLearning({}, null, deps);
 
     expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('Race condition');
@@ -3512,7 +3512,7 @@ describe('startLearning', () => {
   it('passes subject_filter to generateRecommendations', async () => {
     const deps = makeStartLearningDeps();
 
-    await startLearning({ subjectFilter: 'Math' }, deps);
+    await startLearning({ subjectFilter: 'Math' }, null, deps);
 
     expect(recommendationWorkflows.generateRecommendations).toHaveBeenCalledWith(
       expect.objectContaining({ subjectFilter: 'Math' }),
@@ -3549,7 +3549,7 @@ describe('startLearning', () => {
     );
     const deps = makeStartLearningDeps();
 
-    await startLearning({}, deps);
+    await startLearning({}, null, deps);
 
     // resolveSessionChunkDependencies called with the recommendation's dueChunkIds
     expect(sessionWorkflows.resolveSessionChunkDependencies).toHaveBeenCalledWith(
@@ -3559,6 +3559,7 @@ describe('startLearning', () => {
     // createSession called with the resolved (reordered + expanded) chunk IDs
     expect(sessionWorkflows.createSession).toHaveBeenCalledWith(
       expect.objectContaining({ chunkIds: ['c-prereq', 'c1'] }),
+      null,
       expect.anything()
     );
   });
@@ -3573,7 +3574,7 @@ describe('startLearning', () => {
     });
     const deps = makeStartLearningDeps();
 
-    await startLearning({}, deps);
+    await startLearning({}, null, deps);
 
     // sessionDeps passed to resolveSessionChunkDependencies should have the config's maxDependencyDepth
     const resolveMock = vi.mocked(sessionWorkflows.resolveSessionChunkDependencies);
@@ -3586,7 +3587,7 @@ describe('startLearning', () => {
   it('emits session_started after creating a new session', async () => {
     const deps = makeStartLearningDeps();
 
-    await startLearning({}, deps);
+    await startLearning({}, null, deps);
 
     expect(logEvent).toHaveBeenCalledWith('startLearning', 'session_started', {
       sessionId: 'new-sess',
@@ -3615,7 +3616,7 @@ describe('startLearning', () => {
       },
     });
 
-    await startLearning({}, deps);
+    await startLearning({}, null, deps);
 
     expect(logEvent).toHaveBeenCalledWith('startLearning', 'session_resumed', {
       sessionId: 'active-sess',
@@ -3630,7 +3631,7 @@ describe('startLearning', () => {
     });
     const deps = makeStartLearningDeps();
 
-    await startLearning({}, deps);
+    await startLearning({}, null, deps);
 
     expect(logEvent).not.toHaveBeenCalledWith(
       'startLearning',
@@ -3697,6 +3698,7 @@ describe('submitAnswer logEvent', () => {
         feedback: 'good',
         timeSpentMs: 5000,
       },
+      null,
       deps
     );
 
@@ -3761,6 +3763,7 @@ describe('submitAnswer quality cap', () => {
         feedback: 'good',
         timeSpentMs: 5000,
       },
+      null,
       deps
     );
 
@@ -3781,6 +3784,7 @@ describe('submitAnswer quality cap', () => {
         feedback: 'good',
         timeSpentMs: 5000,
       },
+      null,
       deps
     );
 
@@ -3801,6 +3805,7 @@ describe('submitAnswer quality cap', () => {
         feedback: 'good',
         timeSpentMs: 5000,
       },
+      null,
       deps
     );
 
@@ -3821,6 +3826,7 @@ describe('submitAnswer quality cap', () => {
         feedback: 'good',
         timeSpentMs: 5000,
       },
+      null,
       deps
     );
 
@@ -3842,6 +3848,7 @@ describe('submitAnswer quality cap', () => {
         feedback: 'good',
         timeSpentMs: 5000,
       },
+      null,
       deps
     );
 
@@ -3906,6 +3913,7 @@ describe('submitAnswer quality cap', () => {
         feedback: 'correct now',
         timeSpentMs: 5000,
       },
+      null,
       deps
     );
 

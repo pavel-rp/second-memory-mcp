@@ -124,7 +124,7 @@ describe('createSession', () => {
   it('creates session on happy path', async () => {
     const deps = stubDeps();
 
-    const result = await createSession({ mode: 'guided', chunkIds: ['c1'] }, deps);
+    const result = await createSession({ mode: 'guided', chunkIds: ['c1'] }, null, deps);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -137,7 +137,7 @@ describe('createSession', () => {
     const deps = stubDeps();
     (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(stubSession());
 
-    const result = await createSession({ mode: 'guided' }, deps);
+    const result = await createSession({ mode: 'guided' }, null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -153,7 +153,7 @@ describe('createSession', () => {
       validIds: [],
     });
 
-    const result = await createSession({ mode: 'guided', chunkIds: ['bad-id'] }, deps);
+    const result = await createSession({ mode: 'guided', chunkIds: ['bad-id'] }, null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -165,7 +165,7 @@ describe('createSession', () => {
   it('skips chunk validation when no chunkIds provided', async () => {
     const deps = stubDeps();
 
-    const result = await createSession({ mode: 'guided' }, deps);
+    const result = await createSession({ mode: 'guided' }, null, deps);
 
     expect(result.success).toBe(true);
     expect(deps.sessions.validateChunkIds).not.toHaveBeenCalled();
@@ -174,7 +174,7 @@ describe('createSession', () => {
   it('skips chunk validation when chunkIds is empty', async () => {
     const deps = stubDeps();
 
-    const result = await createSession({ mode: 'guided', chunkIds: [] }, deps);
+    const result = await createSession({ mode: 'guided', chunkIds: [] }, null, deps);
 
     expect(result.success).toBe(true);
     expect(deps.sessions.validateChunkIds).not.toHaveBeenCalled();
@@ -186,7 +186,7 @@ describe('createSession', () => {
       new Error('db error')
     );
 
-    const result = await createSession({ mode: 'guided' }, deps);
+    const result = await createSession({ mode: 'guided' }, null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -197,7 +197,7 @@ describe('createSession', () => {
   it('returns validation error for assessment mode with empty chunkIds', async () => {
     const deps = stubDeps();
 
-    const result = await createSession({ mode: 'assessment', chunkIds: [] }, deps);
+    const result = await createSession({ mode: 'assessment', chunkIds: [] }, null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -209,7 +209,7 @@ describe('createSession', () => {
   it('returns validation error for assessment mode with no chunkIds', async () => {
     const deps = stubDeps();
 
-    const result = await createSession({ mode: 'assessment' }, deps);
+    const result = await createSession({ mode: 'assessment' }, null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -222,7 +222,7 @@ describe('createSession', () => {
     const deps = stubDeps();
     (deps.sessions.createSession as ReturnType<typeof vi.fn>).mockRejectedValue('string error');
 
-    const result = await createSession({ mode: 'guided' }, deps);
+    const result = await createSession({ mode: 'guided' }, null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -234,7 +234,7 @@ describe('createSession', () => {
   it('calls logEvent with session_created on success', async () => {
     const deps = stubDeps();
 
-    const result = await createSession({ mode: 'guided', chunkIds: ['c1'] }, deps);
+    const result = await createSession({ mode: 'guided', chunkIds: ['c1'] }, null, deps);
 
     expect(result.success).toBe(true);
     expect(logEvent).toHaveBeenCalledTimes(1);
@@ -249,7 +249,7 @@ describe('createSession', () => {
     const deps = stubDeps();
     (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(stubSession());
 
-    await createSession({ mode: 'guided' }, deps);
+    await createSession({ mode: 'guided' }, null, deps);
 
     expect(logEvent).not.toHaveBeenCalled();
   });
@@ -265,7 +265,7 @@ describe('completeSession', () => {
   it('completes session on happy path', async () => {
     const deps = stubDeps();
 
-    const result = await completeSession('sess-1', 'Good session', deps);
+    const result = await completeSession('sess-1', 'Good session', null, deps);
 
     expect(result.success).toBe(true);
     expect(deps.sessions.completeSession).toHaveBeenCalledWith('sess-1', 'Good session');
@@ -275,7 +275,7 @@ describe('completeSession', () => {
     const deps = stubDeps();
     (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-    const result = await completeSession('missing', undefined, deps);
+    const result = await completeSession('missing', undefined, null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -289,7 +289,7 @@ describe('completeSession', () => {
       new Error('db error')
     );
 
-    const result = await completeSession('sess-1', undefined, deps);
+    const result = await completeSession('sess-1', undefined, null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -301,7 +301,7 @@ describe('completeSession', () => {
     const deps = stubDeps();
     (deps.sessions.completeSession as ReturnType<typeof vi.fn>).mockRejectedValue('string error');
 
-    const result = await completeSession('sess-1', undefined, deps);
+    const result = await completeSession('sess-1', undefined, null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -313,7 +313,7 @@ describe('completeSession', () => {
   it('calls logEvent with session_completed on success', async () => {
     const deps = stubDeps();
 
-    await completeSession('sess-1', 'Good session', deps);
+    await completeSession('sess-1', 'Good session', null, deps);
 
     expect(logEvent).toHaveBeenCalledTimes(1);
     expect(logEvent).toHaveBeenCalledWith('completeSession', 'session_completed', {
@@ -325,7 +325,7 @@ describe('completeSession', () => {
     const deps = stubDeps();
     (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-    await completeSession('missing', undefined, deps);
+    await completeSession('missing', undefined, null, deps);
 
     expect(logEvent).not.toHaveBeenCalled();
   });
@@ -341,7 +341,7 @@ describe('batchUpdateSessionChunks', () => {
   it('returns batch results on happy path', async () => {
     const deps = stubDeps();
 
-    const result = await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], deps);
+    const result = await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], null, deps);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -353,7 +353,7 @@ describe('batchUpdateSessionChunks', () => {
     const deps = stubDeps();
     (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-    const result = await batchUpdateSessionChunks('missing', [{ chunkId: 'c1' }], deps);
+    const result = await batchUpdateSessionChunks('missing', [{ chunkId: 'c1' }], null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -367,7 +367,7 @@ describe('batchUpdateSessionChunks', () => {
       deps.sessions.persistBatchSessionChunkOperations as ReturnType<typeof vi.fn>
     ).mockRejectedValue(new Error('db error'));
 
-    const result = await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], deps);
+    const result = await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -381,7 +381,7 @@ describe('batchUpdateSessionChunks', () => {
       deps.sessions.persistBatchSessionChunkOperations as ReturnType<typeof vi.fn>
     ).mockRejectedValue('string error');
 
-    const result = await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], deps);
+    const result = await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], null, deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -393,7 +393,7 @@ describe('batchUpdateSessionChunks', () => {
   it('calls logEvent with chunks_updated on success', async () => {
     const deps = stubDeps();
 
-    await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], deps);
+    await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], null, deps);
 
     expect(logEvent).toHaveBeenCalledTimes(1);
     expect(logEvent).toHaveBeenCalledWith('batchUpdateSessionChunks', 'chunks_updated', {
@@ -408,7 +408,7 @@ describe('batchUpdateSessionChunks', () => {
     const deps = stubDeps();
     (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-    await batchUpdateSessionChunks('missing', [{ chunkId: 'c1' }], deps);
+    await batchUpdateSessionChunks('missing', [{ chunkId: 'c1' }], null, deps);
 
     expect(logEvent).not.toHaveBeenCalled();
   });
@@ -420,9 +420,9 @@ describe('pass-through delegations', () => {
   it('getSessionWithChunks delegates to sessions port', async () => {
     const deps = stubDeps();
 
-    const result = await getSessionWithChunks('sess-1', deps);
+    const result = await getSessionWithChunks('sess-1', null, deps);
 
-    expect(deps.sessions.getSessionWithChunks).toHaveBeenCalledWith('sess-1');
+    expect(deps.sessions.getSessionWithChunks).toHaveBeenCalledWith('sess-1', null);
     expect(result.session).toBeDefined();
   });
 
@@ -430,9 +430,13 @@ describe('pass-through delegations', () => {
     const deps = stubDeps();
     const options = { includeHistoricalFeedback: true, historicalFeedbackLimit: 5 };
 
-    await convertSessionToSessionInput('sess-1', options, deps);
+    await convertSessionToSessionInput('sess-1', options, null, deps);
 
-    expect(deps.sessions.convertSessionToSessionInput).toHaveBeenCalledWith('sess-1', options);
+    expect(deps.sessions.convertSessionToSessionInput).toHaveBeenCalledWith(
+      'sess-1',
+      null,
+      options
+    );
   });
 
   it('getHistoricalFeedback delegates with options', async () => {
@@ -447,16 +451,16 @@ describe('pass-through delegations', () => {
   it('getSessionById delegates to sessions port', async () => {
     const deps = stubDeps();
 
-    const result = await getSessionById('sess-1', deps);
+    const result = await getSessionById('sess-1', null, deps);
 
-    expect(deps.sessions.getSessionById).toHaveBeenCalledWith('sess-1');
+    expect(deps.sessions.getSessionById).toHaveBeenCalledWith('sess-1', null);
     expect(result).toBeDefined();
   });
 
   it('getActiveSession delegates to sessions port', async () => {
     const deps = stubDeps();
 
-    await getActiveSession(deps);
+    await getActiveSession(null, deps);
 
     expect(deps.sessions.getActiveSession).toHaveBeenCalledOnce();
   });
@@ -489,7 +493,7 @@ describe('pass-through delegations', () => {
   it('getSessionChunks delegates to sessions port', async () => {
     const deps = stubDeps();
 
-    await getSessionChunks('sess-1', deps);
+    await getSessionChunks('sess-1', null, deps);
 
     expect(deps.sessions.getSessionChunks).toHaveBeenCalledWith('sess-1');
   });

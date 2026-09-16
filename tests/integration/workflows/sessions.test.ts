@@ -9,6 +9,7 @@ import type { BatchOperation } from '../../../src/domain/types/session.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { STDIO_PLACEHOLDER_LEARNER_KEY } from '../../../src/shared/learner-context.js';
 
 describe('sessions service', () => {
   let ctx: AppContext;
@@ -65,6 +66,7 @@ describe('sessions service', () => {
 
     // Use low-level repo for direct CRUD (createSession on ctx returns ServiceResult)
     await sessionRepo.createSession({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: 's1',
       topicId: 't1',
       chunkIds: ['c1', 'c2'],
@@ -101,6 +103,7 @@ describe('sessions service', () => {
     const now = Date.now();
 
     await sessionRepo.createSession({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: 's1',
       mode: 'learning',
       startTime: now,
@@ -126,6 +129,7 @@ describe('sessions service', () => {
     const now = Date.now();
 
     await sessionRepo.createSession({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: 's1',
       mode: 'learning',
       startTime: now,
@@ -142,6 +146,7 @@ describe('sessions service', () => {
     expect(noActive).toBeNull();
 
     await sessionRepo.createSession({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: 's2',
       mode: 'review',
       startTime: now + 1000,
@@ -163,6 +168,7 @@ describe('sessions service', () => {
     await seedTopicAndChunks(`topic-${now}`, ['c1', 'c2'], now);
 
     await sessionRepo.createSession({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       id: 's1',
       mode: 'learning',
       startTime: now,
@@ -246,6 +252,7 @@ describe('sessions service', () => {
       await seedTopicAndChunks('topic1', ['chunk1', 'chunk2'], now);
 
       await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 'session1',
         topicId: 'topic1',
         chunkIds: ['chunk1', 'chunk2'],
@@ -285,6 +292,7 @@ describe('sessions service', () => {
       const now = Date.now();
 
       await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 'session1',
         mode: 'learning',
         startTime: now,
@@ -304,6 +312,7 @@ describe('sessions service', () => {
       const now = Date.now();
 
       await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 'session1',
         chunkIds: [],
         mode: 'learning',
@@ -341,6 +350,7 @@ describe('sessions service', () => {
       await seedTopicAndChunks('topic-order', orderedChunkIds, now);
 
       const input: CreateSessionInput = {
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 'session-order',
         topicId: 'topic-order',
         chunkIds: orderedChunkIds,
@@ -360,6 +370,7 @@ describe('sessions service', () => {
       await seedTopicAndChunks('topic-tx', ['tx-valid'], now);
 
       const input: CreateSessionInput = {
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 'session-tx-rollback',
         topicId: 'topic-tx',
         chunkIds: ['tx-valid', 'tx-nonexistent'],
@@ -371,7 +382,10 @@ describe('sessions service', () => {
       // FK session_chunks.chunk_id → learning_chunks.id fails on the second insert
       await expect(sessionRepo.createSession(input)).rejects.toThrow();
 
-      const session = await sessionRepo.getSessionById('session-tx-rollback');
+      const session = await sessionRepo.getSessionById(
+        'session-tx-rollback',
+        STDIO_PLACEHOLDER_LEARNER_KEY
+      );
       expect(session).toBeNull();
 
       const chunks = await sessionRepo.getSessionChunks('session-tx-rollback');
@@ -384,6 +398,7 @@ describe('sessions service', () => {
       await seedTopicAndChunks('topic-tx-ok', chunkIds, now);
 
       const input: CreateSessionInput = {
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 'session-tx-ok',
         topicId: 'topic-tx-ok',
         chunkIds,
@@ -394,7 +409,10 @@ describe('sessions service', () => {
       };
       await sessionRepo.createSession(input);
 
-      const session = await sessionRepo.getSessionById('session-tx-ok');
+      const session = await sessionRepo.getSessionById(
+        'session-tx-ok',
+        STDIO_PLACEHOLDER_LEARNER_KEY
+      );
       expect(session?.id).toBe('session-tx-ok');
       expect(session?.status).toBe('active');
 
@@ -412,6 +430,7 @@ describe('sessions service', () => {
       await seedTopicAndChunks('topic-single', ['c-only'], now);
 
       const input: CreateSessionInput = {
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 'session-single',
         topicId: 'topic-single',
         chunkIds: ['c-only'],
@@ -557,6 +576,7 @@ describe('sessions service', () => {
       await seedTopicAndChunks('topic-batch', chunkIds, now);
 
       await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 'session-batch',
         topicId: 'topic-batch',
         mode: 'learning',
@@ -586,6 +606,7 @@ describe('sessions service', () => {
       await seedTopicAndChunks('topic-persist', chunkIds, now);
 
       await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 'session-persist',
         topicId: 'topic-persist',
         mode: 'learning',
@@ -617,6 +638,7 @@ describe('sessions service', () => {
       await seedTopicAndChunks('topic-mixed', chunkIds, now);
 
       await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 'session-mixed',
         topicId: 'topic-mixed',
         mode: 'learning',
@@ -666,6 +688,7 @@ describe('sessions service', () => {
       // Session created without chunkIds — the adapter only checks session.chunkIds,
       // not the session_chunks table, so no feedback is returned.
       await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 's1',
         topicId: 't1',
         mode: 'learning',
@@ -694,6 +717,7 @@ describe('sessions service', () => {
       await seedTopicAndChunks('t1', ['c1'], now);
 
       await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 's1',
         topicId: 't1',
         chunkIds: ['c1'],
@@ -714,6 +738,7 @@ describe('sessions service', () => {
       const now = Date.now();
 
       await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 's1',
         mode: 'learning',
         startTime: now,
@@ -732,6 +757,7 @@ describe('sessions service', () => {
       await seedTopicAndChunks('t1', ['c1', 'c2'], now);
 
       await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
         id: 's1',
         topicId: 't1',
         mode: 'learning',

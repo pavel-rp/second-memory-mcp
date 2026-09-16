@@ -170,7 +170,7 @@ describe('buildLearnerContext', () => {
       },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.totalTopics).toBe(2);
     expect(result.totalChunks).toBe(2);
@@ -197,7 +197,7 @@ describe('buildLearnerContext', () => {
 
   it('cold start: returns zeros and empty arrays when DB is empty', async () => {
     const deps = makeDeps();
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.totalTopics).toBe(0);
     expect(result.totalChunks).toBe(0);
@@ -216,7 +216,7 @@ describe('buildLearnerContext', () => {
     const deps = makeDeps({
       sessions: { listSessions: vi.fn().mockResolvedValue([]) },
     });
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.recentSessionSummary).toBeNull();
   });
@@ -232,7 +232,7 @@ describe('buildLearnerContext', () => {
       },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.recentSessionSummary!.feedbackExcerpt).toHaveLength(200);
     expect(result.recentSessionSummary!.feedbackExcerpt).toBe('A'.repeat(200));
@@ -248,7 +248,7 @@ describe('buildLearnerContext', () => {
       },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.recentSessionSummary!.feedbackExcerpt).toBeNull();
   });
@@ -257,14 +257,14 @@ describe('buildLearnerContext', () => {
     const deps = makeDeps({
       reviewPersistence: { getWeakAreas: vi.fn().mockResolvedValue([]) },
     });
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.flaggedWeakAreas).toEqual([]);
   });
 
   it('leechCount is 0 when no remediation chunks exist', async () => {
     const deps = makeDeps();
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.leechCount).toBe(0);
   });
@@ -281,7 +281,7 @@ describe('buildLearnerContext', () => {
       chunks: { batchFetchMinimal: vi.fn().mockResolvedValue(allChunks) },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.leechCount).toBe(2);
   });
@@ -301,7 +301,7 @@ describe('buildLearnerContext', () => {
       },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.streakDays).toBe(3);
   });
@@ -318,7 +318,7 @@ describe('buildLearnerContext', () => {
       },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.streakDays).toBe(0);
   });
@@ -345,7 +345,7 @@ describe('buildLearnerContext', () => {
       reviewPersistence: { getWeakAreas: vi.fn().mockResolvedValue(qualityWeak) },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     // Should have only 1 entry, not 2 (deduplicated)
     expect(result.flaggedWeakAreas).toHaveLength(1);
@@ -373,7 +373,7 @@ describe('buildLearnerContext', () => {
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.overdueTopics).toHaveLength(5);
   });
@@ -399,7 +399,7 @@ describe('buildLearnerContext', () => {
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.flaggedWeakAreas).toHaveLength(5);
   });
@@ -422,7 +422,7 @@ describe('buildLearnerContext', () => {
       },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.recentSubjects).toHaveLength(5);
     expect(new Set(result.recentSubjects).size).toBe(5);
@@ -438,7 +438,7 @@ describe('buildLearnerContext', () => {
       chunks: { batchFetchMinimal: vi.fn().mockResolvedValue(allChunks) },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.recentSubjects).toEqual(['Math']);
   });
@@ -458,7 +458,7 @@ describe('buildLearnerContext', () => {
       },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.activeSession).toEqual({
       id: 'sess-active',
@@ -472,7 +472,7 @@ describe('buildLearnerContext', () => {
       sessions: { getActiveSession: vi.fn().mockResolvedValue(null) },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.activeSession).toBeNull();
   });
@@ -494,7 +494,7 @@ describe('buildLearnerContext', () => {
       },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.dueToday).toBe(2);
     expect(result.overdue).toBe(1);
@@ -525,7 +525,7 @@ describe('buildLearnerContext', () => {
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.overdueTopics[0]!.title).toBe('Old Topic');
     expect(result.overdueTopics[0]!.daysOverdue).toBe(5);
@@ -548,7 +548,7 @@ describe('buildLearnerContext', () => {
       reviewPersistence: { getWeakAreas, getReviewsByDateRange },
     });
 
-    await buildLearnerContext(deps, NOW);
+    await buildLearnerContext(null, deps, NOW);
 
     // batchFetchMinimal called once: all chunks (leech count derived in-memory)
     expect(batchFetchChunks).toHaveBeenCalledTimes(1);
@@ -585,7 +585,7 @@ describe('buildLearnerContext', () => {
       reviewPersistence: { getWeakAreas: vi.fn().mockResolvedValue(qualityWeak) },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.flaggedWeakAreas).toHaveLength(2);
     const easeArea = result.flaggedWeakAreas.find(a => a.chunk === 'Low Ease Chunk');
@@ -610,7 +610,7 @@ describe('buildLearnerContext', () => {
       },
     });
 
-    const result = await buildLearnerContext(deps, NOW);
+    const result = await buildLearnerContext(null, deps, NOW);
 
     expect(result.recentSessionSummary!.chunksReviewed).toBe(2);
   });
