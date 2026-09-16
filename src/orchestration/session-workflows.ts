@@ -324,15 +324,14 @@ export async function completeSession(
     if (!session) {
       return serviceFail({ type: 'not_found', message: `Session ${sessionId} not found` });
     }
-    // NEU-1042 verify-spec finding: the CAS guard must compare against the status just read,
-    // not a hardcoded 'active' — completing a paused session (a legitimate `complete_session`
-    // call, not only the internal active-session auto-complete/pause call sites) would otherwise
-    // always lose the race against its own read and report a false conflict.
-    const completedRowCount = await deps.sessions.completeSession(
-      sessionId,
-      feedback,
-      session.status as 'active' | 'paused' | 'completed'
-    );
+    // NEU-1042: complete is an active -> completed transition, mirroring pause's
+    // active -> paused and resume's paused -> active — the CAS guard requires 'active' rather
+    // than echoing back whatever status was just read (which would make the guard tautological
+    // and unable to ever detect a race). Completing an already-paused session is out of scope
+    // for this transition and now correctly reports the existing conflict shape instead of
+    // silently succeeding, per CI DISTILL feedback on this PR reconciling the earlier
+    // verify-spec finding, which was itself mistaken.
+    const completedRowCount = await deps.sessions.completeSession(sessionId, feedback, 'active');
     if (completedRowCount === 0) {
       // NEU-1033: the session existed at the read above but the write itself affected zero
       // rows — it changed concurrently between the read and the write. Report a structured

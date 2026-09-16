@@ -194,9 +194,25 @@ export class DrizzleSessionRepository implements SessionRepository {
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
     };
-    await this.db.insert(sessionChunks).values(chunkData);
-    logger.info(`Created session chunk ${input.id} for session ${input.sessionId}`);
-    return { ...chunkData, teachingApproach: chunkData.teachingApproach ?? null } as SessionChunk;
+    // NEU-1042: `uq_session_chunks_session_chunk` enforces at most one row per
+    // (session_id, chunk_id) — a chunk already present (e.g. auto-created from `chunk_ids` at
+    // session creation, or a repeat `create_session_chunk` call) is refreshed in place via
+    // ON CONFLICT DO UPDATE rather than rejected; the original row's `id`/`createdAt` are
+    // preserved by omitting them from `set`, and `.returning()` reports the actual persisted row.
+    const [row] = await this.db
+      .insert(sessionChunks)
+      .values(chunkData)
+      .onConflictDoUpdate({
+        target: [sessionChunks.sessionId, sessionChunks.chunkId],
+        set: {
+          status: chunkData.status,
+          timeSpentMs: chunkData.timeSpentMs,
+          updatedAt: chunkData.updatedAt,
+        },
+      })
+      .returning();
+    logger.info(`Created session chunk ${row.id} for session ${input.sessionId}`);
+    return { ...row, teachingApproach: row.teachingApproach ?? null } as SessionChunk;
   }
 
   async getSessionChunks(sessionId: string): Promise<SessionChunk[]> {

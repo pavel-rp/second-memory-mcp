@@ -508,19 +508,25 @@ describe('completeSession', () => {
     expect(deps.sessions.completeSession).toHaveBeenCalledWith('sess-1', 'Good session', 'active');
   });
 
-  it('completes a paused session without a false CAS conflict (NEU-1042 verify-spec regression)', async () => {
-    // The CAS guard must compare against the status just read, not a hardcoded 'active' —
-    // completing a paused session is a legitimate call, distinct from the internal
-    // active-session auto-complete/pause call sites.
+  it('always guards with expectedStatus: "active" — never echoes back the status just read (NEU-1042)', async () => {
+    // The CAS guard must always require 'active' — complete is an active -> completed
+    // transition. Echoing back whatever status was just read would make the guard
+    // tautological (it could never detect a race) and would silently let a paused session be
+    // completed, which is out of scope for this transition. Simulate the real DB-level CAS
+    // rejecting the mismatch (a paused session's row no longer matches `status = 'active'`).
     const deps = stubDeps();
     (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(
       stubSession({ status: 'paused' })
     );
+    (deps.sessions.completeSession as ReturnType<typeof vi.fn>).mockResolvedValue(0);
 
     const result = await completeSession('sess-1', 'Good session', null, deps);
 
-    expect(result.success).toBe(true);
-    expect(deps.sessions.completeSession).toHaveBeenCalledWith('sess-1', 'Good session', 'paused');
+    expect(deps.sessions.completeSession).toHaveBeenCalledWith('sess-1', 'Good session', 'active');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('conflict');
+    }
   });
 
   it('returns not_found when session does not exist', async () => {
