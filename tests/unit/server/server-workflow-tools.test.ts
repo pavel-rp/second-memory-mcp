@@ -30,4 +30,15 @@ describe('server-workflow-tools', () => {
     expect(raw.content[0].type).toBe('text');
     expect(() => JSON.parse(raw.content[0].text)).not.toThrow();
   });
+
+  it('TOOL DISAMBIGUATION documents paused-session resume via start_learning, including the no-topic bucket (NEU-1021)', async () => {
+    const handler = server.tools.get('get_server_workflow')!.handler;
+    const result = parseResult(await handler());
+    const workflow = result.data.workflow as string;
+
+    expect(workflow).toContain(
+      'its topic (or the no-topic bucket via no_topic: true) resumes through start_learning'
+    );
+    expect(workflow).toContain('never through create_session');
+  });
 });

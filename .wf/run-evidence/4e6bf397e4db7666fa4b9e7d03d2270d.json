@@ -52,6 +52,57 @@
       "evidenceClass": "artifact-backed",
       "runMode": "unestablished",
       "seal": "04f059e95e5d2be2aa91e0896de8415bf8c35664e0892bf0202e7cd943518c68"
+    },
+    {
+      "kind": "gate-approval",
+      "subject": "gate:implement",
+      "taskId": "NEU-1021",
+      "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+      "workspaceFingerprint": "fd14587e6fcf0c978b88f6be84a771a9232b85b939c60ba4ead57d79878907f7",
+      "issuedAt": "2026-09-16T15:31:52.922Z",
+      "sequence": 3,
+      "artifact": {
+        "path": "_local/NEU-1021/02_plan.md",
+        "sha256": "7deffb96a132e0ead1324f6548278526fa25ce529af22c27960e6d796520ac29",
+        "bytes": 25599
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "74b5dfa6402895aab9cc798916be1dd3ec895e12aa71fed252f4bb76f4e111ed"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "verify-spec",
+      "taskId": "NEU-1021",
+      "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+      "workspaceFingerprint": "fd14587e6fcf0c978b88f6be84a771a9232b85b939c60ba4ead57d79878907f7",
+      "issuedAt": "2026-09-16T15:39:35.538Z",
+      "sequence": 4,
+      "artifact": {
+        "path": "_local/NEU-1021/04_verify.md",
+        "sha256": "7bf78e348b1f9ef63df922cd6abdb24e443d6a0e75cc31287c6aa5639b564b03",
+        "bytes": 12095
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "d31afa783e54c9ceabd563be78d6fcf9883833c710fe5943d76d7c390d2056dc"
+    },
+    {
+      "kind": "gate-approval",
+      "subject": "gate:verify-fix",
+      "taskId": "NEU-1021",
+      "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+      "workspaceFingerprint": "fd14587e6fcf0c978b88f6be84a771a9232b85b939c60ba4ead57d79878907f7",
+      "issuedAt": "2026-09-16T15:42:57.803Z",
+      "sequence": 5,
+      "artifact": {
+        "path": "_local/NEU-1021/05_verify-fix.md",
+        "sha256": "a16bcc3ad2652607e06f8817636eba45010ceba09dcd8d1f03d686e8bee20931",
+        "bytes": 3618
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "7381bc0e7e7557113afb84307e5e2365fef4328c6e05da1abef759b2ee4ec7d6"
     }
   ]
 }
