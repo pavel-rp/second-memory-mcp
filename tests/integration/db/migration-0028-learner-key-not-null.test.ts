@@ -141,6 +141,36 @@ describe('migration 0028 — backfill and enforce learner_key NOT NULL (integrat
       .from(learningSessions)
       .where(eq(learningSessions.id, 'sess-unkeyed-2'));
     expect(stillUnkeyed?.learnerKey).toBeNull();
+
+    // An explicit empty string is also blank — distinct branch from "unset"
+    // (deleted env var) and "whitespace-only", per the early-return-guard
+    // convention: cover every guard input, not just one nullish case.
+    process.env.OWNER_LEARNER_KEY = '';
+    await expect(ensureSchema()).rejects.toThrow(/OWNER_LEARNER_KEY/);
+
+    const [stillUnkeyedEmpty] = await db
+      .select()
+      .from(learningSessions)
+      .where(eq(learningSessions.id, 'sess-unkeyed-2'));
+    expect(stillUnkeyedEmpty?.learnerKey).toBeNull();
+  });
+
+  it('backfills with the exact untrimmed value when OWNER_LEARNER_KEY is non-blank but whitespace-padded (NEU-1043)', async () => {
+    // NEU-1043: trim decides blank vs. non-blank only — the value actually
+    // written must be the raw, untrimmed string, not the trimmed one.
+    const now = Date.now();
+    await revertTo0027();
+    await insertUnkeyedSession('sess-unkeyed-padded', now);
+
+    process.env.OWNER_LEARNER_KEY = '  owner-key-3  ';
+    await expect(ensureSchema()).resolves.toBeUndefined();
+
+    const db = getSql();
+    const [backfilled] = await db
+      .select()
+      .from(learningSessions)
+      .where(eq(learningSessions.id, 'sess-unkeyed-padded'));
+    expect(backfilled?.learnerKey).toBe('  owner-key-3  ');
   });
 
   it('succeeds without OWNER_LEARNER_KEY set when no unkeyed rows exist', async () => {

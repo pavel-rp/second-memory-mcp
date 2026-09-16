@@ -126,6 +126,7 @@ export async function recomputePausedSessionChunks(
     for (const sc of nonCompleted) {
       if (!stillDueIds.has(sc.chunkId)) {
         await deps.sessions.deleteSessionChunk(sc.id);
+        existingChunkIds.delete(sc.chunkId);
       }
     }
   }
@@ -149,9 +150,24 @@ export async function recomputePausedSessionChunks(
         createdAt: now + index,
         updatedAt: now + index,
       });
+      existingChunkIds.add(chunk.id);
       index++;
     }
   }
+
+  // NEU-1043: persist the resulting chunk id set onto `learning_sessions.chunk_ids`
+  // — otherwise it stays frozen at whatever it was when the session was first
+  // created, even though `session_chunks` (the source of truth for the actual
+  // queue) has just been shed/admitted above. `getHistoricalFeedbackForChunks`'s
+  // "does this session contain this chunk" overlap check reads this column, so a
+  // stale value would misattribute (or fail to attribute) historical feedback
+  // after a resume recompute. No expected-status guard: this always runs after
+  // the caller's own CAS-guarded `paused -> active` flip has already succeeded
+  // (see `resumePausedSessionWithRecompute`) — keep that ordering intact.
+  await deps.sessions.updateSession(session.id, {
+    chunkIds: Array.from(existingChunkIds),
+    updatedAt: Date.now(),
+  });
 }
 
 export async function createSession(
@@ -233,7 +249,12 @@ export async function createSession(
             findings: {
               code: 'active_session_exists_same_topic',
               session_id: activeSession.id,
-              topic_id: activeSession.topicId,
+              // NEU-1043: report the already-resolved `activeTopicId` (session's
+              // persisted topicId, or the single topic its session_chunks span)
+              // rather than the raw `topicId` column, which is `null` for a
+              // session whose topic was only ever inferred from its chunks —
+              // the caller needs the topic that was actually matched against.
+              topic_id: activeTopicId,
               mode: activeSession.mode,
               started_at: activeSession.startTime,
             },

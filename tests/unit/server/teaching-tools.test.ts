@@ -506,6 +506,18 @@ describe('teaching-tools', () => {
     expect(parsed.error.retryable).toBe(false);
   });
 
+  it('start_learning rejects an empty-string topic_id (NEU-1043)', async () => {
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('start_learning')!.handler;
+
+    const result = await handler({ topic_id: '', context_token: 'ctx-test' });
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('validation');
+    expect(parsed.error.retryable).toBe(false);
+  });
+
   it('start_learning returns session error when orchestration throws', async () => {
     ctx.startLearning = vi.fn().mockRejectedValue(new Error('DB timeout'));
     registerTeachingTools(server as any, ctx);

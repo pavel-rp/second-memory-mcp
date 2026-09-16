@@ -191,6 +191,16 @@ describe('sessions service', () => {
     const completed = await ctx.getSessionById('s1');
     expect(completed?.status).toBe('completed');
     expect(completed?.pausedAt).toBeNull();
+
+    // NEU-1043: the auto-completed s1 must not still show up as this learner's
+    // active session — exactly the freshly created replacement does.
+    if (result.success) {
+      const activeSessions = await sessionRepo.listSessions(STDIO_PLACEHOLDER_LEARNER_KEY, {
+        status: 'active',
+      });
+      expect(activeSessions).toHaveLength(1);
+      expect(activeSessions[0]?.id).toBe(result.data.sessionId);
+    }
   });
 
   it('manages active sessions correctly', async () => {
@@ -398,6 +408,54 @@ describe('sessions service', () => {
       expect(stillActive?.pausedAt).toBeNull();
       const active = await ctx.getActiveSession();
       expect(active?.id).toBe('s1');
+    });
+
+    it('rejects a create_session request with invalid, non-empty chunk_ids before pausing the active session, creating no new session row (NEU-1043)', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ca1'], now);
+
+      await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+        id: 's1',
+        topicId: 'topic-a',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.createSessionChunk({
+        id: 'sc1',
+        sessionId: 's1',
+        chunkId: 'ca1',
+        status: 'pending',
+        timeSpentMs: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const result = await ctx.createSession({
+        chunkIds: ['does-not-exist'],
+        mode: 'learning',
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe('validation');
+      }
+
+      // Session A is untouched — the rejected request never reached the pause write.
+      const stillActive = await ctx.getSessionById('s1');
+      expect(stillActive?.status).toBe('active');
+      expect(stillActive?.pausedAt).toBeNull();
+      const stillChunks = await sessionRepo.getSessionChunks('s1');
+      expect(stillChunks).toHaveLength(1);
+      expect(stillChunks[0]?.chunkId).toBe('ca1');
+      expect(stillChunks[0]?.status).toBe('pending');
+
+      // No new session row was created for the rejected request.
+      const allSessions = await sessionRepo.listSessions(STDIO_PLACEHOLDER_LEARNER_KEY);
+      expect(allSessions).toHaveLength(1);
+      expect(allSessions[0]?.id).toBe('s1');
     });
 
     it('still pauses the active session and creates the new one when assessment-mode input is valid (NEU-1033 AC3)', async () => {
@@ -1284,6 +1342,14 @@ describe('sessions service', () => {
       expect(finalChunkIds).toContain('a1');
       expect(finalChunkIds).not.toContain('a2');
       expect(finalChunkIds).toContain('a3');
+
+      // NEU-1043: `learning_sessions.chunk_ids` must reflect the post-recompute
+      // set — shed a2, keep a1, admit a3 — not the stale set frozen at session
+      // creation (['a1', 'a2']). This is the DB-mutating path
+      // `recomputePausedSessionChunks` fixes: the column is read by
+      // `getHistoricalFeedbackForChunks`'s session-contains-chunk check, so a
+      // stale value would misattribute historical feedback after a resume.
+      expect(resumedSession?.chunkIds?.slice().sort()).toEqual(finalChunkIds.slice().sort());
 
       const a1Final = finalChunks.find(c => c.chunkId === 'a1');
       expect(a1Final?.status).toBe('completed');

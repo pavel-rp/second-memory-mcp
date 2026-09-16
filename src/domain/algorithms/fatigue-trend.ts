@@ -102,7 +102,12 @@ export function computeFatigueTrend(
   windowSize: number = DEFAULT_FATIGUE_WINDOW_SIZE
 ): FatigueTrendResult {
   if (!Array.isArray(attempts)) return SILENT_RESULT;
-  if (!Number.isFinite(windowSize) || windowSize <= 0) return SILENT_RESULT;
+  // NEU-1043: reject non-integer and sub-2 window sizes, not just non-positive
+  // ones — a windowSize of 1 (or a truncating split like 6.5) can produce an
+  // empty earlier/later half, whose `mean([])` divides 0 by 0 into `NaN`.
+  if (!Number.isFinite(windowSize) || !Number.isInteger(windowSize) || windowSize < 2) {
+    return SILENT_RESULT;
+  }
 
   const survivors = attempts.filter(isSampledAttempt);
   if (survivors.length < windowSize) return SILENT_RESULT;

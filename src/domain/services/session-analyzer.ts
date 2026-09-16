@@ -169,6 +169,21 @@ function evaluateCompletionCriteria(
   advisory: SessionAdvisory | null,
   activeTimeMs: number
 ): { shouldComplete: boolean; reason: string; recommendation: 'continue' | 'complete' | 'break' } {
+  // NEU-1043 (restoring pre-NEU-1016 precedence): a resolved advisory always wins
+  // over the quality/chunk-completion branches below. Before NEU-1020 removed the
+  // wall-clock `maxTimeExceeded` check, that check ran first and forced `break`
+  // even when quality+chunk thresholds were also met — a fatigued or over-ceiling
+  // learner should be told to stop rather than congratulated. `resolveSessionAdvisory`
+  // already resolves at most one advisory (fatigue takes precedence over the
+  // ceiling), so any non-null advisory here is the one signal to relay, checked
+  // before either completion branch.
+  if (advisory) {
+    return {
+      shouldComplete: true,
+      reason: advisory.reason,
+      recommendation: 'break',
+    };
+  }
   if (thresholds.qualityMet && thresholds.chunkMet) {
     return {
       shouldComplete: true,
@@ -181,20 +196,6 @@ function evaluateCompletionCriteria(
       shouldComplete: true,
       reason: 'Session objectives completed successfully.',
       recommendation: 'complete',
-    };
-  }
-  // NEU-1020: both advisory kinds — `fatigue` and `active_time_ceiling` —
-  // map to the same 'break' recommendation, driven by the advisory's own
-  // reason. `resolveSessionAdvisory` already resolves at most one advisory
-  // (fatigue takes precedence over the ceiling), so any non-null advisory
-  // here is the one signal to relay. The wall-clock `qualityMet && timeMet`
-  // branch that used to sit here is dropped entirely (NEU-1020) — the verdict
-  // rests on quality and chunk progress alone, with no time-threshold branch.
-  if (advisory) {
-    return {
-      shouldComplete: true,
-      reason: advisory.reason,
-      recommendation: 'break',
     };
   }
   // NEU-1020: rebased on the current sitting's active time (gap-based, never

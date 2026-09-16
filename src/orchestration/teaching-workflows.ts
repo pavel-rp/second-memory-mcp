@@ -1921,13 +1921,17 @@ export async function startLearning(
       // requested topic always resumes as before; a requested topic that matches the active
       // session's own single topic also resumes — only a genuine mismatch (including an
       // active session whose own topic is indeterminate) pauses.
+      // NEU-1043: an explicit `no_topic` request is also a topic switch when the active
+      // session DOES resolve to a real topic — resuming it instead would silently ignore
+      // the caller's explicit request for the no-topic bucket. An active session that is
+      // itself already in the no-topic bucket (`activeTopicId === null`) still resumes.
       let shouldPause = false;
-      if (input.topicId) {
+      if (input.topicId || input.noTopic) {
         const activeTopicId = await sessionWorkflows.resolveActiveSessionTopicId(
           activeSession,
           sessionDeps
         );
-        shouldPause = activeTopicId !== input.topicId;
+        shouldPause = input.topicId ? activeTopicId !== input.topicId : activeTopicId !== null;
       }
 
       if (shouldPause) {
@@ -2091,6 +2095,7 @@ export async function startLearning(
     resolution.estimatedDuration > 0 ? resolution.estimatedDuration : topRec.estimatedDuration;
   const sessionResult = await sessionWorkflows.createSession(
     {
+      topicId: topRec.topicId,
       chunkIds,
       mode,
       estimatedDuration,
