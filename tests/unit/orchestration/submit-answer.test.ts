@@ -55,6 +55,7 @@ function makeSession(overrides?: Partial<LearningSession>): LearningSession {
     feedback: null,
     createdAt: NOW,
     updatedAt: NOW,
+    pausedAt: null,
     ...overrides,
   };
 }
@@ -3200,6 +3201,42 @@ describe('submitAnswer with session_question_id', () => {
       // getActiveSession should NOT be called for late submissions
       expect(deps.sessions.getActiveSession).not.toHaveBeenCalled();
     });
+
+    it('assessment late submission against a paused session returns late_submission flag (NEU-1018)', async () => {
+      const deps = makeAssessmentDeps({
+        sessions: {
+          getSessionById: vi
+            .fn()
+            .mockResolvedValue(
+              makeSession({ mode: 'assessment', chunkIds: ['c1', 'c2'], status: 'paused' })
+            ),
+          getSessionChunks: vi
+            .fn()
+            .mockResolvedValue([
+              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+              makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+            ]),
+        },
+        sessionQuestions: {
+          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+          getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
+          getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+          getQuestionsForSession: vi.fn().mockResolvedValue([makeQuestion({ status: 'answered' })]),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
+          getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
+
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
+      expect(result.late_submission).toBe(true);
+    });
   });
 
   // ── NEU-94: Late submission (completed session) ─────────────────
@@ -3342,6 +3379,28 @@ describe('submitAnswer with session_question_id', () => {
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.late_submission).toBeUndefined();
+    });
+
+    // ── NEU-1018: a paused session is late the same way a completed one is ──
+
+    it('records answer against a paused session with late_submission flag', async () => {
+      const deps = makeLateSubmissionDeps({
+        sessions: {
+          getSessionById: vi.fn().mockResolvedValue(makeSession({ status: 'paused' })),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ quality: 5, sessionQuestionId: 'sq-1' }),
+        null,
+        deps
+      );
+
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
+      expect(result.late_submission).toBe(true);
+      // getActiveSession should NOT be called for late submissions
+      expect(deps.sessions.getActiveSession).not.toHaveBeenCalled();
     });
   });
 

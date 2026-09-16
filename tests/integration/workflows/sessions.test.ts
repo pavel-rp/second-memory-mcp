@@ -1,6 +1,8 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { DrizzleSessionRepository } from '../../../src/adapters/drizzle/session-repository.js';
+import { DrizzleChunkRepository } from '../../../src/adapters/drizzle/chunk-repository.js';
+import * as sessionWorkflows from '../../../src/orchestration/session-workflows.js';
 import type {
   CreateSessionInput,
   CreateSessionChunkInput,
@@ -99,7 +101,11 @@ describe('sessions service', () => {
     expect(notFound).toBeNull();
   });
 
-  it('prevents creating second active session', async () => {
+  it('rejects a second no-topic create_session call against a no-topic empty active session (NEU-1018)', async () => {
+    // A session created with no topicId and no chunks (the ROLLING SESSION FLOW's "open an
+    // empty session, add chunks one at a time" pattern) must NOT be silently auto-completed by
+    // a second no-topic create_session call — zero chunks is not "all completed". Both sides
+    // are in the "no-topic bucket", so this is the same-bucket conflict, not an auto-complete.
     const now = Date.now();
 
     await sessionRepo.createSession({
@@ -111,18 +117,70 @@ describe('sessions service', () => {
       updatedAt: now,
     });
 
-    // The ctx.createSession returns ServiceResult instead of throwing
-    const result = await ctx.createSession({
-      mode: 'review',
-    });
+    const result = await ctx.createSession({ mode: 'review' });
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.message).toContain('Active session');
+      expect(result.error.type).toBe('conflict');
+      expect(result.error.findings).toMatchObject({
+        code: 'active_session_exists_same_topic',
+        session_id: 's1',
+      });
     }
+    const stillActive = await ctx.getSessionById('s1');
+    expect(stillActive?.status).toBe('active');
+  });
 
-    const active = await ctx.getActiveSession();
-    expect(active?.id).toBe('s1');
+  it('pauses (not auto-completes) a no-topic empty active session when a different topic is requested (NEU-1018)', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('topic-x', ['cx1'], now);
+
+    await sessionRepo.createSession({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+      id: 's1',
+      mode: 'learning',
+      startTime: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const result = await ctx.createSession({ mode: 'learning', topicId: 'topic-x' });
+
+    expect(result.success).toBe(true);
+    const paused = await ctx.getSessionById('s1');
+    expect(paused?.status).toBe('paused');
+    expect(paused?.pausedAt).toEqual(expect.any(Number));
+  });
+
+  it('auto-completes a non-empty, fully-completed active session before creating a new one (NEU-1018)', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('topic-y', ['cy1'], now);
+
+    await sessionRepo.createSession({
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+      id: 's1',
+      topicId: 'topic-y',
+      mode: 'learning',
+      startTime: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ctx.createSessionChunk({
+      id: 'sc1',
+      sessionId: 's1',
+      chunkId: 'cy1',
+      status: 'completed',
+      timeSpentMs: 500,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const result = await ctx.createSession({ mode: 'review' });
+
+    expect(result.success).toBe(true);
+    const completed = await ctx.getSessionById('s1');
+    expect(completed?.status).toBe('completed');
+    expect(completed?.pausedAt).toBeNull();
   });
 
   it('manages active sessions correctly', async () => {
@@ -161,6 +219,137 @@ describe('sessions service', () => {
 
     const finalCheck = await ctx.getActiveSession();
     expect(finalCheck).toBeNull();
+  });
+
+  describe('topic switching (NEU-1018)', () => {
+    it('pauses the active session (status + paused_at persisted, chunks untouched) and creates the new one for a different topic', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ca1'], now);
+      await seedTopicAndChunks('topic-b', ['cb1'], now);
+
+      await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+        id: 's1',
+        topicId: 'topic-a',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.createSessionChunk({
+        id: 'sc1',
+        sessionId: 's1',
+        chunkId: 'ca1',
+        status: 'in_progress',
+        timeSpentMs: 1234,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const result = await ctx.createSession({ topicId: 'topic-b', mode: 'learning' });
+
+      expect(result.success).toBe(true);
+
+      const paused = await ctx.getSessionById('s1');
+      expect(paused?.status).toBe('paused');
+      expect(paused?.pausedAt).toEqual(expect.any(Number));
+
+      // Chunk progress is untouched by pausing.
+      const chunksAfterPause = await ctx.getSessionChunks('s1');
+      expect(chunksAfterPause).toHaveLength(1);
+      expect(chunksAfterPause[0]?.status).toBe('in_progress');
+      expect(chunksAfterPause[0]?.timeSpentMs).toBe(1234);
+
+      // A paused session is excluded from get_active_session.
+      const active = await ctx.getActiveSession();
+      expect(active?.id).not.toBe('s1');
+      if (result.success) {
+        expect(active?.id).toBe(result.data.sessionId);
+      }
+    });
+
+    it('rejects a same-topic create_session request with the structured conflict, creating and pausing nothing', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ca1'], now);
+
+      await sessionRepo.createSession({
+        learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
+        id: 's1',
+        topicId: 'topic-a',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.createSessionChunk({
+        id: 'sc1',
+        sessionId: 's1',
+        chunkId: 'ca1',
+        status: 'pending',
+        timeSpentMs: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const result = await ctx.createSession({ topicId: 'topic-a', mode: 'learning' });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe('conflict');
+        expect(result.error.findings).toMatchObject({
+          code: 'active_session_exists_same_topic',
+          session_id: 's1',
+          topic_id: 'topic-a',
+        });
+      }
+
+      // Nothing created, and s1 is still active (not paused).
+      const stillActive = await ctx.getSessionById('s1');
+      expect(stillActive?.status).toBe('active');
+      expect(stillActive?.pausedAt).toBeNull();
+      const active = await ctx.getActiveSession();
+      expect(active?.id).toBe('s1');
+    });
+
+    it("pauses only the switching learner's session — a second learner's active session is untouched", async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-a', ['ca1'], now);
+      await seedTopicAndChunks('topic-b', ['cb1'], now);
+      const learner1 = 'learner-1';
+      const learner2 = 'learner-2';
+      const sessionDeps = {
+        sessions: sessionRepo,
+        chunks: new DrizzleChunkRepository(getSql()),
+        maxDependencyDepth: 5,
+      };
+
+      await sessionWorkflows.createSession(
+        { topicId: 'topic-a', mode: 'learning' },
+        learner1,
+        sessionDeps
+      );
+      const learner2Result = await sessionWorkflows.createSession(
+        { topicId: 'topic-a', mode: 'learning' },
+        learner2,
+        sessionDeps
+      );
+      expect(learner2Result.success).toBe(true);
+
+      // Learner 1 switches to topic-b — only learner 1's session pauses.
+      const switchResult = await sessionWorkflows.createSession(
+        { topicId: 'topic-b', mode: 'learning' },
+        learner1,
+        sessionDeps
+      );
+      expect(switchResult.success).toBe(true);
+
+      const learner1Active = await sessionRepo.getActiveSession(learner1);
+      const learner2Active = await sessionRepo.getActiveSession(learner2);
+      expect(learner1Active?.topicId).toBe('topic-b');
+      expect(learner2Active?.topicId).toBe('topic-a');
+      expect(learner2Active?.status).toBe('active');
+      expect(learner2Active?.pausedAt).toBeNull();
+    });
   });
 
   it('creates and manages session chunks', async () => {

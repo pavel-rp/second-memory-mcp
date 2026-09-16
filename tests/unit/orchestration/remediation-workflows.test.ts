@@ -40,6 +40,7 @@ function stubSession(overrides?: Partial<LearningSession>): LearningSession {
     feedback: null,
     createdAt: NOW.getTime() - 3600_000,
     updatedAt: NOW.getTime(),
+    pausedAt: null,
     ...overrides,
   };
 }

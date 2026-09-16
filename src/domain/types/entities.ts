@@ -119,6 +119,8 @@ export type LearningSession = {
   feedback: string | null;
   createdAt: number;
   updatedAt: number;
+  /** NEU-1018: epoch ms, set when a topic switch pauses this session; null otherwise. */
+  pausedAt: number | null;
 };
 
 // ── Session Chunks ───────────────────────────────────────────────

@@ -65,7 +65,11 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         'is automatically included showing what the learner found difficult previously. ' +
         'Use this for manual session setup when you need specific chunk_ids or modes. ' +
         'For the common case of "just start learning", prefer start_learning which handles ' +
-        'recommendations, session creation, and first chunk in one call.',
+        'recommendations, session creation, and first chunk in one call. ' +
+        'If an active session exists on a different topic, it is paused (chunk progress intact) and this one is created. ' +
+        'If an active session already exists for this same topic, the call is rejected with error.findings.code ' +
+        '"active_session_exists_same_topic" (carrying session_id, topic_id, mode, started_at) — call start_learning ' +
+        'with that topic to resume it instead.',
       inputSchema: CreateSessionToolInputShape,
     },
     async (input: unknown) =>
@@ -122,6 +126,7 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
             return toolError(`Failed to create session: ${createResult.error.message}`, {
               type: createResult.error.type,
               message: createResult.error.message,
+              findings: createResult.error.findings,
             });
           }
 
@@ -166,6 +171,7 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
       title: 'Get Active Session',
       description:
         'Retrieve the current active learning session to continue where you left off. ' +
+        'A paused session (one set aside by a topic switch) is never returned here — resume it via start_learning(topic_id). ' +
         'For review and retrieval sessions, historical feedback from past sessions is automatically included ' +
         'to help inform teaching strategy based on previously reported difficulties. ' +
         'Use the fields parameter to request only specific parts of the session (e.g. ["mode", "chunks.status"]).',

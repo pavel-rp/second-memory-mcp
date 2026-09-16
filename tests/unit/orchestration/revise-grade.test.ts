@@ -38,6 +38,7 @@ function makeSession(overrides?: Partial<LearningSession>): LearningSession {
     feedback: null,
     createdAt: NOW,
     updatedAt: NOW,
+    pausedAt: null,
     ...overrides,
   };
 }

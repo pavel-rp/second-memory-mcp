@@ -8,6 +8,8 @@ import type { ValidatorReport } from '../domain/types/validator-report.js';
 /** Filter options for listing chunks. */
 export type ListChunksFilter = {
   subjectFilter?: string;
+  /** NEU-1018: scope the list to one topic (e.g. a `start_learning(topic_id)` request). */
+  topicId?: string;
   dueOnly?: boolean;
   limit?: number;
   offset?: number;

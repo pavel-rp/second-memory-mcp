@@ -432,6 +432,20 @@ describe('teaching-tools', () => {
     expect(server.tools.has('start_learning')).toBe(true);
   });
 
+  it('start_learning description documents the topic-input and pause-on-switch behavior (NEU-1018)', () => {
+    registerTeachingTools(server as any, ctx);
+    const description = server.tools.get('start_learning')!.spec.description as string;
+
+    expect(description).toContain('an explicit one via topic_id');
+    expect(description).toContain(
+      'If an active session exists on a different topic than the one requested, it is paused'
+    );
+    // The resume sentence is NEU-1021's territory and must stay untouched.
+    expect(description).toContain(
+      'If an active session exists with remaining chunks, it is resumed'
+    );
+  });
+
   it('start_learning returns toolData result on success', async () => {
     const startResult = {
       action: 'started',

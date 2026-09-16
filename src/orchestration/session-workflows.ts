@@ -26,6 +26,53 @@ export type SessionDeps = {
   maxDependencyDepth: number;
 };
 
+/**
+ * NEU-1018: resolve the single topic a set of chunk ids span, or `null` when they span zero,
+ * two or more distinct topics — the "ambiguous / no-topic" bucket.
+ */
+async function resolveChunkTopicId(
+  chunkIds: string[],
+  deps: Pick<SessionDeps, 'chunks'>
+): Promise<string | null> {
+  if (chunkIds.length === 0) return null;
+  const topicIds = new Set<string>();
+  for (const chunkId of chunkIds) {
+    const chunk = await deps.chunks.getById(chunkId);
+    if (chunk) topicIds.add(chunk.topicId);
+  }
+  return topicIds.size === 1 ? ((topicIds.values().next().value as string) ?? null) : null;
+}
+
+/**
+ * NEU-1018: resolve an active session's own single topic — its persisted `topicId` if set,
+ * else the single topic its `session_chunks` span, else `null` (the "no-topic bucket": no
+ * single topic can be determined, so any topic switch pauses it).
+ */
+export async function resolveActiveSessionTopicId(
+  session: Pick<LearningSession, 'id' | 'topicId'>,
+  deps: SessionDeps
+): Promise<string | null> {
+  if (session.topicId) return session.topicId;
+  const sessionChunks = await deps.sessions.getSessionChunks(session.id);
+  return resolveChunkTopicId(
+    sessionChunks.map(sc => sc.chunkId),
+    deps
+  );
+}
+
+/**
+ * NEU-1018: resolve a `create_session` request's own single topic — the explicit `topicId` if
+ * given, else the single topic its `chunkIds` span, else `null` (no `topicId` and no/ambiguous
+ * `chunkIds` — the same "no-topic bucket" `resolveActiveSessionTopicId` returns for a session).
+ */
+export async function resolveRequestTopicId(
+  input: { topicId?: string; chunkIds?: string[] },
+  deps: SessionDeps
+): Promise<string | null> {
+  if (input.topicId) return input.topicId;
+  return resolveChunkTopicId(input.chunkIds ?? [], deps);
+}
+
 export async function createSession(
   input: {
     topicId?: string;
@@ -39,11 +86,64 @@ export async function createSession(
   try {
     const activeSession = await deps.sessions.getActiveSession(learnerKey);
     if (activeSession) {
-      return serviceFail({
-        type: 'conflict',
-        message:
-          'Active session already exists. Please complete the current session before creating a new one.',
-      });
+      const activeSessionChunks = await deps.sessions.getSessionChunks(activeSession.id);
+      // NEU-1018: unlike startLearning's always-populated sessions, create_session legitimately
+      // creates sessions with zero chunks (the ROLLING SESSION FLOW pattern — chunks are added
+      // one at a time via create_session_chunk afterward). Treating a fresh, empty session as
+      // "all completed" would silently auto-complete it instead of running the pause/reject
+      // check below, so only a non-empty, fully-completed chunk set counts here.
+      const allCompleted =
+        activeSessionChunks.length > 0 &&
+        activeSessionChunks.every(sc => sc.status === 'completed');
+
+      if (allCompleted) {
+        // NEU-1018: a fully completed active session auto-completes rather than pausing or
+        // blocking the new session's creation — same rule as startLearning's.
+        const completeResult = await completeSession(activeSession.id, undefined, learnerKey, deps);
+        if (!completeResult.success) {
+          return serviceFail({
+            type: 'database',
+            message: `Failed to auto-complete finished session: ${completeResult.error.message}`,
+          });
+        }
+      } else {
+        // NEU-1018: a same-topic (or same no-topic-bucket) request is rejected so the caller
+        // resumes via start_learning; any genuinely different topic pauses the active session
+        // (chunk progress intact) and proceeds to create the requested one — never a rejection.
+        const [requestTopicId, activeTopicId] = await Promise.all([
+          resolveRequestTopicId({ topicId: input.topicId, chunkIds: input.chunkIds }, deps),
+          resolveActiveSessionTopicId(activeSession, deps),
+        ]);
+        const isSameTopic =
+          (requestTopicId !== null && requestTopicId === activeTopicId) ||
+          (requestTopicId === null && activeTopicId === null);
+
+        if (isSameTopic) {
+          return serviceFail({
+            type: 'conflict',
+            message:
+              'Active session already exists for this topic. Call start_learning to resume it.',
+            findings: {
+              code: 'active_session_exists_same_topic',
+              session_id: activeSession.id,
+              topic_id: activeSession.topicId,
+              mode: activeSession.mode,
+              started_at: activeSession.startTime,
+            },
+          });
+        }
+
+        const pausedAt = Date.now();
+        await deps.sessions.updateSession(activeSession.id, {
+          status: 'paused',
+          pausedAt,
+          updatedAt: pausedAt,
+        });
+        logEvent('createSession', 'session_paused', {
+          sessionId: activeSession.id,
+          requestedTopicId: input.topicId,
+        });
+      }
     }
 
     // Assessment mode requires non-empty chunk_ids

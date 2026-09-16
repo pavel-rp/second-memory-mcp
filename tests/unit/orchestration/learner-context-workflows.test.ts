@@ -68,6 +68,7 @@ function makeSession(overrides?: Partial<LearningSession>): LearningSession {
     feedback: 'Good session overall',
     createdAt: NOW_MS - 3_600_000,
     updatedAt: NOW_MS - 1_800_000,
+    pausedAt: null,
     ...overrides,
   };
 }
