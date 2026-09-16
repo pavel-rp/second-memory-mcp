@@ -137,6 +137,32 @@
       "evidenceClass": "artifact-backed",
       "runMode": "unestablished",
       "seal": "796539e3c313fd250840555fcf040361889d64e90c816ed3c8f99afa79a68dd9"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "tf",
+      "taskId": "NEU-1021",
+      "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+      "workspaceFingerprint": "fd14587e6fcf0c978b88f6be84a771a9232b85b939c60ba4ead57d79878907f7",
+      "issuedAt": "2026-09-16T16:08:19.070Z",
+      "sequence": 8,
+      "artifact": null,
+      "evidenceClass": "invocation-only",
+      "runMode": "unestablished",
+      "seal": "0029f5377618452ce209bc0a3bb319b7c423fdc2da3d2c260fdcf9515bab9092"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "ship",
+      "taskId": "NEU-1021",
+      "runId": "4e6bf397e4db7666fa4b9e7d03d2270d",
+      "workspaceFingerprint": "fd14587e6fcf0c978b88f6be84a771a9232b85b939c60ba4ead57d79878907f7",
+      "issuedAt": "2026-09-16T16:08:30.293Z",
+      "sequence": 9,
+      "artifact": null,
+      "evidenceClass": "invocation-only",
+      "runMode": "unestablished",
+      "seal": "aadfc142b77e0dc315e6abc3c6e59dd0e7b0b000bf08cf54842470a527c9410c"
     }
   ]
 }
