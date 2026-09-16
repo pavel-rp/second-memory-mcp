@@ -1127,10 +1127,15 @@ async function submitAnswerForQuestion(
     return { action: 'error', message: `Session question ${sessionQuestionId} not found.` };
   }
 
-  // 1b. Look up the session that owns this question (needed for mode-aware guards)
+  // 1b. Look up the session that owns this question (needed for mode-aware guards).
+  // NEU-1015: session_questions carries no learner_key of its own, so this scoped lookup is
+  // the enforcement point for cross-learner access to a question. The message is deliberately
+  // identical to the "question not found" message above — a caller must not be able to
+  // distinguish "no such question" from "that question belongs to another learner" (that
+  // distinction is itself an existence oracle for another learner's session).
   const session = await deps.sessions.getSessionById(question.sessionId, learnerKey);
   if (!session) {
-    return { action: 'error', message: 'Session not found for this question.' };
+    return { action: 'error', message: `Session question ${sessionQuestionId} not found.` };
   }
 
   // 1c. Guard: question must still be answerable (mode-aware messages)

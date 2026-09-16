@@ -2691,7 +2691,9 @@ describe('submitAnswer with session_question_id', () => {
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), null, deps);
 
     expect(result.action).toBe('error');
-    expect((result as { message: string }).message).toContain('Session not found');
+    // NEU-1015: normalized to the same "question not found" message as an unknown question id
+    // (no cross-learner existence oracle) — see the dedicated test below for the full proof.
+    expect((result as { message: string }).message).toContain('not found');
   });
 
   it('returns error when max attempts exceeded', async () => {
@@ -2731,8 +2733,24 @@ describe('submitAnswer with session_question_id', () => {
     expect((result as { message: string }).message).toContain('not found');
   });
 
-  it('returns error when session not found in question flow', async () => {
-    const deps = makeQuestionDeps({
+  it('returns the same not-found message whether the question or its session is missing (NEU-1015: no cross-learner existence oracle)', async () => {
+    // A question that exists but whose session belongs to another learner (getSessionById
+    // returns null under a scoped learnerKey lookup) must be indistinguishable from a
+    // question that doesn't exist at all — otherwise a caller could tell "no such question"
+    // apart from "that question belongs to someone else", leaking the existence of another
+    // learner's session question.
+    const questionNotFoundDeps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(null),
+      },
+    });
+    const questionNotFoundResult = await submitAnswer(
+      makeInput({ sessionQuestionId: 'sq-1' }),
+      null,
+      questionNotFoundDeps
+    );
+
+    const sessionNotFoundDeps = makeQuestionDeps({
       sessions: {
         getSessionById: vi.fn().mockResolvedValue(null),
       },
@@ -2740,11 +2758,18 @@ describe('submitAnswer with session_question_id', () => {
         getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
       },
     });
+    const sessionNotFoundResult = await submitAnswer(
+      makeInput({ sessionQuestionId: 'sq-1' }),
+      null,
+      sessionNotFoundDeps
+    );
 
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), null, deps);
-
-    expect(result.action).toBe('error');
-    expect((result as { message: string }).message).toContain('Session not found');
+    expect(questionNotFoundResult.action).toBe('error');
+    expect(sessionNotFoundResult.action).toBe('error');
+    expect((sessionNotFoundResult as { message: string }).message).toBe(
+      (questionNotFoundResult as { message: string }).message
+    );
+    expect((sessionNotFoundResult as { message: string }).message).toContain('not found');
   });
 
   it('uses inline path when session_question_id is absent', async () => {
