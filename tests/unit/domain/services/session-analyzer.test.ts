@@ -196,16 +196,31 @@ describe('Session Manager', () => {
       // Basis is gap-based sitting active time, never wall-clock elapsed
       // time — build it via `teach_event_timestamps` spaced 8 min apart
       // (under the 10-min idle cutoff, so every gap counts): 6 gaps * 8min =
-      // 48min, past the 45-min default ceiling.
+      // 48min, past the 45-min default ceiling. No chunk attempts here — a
+      // stray attempt timestamp far outside this window would merge into a
+      // separate sitting (a large gap resets the computation) and mask the
+      // very thing this test exercises.
       const startMs = new Date('2024-01-01T09:00:00.000Z').getTime();
       const gapMs = 8 * 60 * 1000;
       const teach_event_timestamps = Array.from({ length: 7 }, (_, i) => startMs + i * gapMs);
 
       const longActiveSession: SessionInput = {
-        ...mockSessionInput,
+        session_id: 'long-active-session',
+        mode: 'learning',
         start_time: '2024-01-01T09:00:00.000Z',
         current_time: '2024-01-01T10:30:00.000Z',
         teach_event_timestamps,
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
+            title: 'Chunk 1',
+            status: 'pending',
+            attempts: [],
+            quality_scores: [],
+            time_spent_ms: 0,
+          },
+        ],
       };
 
       const result = getSessionStatus(longActiveSession, DEFAULT_ALGORITHM_CONFIG, NOW);
