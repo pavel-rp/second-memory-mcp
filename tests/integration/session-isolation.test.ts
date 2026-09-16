@@ -72,14 +72,16 @@ describe('learner session isolation (NEU-1015)', () => {
 
   // ── Schema ──────────────────────────────────────────────────────
 
-  it('learning_sessions.learner_key exists as a nullable column', async () => {
+  it('learning_sessions.learner_key exists as a NOT NULL column (NEU-1019)', async () => {
     const db = getSql();
     const result = await db.execute<{ is_nullable: string; data_type: string }>(sql`
       SELECT is_nullable, data_type FROM information_schema.columns
       WHERE table_name = 'learning_sessions' AND column_name = 'learner_key'
     `);
     expect(result.rows).toHaveLength(1);
-    expect(result.rows[0]?.is_nullable).toBe('YES');
+    // NEU-1019 backfills every pre-existing row and enforces NOT NULL —
+    // superseding NEU-1015's original nullable-by-design shape.
+    expect(result.rows[0]?.is_nullable).toBe('NO');
     expect(result.rows[0]?.data_type).toBe('text');
   });
 

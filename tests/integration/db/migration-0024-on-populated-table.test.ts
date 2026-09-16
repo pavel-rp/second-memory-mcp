@@ -2,6 +2,7 @@ import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 import { ensureSchema } from '../../../src/infrastructure/db/migrate.js';
+import { STDIO_PLACEHOLDER_LEARNER_KEY } from '../../../src/shared/learner-context.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import {
   learningSessions,
@@ -56,6 +57,7 @@ describe('migration 0024 on a populated session_question_attempts table (integra
 
     await db.insert(learningSessions).values({
       id: 'sess-populated',
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       topicId: null,
       chunkIds: ['pc1'],
       mode: 'learning',

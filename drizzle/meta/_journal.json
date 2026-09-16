@@ -197,6 +197,13 @@
       "when": 1774300000000,
       "tag": "0027_add_session_paused_status",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1774310000000,
+      "tag": "0028_add_learning_sessions_learner_key_not_null",
+      "breakpoints": true
     }
   ]
 }

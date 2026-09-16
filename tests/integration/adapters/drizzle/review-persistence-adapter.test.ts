@@ -10,6 +10,7 @@ import {
 } from '../../../../src/infrastructure/db/schema.js';
 import { DrizzleReviewPersistenceAdapter } from '../../../../src/adapters/drizzle/review-persistence-adapter.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../../helpers/db-setup.js';
+import { STDIO_PLACEHOLDER_LEARNER_KEY } from '../../../../src/shared/learner-context.js';
 
 describe('DrizzleReviewPersistenceAdapter.getWeakAreas (integration)', () => {
   let adapter: DrizzleReviewPersistenceAdapter;
@@ -61,6 +62,7 @@ describe('DrizzleReviewPersistenceAdapter.getWeakAreas (integration)', () => {
   async function seedSession(id: string) {
     await db.insert(learningSessions).values({
       id,
+      learnerKey: STDIO_PLACEHOLDER_LEARNER_KEY,
       mode: 'learning',
       status: 'completed',
       startTime: now,
