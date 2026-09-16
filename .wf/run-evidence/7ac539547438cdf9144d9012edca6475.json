@@ -137,6 +137,74 @@
       "evidenceClass": "artifact-backed",
       "runMode": "unestablished",
       "seal": "e5c5e665aa2a333d0178fc6c4eb65c95e64e2ccfeaa4d11d31518a0f944082a2"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "verify-spec",
+      "taskId": "NEU-1018",
+      "runId": "7ac539547438cdf9144d9012edca6475",
+      "workspaceFingerprint": "18e99e2de35129c370aff5a089c62281979f501e300ff6063a304650c70d80f8",
+      "issuedAt": "2026-09-16T14:14:11.672Z",
+      "sequence": 8,
+      "artifact": {
+        "path": "_local/NEU-1018/04_verify.md",
+        "sha256": "3334bf2cd9fe6d3508eec0fb46ba73944207c5a2150486ffedb9194bfd455f3e",
+        "bytes": 15918
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "344f2d3ed61da6d2e46d1181072f159cc119cc0cf8dd5a2df8822f82c7671df0"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "verify-spec",
+      "taskId": "NEU-1018",
+      "runId": "7ac539547438cdf9144d9012edca6475",
+      "workspaceFingerprint": "18e99e2de35129c370aff5a089c62281979f501e300ff6063a304650c70d80f8",
+      "issuedAt": "2026-09-16T14:15:00.486Z",
+      "sequence": 9,
+      "artifact": {
+        "path": "_local/NEU-1018/04_verify.md",
+        "sha256": "3334bf2cd9fe6d3508eec0fb46ba73944207c5a2150486ffedb9194bfd455f3e",
+        "bytes": 15918
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "93331fce3d397249ac8f04573635609f7a4917b395a3a8d8bc5b6153824d5ee2"
+    },
+    {
+      "kind": "gate-approval",
+      "subject": "gate:verify-spec",
+      "taskId": "NEU-1018",
+      "runId": "7ac539547438cdf9144d9012edca6475",
+      "workspaceFingerprint": "18e99e2de35129c370aff5a089c62281979f501e300ff6063a304650c70d80f8",
+      "issuedAt": "2026-09-16T14:15:01.949Z",
+      "sequence": 10,
+      "artifact": {
+        "path": "_local/NEU-1018/04_verify.md",
+        "sha256": "3334bf2cd9fe6d3508eec0fb46ba73944207c5a2150486ffedb9194bfd455f3e",
+        "bytes": 15918
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "e7eb02549f3d7af30983febdc3de9cb933a2a52afaf4718e8789c935278ab6fb"
+    },
+    {
+      "kind": "gate-approval",
+      "subject": "gate:verify-fix",
+      "taskId": "NEU-1018",
+      "runId": "7ac539547438cdf9144d9012edca6475",
+      "workspaceFingerprint": "18e99e2de35129c370aff5a089c62281979f501e300ff6063a304650c70d80f8",
+      "issuedAt": "2026-09-16T14:17:19.478Z",
+      "sequence": 11,
+      "artifact": {
+        "path": "_local/NEU-1018/05_verify-fix.md",
+        "sha256": "e7ecdc70a9c5dc15a827d298eff57e419e1de88dd2abcbaa05d1d77233732c48",
+        "bytes": 2406
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "e3e595045e0e0d204e8b84368a32540dec8f6963abfdc89494289eece6e75b80"
     }
   ]
 }

@@ -52,6 +52,16 @@ describe('session-lifecycle-tools', () => {
   // create_session
   // ---------------------------------------------------------------
   describe('create_session', () => {
+    it('description documents the pause-on-switch and same-topic-rejection behavior (NEU-1018)', () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const description = server.tools.get('create_session')!.spec.description as string;
+
+      expect(description).toContain(
+        'If an active session exists on a different topic, it is paused'
+      );
+      expect(description).toContain('active_session_exists_same_topic');
+    });
+
     it('creates session without chunks', async () => {
       ctx.createSession = vi.fn().mockResolvedValue({
         success: true,
@@ -192,6 +202,14 @@ describe('session-lifecycle-tools', () => {
   // get_active_session
   // ---------------------------------------------------------------
   describe('get_active_session', () => {
+    it('description notes a paused session is never returned (NEU-1018)', () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const description = server.tools.get('get_active_session')!.spec.description as string;
+
+      expect(description).toContain('A paused session');
+      expect(description).toContain('is never returned here');
+    });
+
     it('returns not_found when no active session', async () => {
       ctx.getActiveSession = vi.fn().mockResolvedValue(null);
       registerSessionLifecycleTools(server as any, ctx);
