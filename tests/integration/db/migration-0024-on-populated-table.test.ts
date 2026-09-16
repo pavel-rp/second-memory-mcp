@@ -117,8 +117,14 @@ describe('migration 0024 on a populated session_question_attempts table (integra
     await db.execute(
       sql`ALTER TABLE "session_question_attempts" DROP COLUMN "snapshot_days_overdue"`
     );
+    // NEU-1015: delete every tracking row from 0024 onward (>=), not just 0024's own row.
+    // ensureSchema()'s re-apply gate is a single global "last migration" watermark (the max
+    // created_at across ALL tracked migrations), not a per-migration check — so a later
+    // migration's tracking row (e.g. 0025+) left in place after this delete would still sit
+    // above 0024's `when` and silently block 0024 from being re-applied. Deleting the whole
+    // tail keeps this test correct regardless of how many migrations now follow 0024.
     await db.execute(
-      sql`DELETE FROM drizzle."__drizzle_migrations" WHERE created_at = ${MIGRATION_0024_WHEN}`
+      sql`DELETE FROM drizzle."__drizzle_migrations" WHERE created_at >= ${MIGRATION_0024_WHEN}`
     );
   }
 
