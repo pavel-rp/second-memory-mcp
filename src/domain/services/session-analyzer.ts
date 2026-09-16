@@ -13,7 +13,7 @@ import { clamp, roundTo } from '../../shared/math.js';
 import type { FatigueAttempt } from '../algorithms/fatigue-trend.js';
 import type { SessionAdvisory } from '../algorithms/session-advisory.js';
 import { resolveSessionAdvisory } from '../algorithms/session-advisory.js';
-import { computeActiveTime } from '../algorithms/active-time.js';
+import { computeActiveTime, findSittingBoundaryTimestamp } from '../algorithms/active-time.js';
 
 // Helper function to parse ISO timestamp
 function parseTimestamp(timestamp: string, fallback: Date): Date {
@@ -78,7 +78,6 @@ function toDeduplicatedFatigueAttempts(chunks: SessionChunk[]): FatigueAttempt[]
       attempts.push({
         timestamp: new Date(attempt.timestamp).getTime(),
         quality: attempt.quality ?? null,
-        latencyMs: attempt.time_spent_ms,
       });
     }
   }
@@ -102,9 +101,21 @@ function toAttemptTimestamps(chunks: SessionChunk[]): number[] {
 }
 
 /**
- * Calculate session progress metrics from session input data
+ * Calculate session progress metrics from session input data.
+ *
+ * `activeTimeMs` (NEU-1020) is optional: when the caller supplies it (the
+ * current sitting's gap-based active time — `active-time.ts`), the pace
+ * estimate (`estimated_time_remaining_ms`) is computed from it instead of
+ * wall-clock `time_elapsed_ms`. When omitted, the estimate falls back to the
+ * prior wall-clock pace calculation (used by direct callers that have no
+ * active-time figure). `time_elapsed_ms` itself always stays wall-clock and
+ * is always reported, regardless of which basis drove the estimate.
  */
-export function calculateSessionProgress(sessionData: SessionInput, now: Date): SessionProgress {
+export function calculateSessionProgress(
+  sessionData: SessionInput,
+  now: Date,
+  activeTimeMs?: number
+): SessionProgress {
   const cleanedChunks = cleanSessionChunks(sessionData.chunks);
 
   // Basic counts
@@ -124,12 +135,18 @@ export function calculateSessionProgress(sessionData: SessionInput, now: Date): 
   // Calculate time elapsed
   const timeElapsedMs = calculateTimeElapsed(sessionData.start_time, now, sessionData.current_time);
 
-  // Estimate remaining time based on current pace
+  // Estimate remaining time based on current pace. NEU-1020: when the caller
+  // supplies the sitting's active time, pace is derived from it rather than
+  // wall-clock elapsed time; otherwise fall back to the wall-clock estimate.
   let estimatedTimeRemainingMs: number | undefined;
-  if (chunksCompleted > 0 && totalChunks > chunksCompleted && timeElapsedMs > 0) {
-    const averageTimePerChunk = timeElapsedMs / chunksCompleted;
+  if (chunksCompleted > 0 && totalChunks > chunksCompleted) {
     const remainingChunks = totalChunks - chunksCompleted;
-    estimatedTimeRemainingMs = Math.round(averageTimePerChunk * remainingChunks);
+    if (typeof activeTimeMs === 'number') {
+      estimatedTimeRemainingMs = Math.round((activeTimeMs / chunksCompleted) * remainingChunks);
+    } else if (timeElapsedMs > 0) {
+      const averageTimePerChunk = timeElapsedMs / chunksCompleted;
+      estimatedTimeRemainingMs = Math.round(averageTimePerChunk * remainingChunks);
+    }
   }
 
   return {
@@ -147,10 +164,10 @@ function evaluateCompletionCriteria(
   progress: SessionProgress,
   thresholds: {
     qualityMet: boolean;
-    timeMet: boolean;
     chunkMet: boolean;
   },
-  advisory: SessionAdvisory | null
+  advisory: SessionAdvisory | null,
+  activeTimeMs: number
 ): { shouldComplete: boolean; reason: string; recommendation: 'continue' | 'complete' | 'break' } {
   if (thresholds.qualityMet && thresholds.chunkMet) {
     return {
@@ -166,18 +183,13 @@ function evaluateCompletionCriteria(
       recommendation: 'complete',
     };
   }
-  if (thresholds.qualityMet && thresholds.timeMet) {
-    return {
-      shouldComplete: true,
-      reason: 'High quality performance achieved with sufficient practice time.',
-      recommendation: 'complete',
-    };
-  }
-  // NEU-1016: both advisory kinds — `fatigue` and `active_time_ceiling` —
+  // NEU-1020: both advisory kinds — `fatigue` and `active_time_ceiling` —
   // map to the same 'break' recommendation, driven by the advisory's own
   // reason. `resolveSessionAdvisory` already resolves at most one advisory
   // (fatigue takes precedence over the ceiling), so any non-null advisory
-  // here is the one signal to relay.
+  // here is the one signal to relay. The wall-clock `qualityMet && timeMet`
+  // branch that used to sit here is dropped entirely (NEU-1020) — the verdict
+  // rests on quality and chunk progress alone, with no time-threshold branch.
   if (advisory) {
     return {
       shouldComplete: true,
@@ -185,7 +197,11 @@ function evaluateCompletionCriteria(
       recommendation: 'break',
     };
   }
-  if (progress.overall_progress < 0.3 && progress.time_elapsed_ms < 30 * 60 * 1000) {
+  // NEU-1020: rebased on the current sitting's active time (gap-based, never
+  // wall-clock) rather than `progress.time_elapsed_ms`, so a session resumed
+  // after a multi-day idle gap is judged on real learning time, not on how
+  // long the arc has been open.
+  if (progress.overall_progress < 0.3 && activeTimeMs < 30 * 60 * 1000) {
     return {
       shouldComplete: false,
       reason: 'Session just beginning. Continue with current learning phase.',
@@ -207,36 +223,56 @@ export function getSessionStatus(
   algorithmConfig: AlgorithmConfig,
   now: Date
 ): SessionStatus {
-  const progress = calculateSessionProgress(sessionData, now);
   const config = algorithmConfig.sessionConfig;
 
-  // NEU-1016: the sitting's active time — gap-based over this session's
-  // recorded teach-event timestamps merged with its attempt timestamps.
-  // Never wall-clock elapsed time, and nothing is credited after the last
-  // event: a `session_status` call made hours after the last event adds no
-  // active time of its own (this function never appends "now" to the series).
+  // NEU-1016/NEU-1020: the sitting's active time AND boundary — gap-based
+  // over this session's recorded teach-event timestamps merged with its
+  // attempt timestamps. Never wall-clock elapsed time, and nothing is
+  // credited after the last event: a `session_status` call made hours after
+  // the last event adds no active time of its own (this function never
+  // appends "now" to the series). Computed BEFORE `calculateSessionProgress`
+  // so the sitting-based pace estimate can use it, and before
+  // `evaluateCompletionCriteria` so the beginning-branch check can use it too.
+  const mergedTimestamps = [
+    ...toAttemptTimestamps(sessionData.chunks),
+    ...(sessionData.teach_event_timestamps ?? []),
+  ];
   const activeTimeMs = computeActiveTime({
-    timestamps: [
-      ...toAttemptTimestamps(sessionData.chunks),
-      ...(sessionData.teach_event_timestamps ?? []),
-    ],
+    timestamps: mergedTimestamps,
     idleCutoffMs: config.idleCutoffMs,
   }).activeTimeMs;
+  const sittingBoundary = findSittingBoundaryTimestamp({
+    timestamps: mergedTimestamps,
+    idleCutoffMs: config.idleCutoffMs,
+  });
+
+  const progress = calculateSessionProgress(sessionData, now, activeTimeMs);
+
+  // NEU-1020: fatigue is judged on the current sitting only — filter the
+  // deduplicated attempt population to timestamp >= the sitting boundary
+  // before handing it to the shared resolver, and thread the configured
+  // fatigue window size through.
+  const dedupedAttempts = toDeduplicatedFatigueAttempts(sessionData.chunks);
+  const sittingAttempts =
+    sittingBoundary === null
+      ? dedupedAttempts
+      : dedupedAttempts.filter(a => a.timestamp >= sittingBoundary);
 
   const advisory = resolveSessionAdvisory({
-    attempts: toDeduplicatedFatigueAttempts(sessionData.chunks),
+    attempts: sittingAttempts,
     activeTimeMs,
     activeTimeCeilingMs: config.activeTimeCeilingMs,
+    fatigueWindowSize: config.fatigueWindowSize,
   });
 
   const { shouldComplete, reason, recommendation } = evaluateCompletionCriteria(
     progress,
     {
       qualityMet: progress.average_quality >= config.qualityThreshold,
-      timeMet: progress.time_elapsed_ms >= config.timeThresholdMs,
       chunkMet: progress.overall_progress >= config.completionThreshold,
     },
-    advisory
+    advisory,
+    activeTimeMs
   );
 
   return {

@@ -35,7 +35,6 @@ export type AlgorithmConfig = {
   // Session management parameters
   sessionConfig: {
     qualityThreshold: number; // 0-5 quality threshold for completion
-    timeThresholdMs: number; // milliseconds for time-based completion
     completionThreshold: number; // 0-1 progress threshold for completion
     // Gap size (ms) at/above which a sitting ends and a new one starts at zero
     // active time (NEU-1016). See `src/domain/algorithms/active-time.ts`.
@@ -44,6 +43,10 @@ export type AlgorithmConfig = {
     // stopping advisory once the current sitting's active time (gap-based,
     // never wall-clock) reaches this value (NEU-1016).
     activeTimeCeilingMs: number;
+    // Fatigue window size (last N answers, within the current sitting) the
+    // quality-only fatigue trend compares (NEU-1020). PROVISIONAL DEFAULT 6,
+    // not evidence-derived; 5-8 is the stated tuning band.
+    fatigueWindowSize: number;
   };
   // Recommendation-specific configuration
   recommendationConfig: {

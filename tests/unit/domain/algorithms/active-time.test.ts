@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { computeActiveTime } from '../../../../src/domain/algorithms/active-time.js';
+import {
+  computeActiveTime,
+  findSittingBoundaryTimestamp,
+} from '../../../../src/domain/algorithms/active-time.js';
 
 const T0 = 1_700_000_000_000;
 const MIN = 60_000;
@@ -111,5 +114,97 @@ describe('computeActiveTime', () => {
         sampledCount: 0,
       });
     });
+  });
+});
+
+describe('findSittingBoundaryTimestamp (NEU-1020)', () => {
+  it('returns the first timestamp of a single unbroken sitting', () => {
+    const timestamps = [T0, T0 + 5 * MIN, T0 + 8 * MIN, T0 + 10 * MIN];
+
+    expect(findSittingBoundaryTimestamp({ timestamps, idleCutoffMs: IDLE_CUTOFF_MS })).toBe(T0);
+  });
+
+  it('returns the timestamp right after the last gap at/above the idle cutoff', () => {
+    const timestamps = [
+      T0,
+      T0 + 5 * MIN,
+      T0 + 5 * MIN + IDLE_CUTOFF_MS,
+      T0 + 5 * MIN + IDLE_CUTOFF_MS + 3 * MIN,
+    ];
+
+    expect(findSittingBoundaryTimestamp({ timestamps, idleCutoffMs: IDLE_CUTOFF_MS })).toBe(
+      T0 + 5 * MIN + IDLE_CUTOFF_MS
+    );
+  });
+
+  it('returns the single most-recent timestamp after a multi-day gap following a long sitting', () => {
+    const longSitting = [T0, T0 + 5 * MIN, T0 + 10 * MIN, T0 + 15 * MIN];
+    const multiDayGap = 3 * 24 * 60 * MIN;
+    const lastEvent = longSitting[longSitting.length - 1] as number;
+    const boundaryTimestamp = lastEvent + multiDayGap;
+    const timestamps = [...longSitting, boundaryTimestamp];
+
+    expect(findSittingBoundaryTimestamp({ timestamps, idleCutoffMs: IDLE_CUTOFF_MS })).toBe(
+      boundaryTimestamp
+    );
+  });
+
+  it('returns the single timestamp for a single-event population', () => {
+    expect(findSittingBoundaryTimestamp({ timestamps: [T0], idleCutoffMs: IDLE_CUTOFF_MS })).toBe(
+      T0
+    );
+  });
+
+  it('returns null for zero valid timestamps', () => {
+    expect(
+      findSittingBoundaryTimestamp({ timestamps: [], idleCutoffMs: IDLE_CUTOFF_MS })
+    ).toBeNull();
+    expect(
+      findSittingBoundaryTimestamp({ timestamps: 'not an array', idleCutoffMs: IDLE_CUTOFF_MS })
+    ).toBeNull();
+    expect(
+      findSittingBoundaryTimestamp({ timestamps: null, idleCutoffMs: IDLE_CUTOFF_MS })
+    ).toBeNull();
+    expect(
+      findSittingBoundaryTimestamp({
+        timestamps: [Number.NaN, 'bogus'],
+        idleCutoffMs: IDLE_CUTOFF_MS,
+      })
+    ).toBeNull();
+  });
+
+  it('never throws and returns null for a non-finite or non-positive idleCutoffMs', () => {
+    expect(() =>
+      findSittingBoundaryTimestamp({ timestamps: [T0, T0 + MIN], idleCutoffMs: Number.NaN })
+    ).not.toThrow();
+    expect(
+      findSittingBoundaryTimestamp({ timestamps: [T0, T0 + MIN], idleCutoffMs: Number.NaN })
+    ).toBeNull();
+    expect(
+      findSittingBoundaryTimestamp({ timestamps: [T0, T0 + MIN], idleCutoffMs: 0 })
+    ).toBeNull();
+  });
+
+  it('sorts unordered timestamps before finding the boundary', () => {
+    const timestamps = [T0 + 5 * MIN, T0, T0 + 8 * MIN];
+
+    expect(findSittingBoundaryTimestamp({ timestamps, idleCutoffMs: IDLE_CUTOFF_MS })).toBe(T0);
+  });
+
+  it('agrees with computeActiveTime: activeTimeMs equals the span from the boundary to the last timestamp', () => {
+    const timestamps = [
+      T0,
+      T0 + 5 * MIN,
+      T0 + 5 * MIN + IDLE_CUTOFF_MS,
+      T0 + 5 * MIN + IDLE_CUTOFF_MS + 3 * MIN,
+      T0 + 5 * MIN + IDLE_CUTOFF_MS + 7 * MIN,
+    ];
+
+    const boundary = findSittingBoundaryTimestamp({ timestamps, idleCutoffMs: IDLE_CUTOFF_MS });
+    const { activeTimeMs } = computeActiveTime({ timestamps, idleCutoffMs: IDLE_CUTOFF_MS });
+    const lastTimestamp = Math.max(...timestamps);
+
+    expect(boundary).not.toBeNull();
+    expect(activeTimeMs).toBe(lastTimestamp - (boundary as number));
   });
 });

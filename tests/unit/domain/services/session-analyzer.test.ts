@@ -7,7 +7,10 @@ import {
 } from '../../../../src/domain/services/session-analyzer.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import { resolveSessionAdvisory } from '../../../../src/domain/algorithms/session-advisory.js';
-import { computeActiveTime } from '../../../../src/domain/algorithms/active-time.js';
+import {
+  computeActiveTime,
+  findSittingBoundaryTimestamp,
+} from '../../../../src/domain/algorithms/active-time.js';
 import type { FatigueAttempt } from '../../../../src/domain/algorithms/fatigue-trend.js';
 import type {
   SessionInput,
@@ -18,17 +21,33 @@ import type {
 const NOW = new Date('2024-01-01T10:30:00.000Z');
 
 // Mirrors session-analyzer's private adapter mapping (timestamp -> epoch ms,
-// quality ?? null, time_spent_ms -> latencyMs) so tests can independently
-// derive what the shared resolver would see. Callers are responsible for
-// passing an already-non-duplicated attempt list — this helper does not
-// de-duplicate, so it must only be used with fixtures that don't replicate
-// the same attempt across multiple chunks.
+// quality ?? null) so tests can independently derive what the shared
+// resolver would see. Callers are responsible for passing an
+// already-non-duplicated attempt list — this helper does not de-duplicate,
+// so it must only be used with fixtures that don't replicate the same
+// attempt across multiple chunks.
 function toFatigueAttempts(attempts: ChunkAttempt[]): FatigueAttempt[] {
   return attempts.map(attempt => ({
     timestamp: new Date(attempt.timestamp).getTime(),
     quality: attempt.quality ?? null,
-    latencyMs: attempt.time_spent_ms,
   }));
+}
+
+const DEFAULT_FATIGUE_WINDOW = DEFAULT_ALGORITHM_CONFIG.sessionConfig.fatigueWindowSize;
+
+// NEU-1020: mirrors session-analyzer's sitting-scoping of the fatigue
+// population (filter to timestamp >= the sitting boundary over the same
+// merged series `toActiveTimeSeries` derives) so tests can independently
+// derive the same sitting-scoped attempts `getSessionStatus` computes
+// internally.
+function toSittingScopedFatigueAttempts(session: SessionInput): FatigueAttempt[] {
+  const mergedTimestamps = toActiveTimeSeries(session);
+  const boundary = findSittingBoundaryTimestamp({
+    timestamps: mergedTimestamps,
+    idleCutoffMs: DEFAULT_ALGORITHM_CONFIG.sessionConfig.idleCutoffMs,
+  });
+  const deduped = flattenChunkAttempts(session.chunks);
+  return boundary === null ? deduped : deduped.filter(a => a.timestamp >= boundary);
 }
 
 // Flattens every chunk's attempts (no de-duplication) — used only for
@@ -147,6 +166,33 @@ describe('Session Manager', () => {
       expect(result.estimated_time_remaining_ms).toBeUndefined();
     });
 
+    it('estimates remaining time from sitting active time, not wall-clock elapsed time, when supplied (NEU-1020)', () => {
+      // Same mockSessionInput shape (1/3 chunks complete), but the two bases
+      // diverge sharply: 30 min of wall-clock elapsed vs. only 5 min of
+      // sitting active time.
+      const activeTimeMs = 5 * 60 * 1000;
+
+      const wallClockResult = calculateSessionProgress(mockSessionInput, NOW);
+      const activeTimeResult = calculateSessionProgress(mockSessionInput, NOW, activeTimeMs);
+
+      expect(wallClockResult.estimated_time_remaining_ms).toBeDefined();
+      expect(activeTimeResult.estimated_time_remaining_ms).toBeDefined();
+      expect(activeTimeResult.estimated_time_remaining_ms).not.toBe(
+        wallClockResult.estimated_time_remaining_ms
+      );
+      // 1 chunk completed, 2 remaining -> (activeTimeMs / 1) * 2
+      expect(activeTimeResult.estimated_time_remaining_ms).toBe(activeTimeMs * 2);
+      // time_elapsed_ms always stays wall-clock regardless of the basis used
+      // for the pace estimate.
+      expect(activeTimeResult.time_elapsed_ms).toBe(wallClockResult.time_elapsed_ms);
+    });
+
+    it('an activeTimeMs of zero yields a zero pace estimate rather than falling back to wall-clock (NEU-1020)', () => {
+      const result = calculateSessionProgress(mockSessionInput, NOW, 0);
+
+      expect(result.estimated_time_remaining_ms).toBe(0);
+    });
+
     it('should clamp quality scores to valid range', () => {
       const invalidQualitySession: SessionInput = {
         ...mockSessionInput,
@@ -244,6 +290,64 @@ describe('Session Manager', () => {
       expect(result.reason).not.toContain('active learning time');
     });
 
+    it('a session started days ago whose current sitting has little active time recommends neither break nor complete because of elapsed wall-clock time (NEU-1020)', () => {
+      // Started 3 days ago; the only recorded activity is one recent, brief
+      // burst (2 attempts 2 min apart) well inside the current sitting.
+      const threeDaysAgo = new Date(NOW.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      const session: SessionInput = {
+        session_id: 'days-old-little-active-time',
+        mode: 'learning',
+        start_time: threeDaysAgo,
+        current_time: NOW.toISOString(),
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
+            title: 'Chunk 1',
+            status: 'in_progress',
+            attempts: [
+              {
+                timestamp: new Date(NOW.getTime() - 2 * 60 * 1000).toISOString(),
+                quality: 3,
+                time_spent_ms: 10000,
+                passed: true,
+                question: 'Q',
+                response: 'A',
+                feedback: 'ok',
+              },
+              {
+                timestamp: NOW.toISOString(),
+                quality: 3,
+                time_spent_ms: 10000,
+                passed: true,
+                question: 'Q',
+                response: 'A',
+                feedback: 'ok',
+              },
+            ],
+            quality_scores: [3, 3],
+            time_spent_ms: 20000,
+          },
+          {
+            chunk_id: 'chunk-2',
+            session_chunk_id: 'sc-2',
+            title: 'Chunk 2',
+            status: 'pending',
+            attempts: [],
+            quality_scores: [],
+            time_spent_ms: 0,
+          },
+        ],
+      };
+
+      const result = getSessionStatus(session, DEFAULT_ALGORITHM_CONFIG, NOW);
+
+      expect(result.recommendation).not.toBe('break');
+      expect(result.recommendation).not.toBe('complete');
+      expect(result.recommendation).toBe('continue');
+      expect(result.reason).toContain('just beginning');
+    });
+
     it('returns should_complete=true with recommendation=complete when quality+chunk met', () => {
       const highQualitySession: SessionInput = {
         ...mockSessionInput,
@@ -312,8 +416,12 @@ describe('Session Manager', () => {
       expect(result.reason).toContain('objectives completed');
     });
 
-    it('returns should_complete=true with recommendation=complete when quality+time met', () => {
-      // High quality, long time, but chunks incomplete
+    it('no longer completes on quality+wall-clock-time alone — the dropped qualityMet && timeMet branch (NEU-1020)', () => {
+      // High quality, long WALL-CLOCK time, but chunks incomplete and the
+      // only two attempts are an hour apart (a sitting-boundary reset, so
+      // sitting active time is 0). Before NEU-1020 this used to auto-complete
+      // via `qualityMet && timeMet` (gated on WALL-CLOCK elapsed time); that
+      // branch is dropped entirely, so this must fall through to 'continue'.
       const session: SessionInput = {
         ...mockSessionInput,
         start_time: '2024-01-01T08:50:00.000Z', // 100 min ago
@@ -379,9 +487,69 @@ describe('Session Manager', () => {
       };
 
       const result = getSessionStatus(session, DEFAULT_ALGORITHM_CONFIG, NOW);
-      expect(result.shouldComplete).toBe(true);
-      expect(result.recommendation).toBe('complete');
-      expect(result.reason).toContain('High quality');
+      expect(result.shouldComplete).toBe(false);
+      expect(result.recommendation).toBe('continue');
+      expect(result.reason).not.toContain('sufficient practice time');
+      expect(result.reason).toContain('just beginning');
+    });
+
+    it('does not complete on quality+wall-clock-time even mid-progress, past the 30-min active-time floor (NEU-1020)', () => {
+      // Same quality/time-elapsed shape as above, but with steady in-sitting
+      // events pushing overall_progress and activeTimeMs both past the
+      // "just beginning" branch's thresholds — isolates the dropped
+      // qualityMet && timeMet branch specifically, with neither surviving
+      // fallback branch able to mask it.
+      const session: SessionInput = {
+        session_id: 'quality-time-no-longer-completes',
+        mode: 'learning',
+        start_time: '2024-01-01T08:50:00.000Z',
+        current_time: '2024-01-01T10:30:00.000Z',
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
+            title: 'Chunk 1',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T09:50:00.000Z',
+                quality: 5,
+                time_spent_ms: 60000,
+                passed: true,
+                question: 'Q',
+                response: 'A',
+                feedback: 'ok',
+              },
+            ],
+            quality_scores: [5],
+            time_spent_ms: 60000,
+          },
+          {
+            chunk_id: 'chunk-2',
+            session_chunk_id: 'sc-2',
+            title: 'Chunk 2',
+            status: 'in_progress',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:30:00.000Z',
+                quality: 5,
+                time_spent_ms: 60000,
+                passed: true,
+                question: 'Q',
+                response: 'A',
+                feedback: 'ok',
+              },
+            ],
+            quality_scores: [5],
+            time_spent_ms: 60000,
+          },
+        ],
+      };
+
+      const result = getSessionStatus(session, DEFAULT_ALGORITHM_CONFIG, NOW);
+      expect(result.shouldComplete).toBe(false);
+      expect(result.recommendation).toBe('continue');
+      expect(result.reason).toContain('progressing normally');
     });
 
     it('returns should_complete=true with recommendation=break when the within-session fatigue advisory fires (NEU-848)', () => {
@@ -492,6 +660,7 @@ describe('Session Manager', () => {
         // time, so the exact value fed here is irrelevant to the outcome.
         activeTimeMs: 0,
         activeTimeCeilingMs: DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs,
+        fatigueWindowSize: DEFAULT_FATIGUE_WINDOW,
       });
       expect(expectedAdvisory?.kind).toBe('fatigue');
 
@@ -1248,12 +1417,13 @@ describe('Session Manager', () => {
       };
 
       const expectedAdvisory = resolveSessionAdvisory({
-        attempts: flattenChunkAttempts(session.chunks),
+        attempts: toSittingScopedFatigueAttempts(session),
         activeTimeMs: computeActiveTime({
           timestamps: toActiveTimeSeries(session),
           idleCutoffMs: DEFAULT_ALGORITHM_CONFIG.sessionConfig.idleCutoffMs,
         }).activeTimeMs,
         activeTimeCeilingMs: DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs,
+        fatigueWindowSize: DEFAULT_FATIGUE_WINDOW,
       });
       expect(expectedAdvisory).toBeNull();
 
@@ -1274,12 +1444,13 @@ describe('Session Manager', () => {
       } {
         const config = DEFAULT_ALGORITHM_CONFIG;
         const advisory = resolveSessionAdvisory({
-          attempts: flattenChunkAttempts(session.chunks),
+          attempts: toSittingScopedFatigueAttempts(session),
           activeTimeMs: computeActiveTime({
             timestamps: toActiveTimeSeries(session),
             idleCutoffMs: config.sessionConfig.idleCutoffMs,
           }).activeTimeMs,
           activeTimeCeilingMs: config.sessionConfig.activeTimeCeilingMs,
+          fatigueWindowSize: config.sessionConfig.fatigueWindowSize,
         });
         const result = getSessionStatus(session, config, NOW);
 

@@ -32,12 +32,6 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
   tagWeights: {},
   sessionConfig: {
     qualityThreshold: 4.0,
-    // 90 minutes — ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy
-    // audit found no anchoring evidence). No longer the break trigger — NEU-848
-    // replaced that with the measured fatigue advisory (`resolveSessionAdvisory`).
-    // Remains the minimum-practice-time input to the surviving
-    // `qualityMet && timeMet` -> 'complete' completion heuristic.
-    timeThresholdMs: 90 * 60 * 1000,
     completionThreshold: 0.8, // 80%
     // 10 minutes — PROVISIONAL DEFAULT, not evidence-derived (NEU-1016). A gap
     // between learner-driven events at or above this value ends the current
@@ -49,6 +43,11 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
     // through `session_status` and in-band as a recurring `active_time_ceiling`
     // stopping advisory — advisory only, never a blocking/control signal.
     activeTimeCeilingMs: 45 * 60 * 1000,
+    // Last-N-answers fatigue window, within the current sitting — PROVISIONAL
+    // DEFAULT, not evidence-derived (NEU-1020; 5-8 is the stated tuning band).
+    // The quality-only fatigue trend (`fatigue-trend.ts`) compares this many
+    // of the current sitting's most recent answers.
+    fatigueWindowSize: 6,
   },
   recommendationConfig: {
     conversation: {

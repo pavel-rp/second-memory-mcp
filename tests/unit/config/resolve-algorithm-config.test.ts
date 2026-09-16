@@ -126,17 +126,17 @@ describe('resolveAlgorithmConfig', () => {
   it('overrides sessionConfig fields', () => {
     const result = resolveAlgorithmConfig({
       SM_SESSION_QUALITY_THRESHOLD: '3.5',
-      SM_SESSION_TIME_THRESHOLD_MS: '3600000',
       SM_SESSION_COMPLETION_THRESHOLD: '0.9',
       SM_SESSION_IDLE_CUTOFF_MS: '900000',
       SM_SESSION_ACTIVE_TIME_CEILING_MS: '2700000',
+      SM_SESSION_FATIGUE_WINDOW_SIZE: '8',
     });
     expect(result.sessionConfig).toEqual({
       qualityThreshold: 3.5,
-      timeThresholdMs: 3600000,
       completionThreshold: 0.9,
       idleCutoffMs: 900000,
       activeTimeCeilingMs: 2700000,
+      fatigueWindowSize: 8,
     });
   });
 
@@ -187,6 +187,44 @@ describe('resolveAlgorithmConfig', () => {
     const result = resolveAlgorithmConfig({ SM_SESSION_MAX_TIME_MS: '7200000' });
     expect(result.sessionConfig.activeTimeCeilingMs).toBe(
       DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs
+    );
+  });
+
+  it('no longer recognizes the removed wall-clock time-threshold env var (NEU-1020)', () => {
+    // The retired env key is unrecognized post-removal — setting it has no
+    // effect, and `sessionConfig` carries exactly the current five keys
+    // (asserted via the exact-shape `toEqual` above, and by name here).
+    const result = resolveAlgorithmConfig({ SM_SESSION_TIME_THRESHOLD_MS: '3600000' });
+    expect(Object.keys(result.sessionConfig).sort()).toEqual(
+      [
+        'activeTimeCeilingMs',
+        'completionThreshold',
+        'fatigueWindowSize',
+        'idleCutoffMs',
+        'qualityThreshold',
+      ].sort()
+    );
+  });
+
+  // ── NEU-1020: fatigueWindowSize ─────────────────────────────
+
+  it('defaults fatigueWindowSize when unset', () => {
+    const result = resolveAlgorithmConfig({});
+    expect(result.sessionConfig.fatigueWindowSize).toBe(
+      DEFAULT_ALGORITHM_CONFIG.sessionConfig.fatigueWindowSize
+    );
+    expect(result.sessionConfig.fatigueWindowSize).toBe(6);
+  });
+
+  it('overrides fatigueWindowSize from env', () => {
+    const result = resolveAlgorithmConfig({ SM_SESSION_FATIGUE_WINDOW_SIZE: '8' });
+    expect(result.sessionConfig.fatigueWindowSize).toBe(8);
+  });
+
+  it('falls back to default fatigueWindowSize for a non-numeric env value', () => {
+    const result = resolveAlgorithmConfig({ SM_SESSION_FATIGUE_WINDOW_SIZE: 'not-a-number' });
+    expect(result.sessionConfig.fatigueWindowSize).toBe(
+      DEFAULT_ALGORITHM_CONFIG.sessionConfig.fatigueWindowSize
     );
   });
 

@@ -1,19 +1,21 @@
 /**
- * Pure single shared advisory resolver (NEU-848, active-time basis NEU-1016).
+ * Pure single shared advisory resolver (NEU-848, active-time basis NEU-1016,
+ * fatigue rescoped to the current sitting + quality-only by NEU-1020).
  *
  * The one and only producer of within-session stopping guidance. Both
  * `session-analyzer.ts` (`session_status`) and `teaching-workflows.ts`
  * (`teach_next` / `submit_answer`) call this resolver rather than computing
  * their own stopping heuristics, so the two surfaces can never diverge.
  *
- * At most one advisory is ever returned. `fatigue` — a relative, within-
- * session trend computed by `fatigue-trend.ts` — takes precedence over
- * `active_time_ceiling` when both would apply, since a fatigued learner
- * needs the break framed as fatigue even if they also happen to be past the
- * ceiling. `active_time_ceiling` fires on the current sitting's *active*
- * learning time only (`active-time.ts`'s gap-based computation) — never on
- * wall-clock elapsed time — so a learner returning from an idle gap or a
- * multi-day break is never told to take a break they haven't earned.
+ * At most one advisory is ever returned. `fatigue` — a relative, quality-only
+ * trend computed by `fatigue-trend.ts` over the current sitting's last
+ * `fatigueWindowSize` answers — takes precedence over `active_time_ceiling`
+ * when both would apply, since a fatigued learner needs the break framed as
+ * fatigue even if they also happen to be past the ceiling. `active_time_ceiling`
+ * fires on the current sitting's *active* learning time only (`active-time.ts`'s
+ * gap-based computation) — never on wall-clock elapsed time — so a learner
+ * returning from an idle gap or a multi-day break is never told to take a
+ * break they haven't earned.
  *
  * No I/O, never throws.
  */
@@ -31,12 +33,20 @@ export type SessionAdvisory = {
 };
 
 export type SessionAdvisoryInput = {
-  /** Attempt-shaped records; validated defensively by `computeFatigueTrend`. */
+  /**
+   * Attempt-shaped records; validated defensively by `computeFatigueTrend`.
+   * NEU-1020: the caller MUST already scope this population to the current
+   * sitting (`active-time.ts`'s gap-based sitting boundary) — this resolver
+   * does no sitting-scoping of its own, it only windows within whatever it
+   * is given.
+   */
   attempts: unknown;
   /** The current sitting's active learning time, in ms (gap-based, never wall-clock). */
   activeTimeMs: number | null | undefined;
   /** The configured sitting active-time ceiling, in ms. */
   activeTimeCeilingMs: number | null | undefined;
+  /** The last-N-answers fatigue window size (NEU-1020), forwarded to `computeFatigueTrend`. */
+  fatigueWindowSize: number;
 };
 
 // ── Core function ────────────────────────────────────────────────────────
@@ -49,7 +59,7 @@ export type SessionAdvisoryInput = {
  * fatigue (see `computeFatigueTrend`). Never throws.
  */
 export function resolveSessionAdvisory(input: SessionAdvisoryInput): SessionAdvisory | null {
-  const trend = computeFatigueTrend(input.attempts);
+  const trend = computeFatigueTrend(input.attempts, input.fatigueWindowSize);
   if (trend.fatigued) {
     return {
       kind: 'fatigue',

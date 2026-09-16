@@ -87,15 +87,6 @@ export function resolveAlgorithmConfig(
         env.SM_SESSION_QUALITY_THRESHOLD,
         DEFAULT_ALGORITHM_CONFIG.sessionConfig.qualityThreshold
       ),
-      // ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy audit found no
-      // anchoring evidence for this value). No longer the break trigger — NEU-848
-      // replaced that with the measured fatigue advisory (`resolveSessionAdvisory`).
-      // Remains the minimum-practice-time input to the surviving
-      // `qualityMet && timeMet` -> 'complete' completion heuristic.
-      timeThresholdMs: parseNumber(
-        env.SM_SESSION_TIME_THRESHOLD_MS,
-        DEFAULT_ALGORITHM_CONFIG.sessionConfig.timeThresholdMs
-      ),
       completionThreshold: parseNumber(
         env.SM_SESSION_COMPLETION_THRESHOLD,
         DEFAULT_ALGORITHM_CONFIG.sessionConfig.completionThreshold
@@ -113,6 +104,12 @@ export function resolveAlgorithmConfig(
       activeTimeCeilingMs: parseNumber(
         env.SM_SESSION_ACTIVE_TIME_CEILING_MS,
         DEFAULT_ALGORITHM_CONFIG.sessionConfig.activeTimeCeilingMs
+      ),
+      // PROVISIONAL DEFAULT, not evidence-derived (NEU-1020; 5-8 is the stated
+      // tuning band). Last-N-answers fatigue window, within the current sitting.
+      fatigueWindowSize: parseNumber(
+        env.SM_SESSION_FATIGUE_WINDOW_SIZE,
+        DEFAULT_ALGORITHM_CONFIG.sessionConfig.fatigueWindowSize
       ),
     },
     recommendationConfig: {
