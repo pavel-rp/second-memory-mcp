@@ -8,34 +8,27 @@ import type { FatigueAttempt } from '../../../../src/domain/algorithms/fatigue-t
 const T0 = 1_700_000_000_000;
 const HOUR = 3_600_000;
 const MIN = 60_000;
+const DEFAULT_WINDOW = 6;
 
-function attempt(index: number, latencyMs: number, quality: number | null): FatigueAttempt {
-  return { timestamp: T0 + index * HOUR, quality, latencyMs };
+function attempt(index: number, quality: number | null): FatigueAttempt {
+  return { timestamp: T0 + index * HOUR, quality };
 }
 
-/** 8 attempts: earlier fast+high-quality, later slow+low-quality — fires fatigue. */
+/** 6 attempts: earlier high-quality, later low-quality — fires fatigue. */
 function deterioratingFixture(): FatigueAttempt[] {
-  return [
-    attempt(0, 1000, 4),
-    attempt(1, 1000, 4),
-    attempt(2, 1000, 4),
-    attempt(3, 1000, 4),
-    attempt(4, 2000, 2),
-    attempt(5, 2000, 2),
-    attempt(6, 2000, 2),
-    attempt(7, 2000, 2),
-  ];
+  return [attempt(0, 4), attempt(1, 4), attempt(2, 4), attempt(3, 2), attempt(4, 2), attempt(5, 2)];
 }
 
-/** Too short to ever clear MINIMUM_ATTEMPTS — the trend is always silent. */
+/** Too short to ever clear the fatigue window — the trend is always silent. */
 function shortHealthyFixture(): FatigueAttempt[] {
-  return [attempt(0, 1000, 4), attempt(1, 1000, 4)];
+  return [attempt(0, 4), attempt(1, 4)];
 }
 
 const baseInput: SessionAdvisoryInput = {
   attempts: shortHealthyFixture(),
   activeTimeMs: 10 * MIN,
   activeTimeCeilingMs: 45 * MIN,
+  fatigueWindowSize: DEFAULT_WINDOW,
 };
 
 describe('resolveSessionAdvisory', () => {
@@ -56,6 +49,7 @@ describe('resolveSessionAdvisory', () => {
       attempts: shortHealthyFixture(),
       activeTimeMs: 45 * MIN,
       activeTimeCeilingMs: 45 * MIN,
+      fatigueWindowSize: DEFAULT_WINDOW,
     });
 
     expect(result).not.toBeNull();
@@ -69,6 +63,7 @@ describe('resolveSessionAdvisory', () => {
       attempts: deterioratingFixture(),
       activeTimeMs: 60 * MIN,
       activeTimeCeilingMs: 45 * MIN,
+      fatigueWindowSize: DEFAULT_WINDOW,
     });
 
     expect(result).not.toBeNull();
@@ -81,12 +76,33 @@ describe('resolveSessionAdvisory', () => {
     expect(result).toBeNull();
   });
 
+  describe("NEU-1020: sitting-scoping is the caller's responsibility", () => {
+    it('an earlier-sitting-only quality dip does not fire when the caller only supplies current-sitting attempts', () => {
+      // The caller is responsible for pre-scoping `attempts` to the current
+      // sitting (active-time.ts's boundary) — this resolver does no
+      // scoping of its own. A quality dip that happened in an EARLIER
+      // sitting, and was correctly excluded by the caller, must not fire
+      // just because it once existed.
+      const currentSittingHealthyAttempts = stableCurrentSittingFixture();
+
+      const result = resolveSessionAdvisory({
+        attempts: currentSittingHealthyAttempts,
+        activeTimeMs: 10 * MIN,
+        activeTimeCeilingMs: 45 * MIN,
+        fatigueWindowSize: DEFAULT_WINDOW,
+      });
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe('guards — never throws', () => {
     it('non-finite activeTimeMs never fires the ceiling', () => {
       const result = resolveSessionAdvisory({
         attempts: shortHealthyFixture(),
         activeTimeMs: Number.NaN,
         activeTimeCeilingMs: 45 * MIN,
+        fatigueWindowSize: DEFAULT_WINDOW,
       });
 
       expect(result).toBeNull();
@@ -97,6 +113,7 @@ describe('resolveSessionAdvisory', () => {
         attempts: shortHealthyFixture(),
         activeTimeMs: 10 * MIN,
         activeTimeCeilingMs: Number.POSITIVE_INFINITY,
+        fatigueWindowSize: DEFAULT_WINDOW,
       });
 
       expect(result).toBeNull();
@@ -107,6 +124,7 @@ describe('resolveSessionAdvisory', () => {
         attempts: shortHealthyFixture(),
         activeTimeMs: undefined,
         activeTimeCeilingMs: undefined,
+        fatigueWindowSize: DEFAULT_WINDOW,
       });
 
       expect(result).toBeNull();
@@ -117,6 +135,7 @@ describe('resolveSessionAdvisory', () => {
         attempts: shortHealthyFixture(),
         activeTimeMs: null,
         activeTimeCeilingMs: null,
+        fatigueWindowSize: DEFAULT_WINDOW,
       });
 
       expect(result).toBeNull();
@@ -128,6 +147,7 @@ describe('resolveSessionAdvisory', () => {
           attempts: 'not an array',
           activeTimeMs: 10 * MIN,
           activeTimeCeilingMs: 45 * MIN,
+          fatigueWindowSize: DEFAULT_WINDOW,
         })
       ).not.toThrow();
 
@@ -135,9 +155,18 @@ describe('resolveSessionAdvisory', () => {
         attempts: 'not an array',
         activeTimeMs: 10 * MIN,
         activeTimeCeilingMs: 45 * MIN,
+        fatigueWindowSize: DEFAULT_WINDOW,
       });
 
       expect(result).toBeNull();
     });
   });
 });
+
+/**
+ * 6 stable-quality attempts, standing in for "the current sitting's own
+ * attempts" once a caller has already excluded an earlier sitting's dip.
+ */
+function stableCurrentSittingFixture(): FatigueAttempt[] {
+  return [attempt(0, 4), attempt(1, 4), attempt(2, 4), attempt(3, 4), attempt(4, 4), attempt(5, 4)];
+}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeFatigueTrend,
+  DEFAULT_FATIGUE_WINDOW_SIZE,
   type FatigueAttempt,
 } from '../../../../src/domain/algorithms/fatigue-trend.js';
 
@@ -8,58 +9,41 @@ const T0 = 1_700_000_000_000;
 const HOUR = 3_600_000;
 
 /** Attempt `index` places `T0 + index * HOUR` as its timestamp. */
-function attempt(index: number, latencyMs: number, quality: number | null): FatigueAttempt {
-  return { timestamp: T0 + index * HOUR, quality, latencyMs };
+function attempt(index: number, quality: number | null): FatigueAttempt {
+  return { timestamp: T0 + index * HOUR, quality };
 }
 
-/** 8 attempts: earlier 4 fast+high-quality, later 4 slow+low-quality, in chronological order. */
+/** 6 attempts: earlier 3 high-quality, later 3 low-quality, in chronological order. */
 function deterioratingFixture(): FatigueAttempt[] {
-  return [
-    attempt(0, 1000, 4),
-    attempt(1, 1000, 4),
-    attempt(2, 1000, 4),
-    attempt(3, 1000, 4),
-    attempt(4, 2000, 2),
-    attempt(5, 2000, 2),
-    attempt(6, 2000, 2),
-    attempt(7, 2000, 2),
-  ];
+  return [attempt(0, 4), attempt(1, 4), attempt(2, 4), attempt(3, 2), attempt(4, 2), attempt(5, 2)];
 }
 
-/** 8 attempts, constant latency and quality throughout. */
+/** 6 attempts, constant quality throughout. */
 function stableFixture(): FatigueAttempt[] {
-  return [
-    attempt(0, 1000, 4),
-    attempt(1, 1000, 4),
-    attempt(2, 1000, 4),
-    attempt(3, 1000, 4),
-    attempt(4, 1000, 4),
-    attempt(5, 1000, 4),
-    attempt(6, 1000, 4),
-    attempt(7, 1000, 4),
-  ];
+  return [attempt(0, 4), attempt(1, 4), attempt(2, 4), attempt(3, 4), attempt(4, 4), attempt(5, 4)];
 }
 
 describe('computeFatigueTrend', () => {
-  it('fires on a rising-latency + falling-quality fixture', () => {
+  it('exports the shipped default window size of 6', () => {
+    expect(DEFAULT_FATIGUE_WINDOW_SIZE).toBe(6);
+  });
+
+  it('fires on a falling-quality fixture at the default window size', () => {
     const result = computeFatigueTrend(deterioratingFixture());
 
     expect(result.fatigued).toBe(true);
-    expect(result.sampledCount).toBe(8);
-    expect(result.latencyDeltaRatio).toBeGreaterThan(0);
+    expect(result.sampledCount).toBe(6);
     expect(result.qualityDelta).toBeLessThan(0);
   });
 
-  it('is silent on a stable session', () => {
+  it('is silent on a stable population', () => {
     const result = computeFatigueTrend(stableFixture());
 
     expect(result.fatigued).toBe(false);
-    expect(result.latencyDeltaRatio).toBe(0);
     expect(result.qualityDelta).toBe(0);
   });
 
-  it('is silent on a too-short session, even with a deteriorating shape', () => {
-    // Below MINIMUM_ATTEMPTS (6): only 5 attempts survive.
+  it('is silent on a population below the window size', () => {
     const short = deterioratingFixture().slice(0, 5);
 
     const result = computeFatigueTrend(short);
@@ -67,21 +51,18 @@ describe('computeFatigueTrend', () => {
     expect(result).toEqual({
       fatigued: false,
       sampledCount: 0,
-      latencyDeltaRatio: null,
       qualityDelta: null,
     });
   });
 
-  it('rising latency with rising quality does not fire', () => {
+  it('rising quality does not fire', () => {
     const attempts: FatigueAttempt[] = [
-      attempt(0, 1000, 2),
-      attempt(1, 1000, 2),
-      attempt(2, 1000, 2),
-      attempt(3, 1000, 2),
-      attempt(4, 2000, 4),
-      attempt(5, 2000, 4),
-      attempt(6, 2000, 4),
-      attempt(7, 2000, 4),
+      attempt(0, 2),
+      attempt(1, 2),
+      attempt(2, 2),
+      attempt(3, 4),
+      attempt(4, 4),
+      attempt(5, 4),
     ];
 
     const result = computeFatigueTrend(attempts);
@@ -89,21 +70,81 @@ describe('computeFatigueTrend', () => {
     expect(result.fatigued).toBe(false);
   });
 
-  it('falling quality with falling latency does not fire', () => {
-    const attempts: FatigueAttempt[] = [
-      attempt(0, 2000, 4),
-      attempt(1, 2000, 4),
-      attempt(2, 2000, 4),
-      attempt(3, 2000, 4),
-      attempt(4, 1000, 2),
-      attempt(5, 1000, 2),
-      attempt(6, 1000, 2),
-      attempt(7, 1000, 2),
-    ];
+  describe('windowSize (NEU-1020)', () => {
+    it('takes only the last windowSize entries, dropping older ones outside the window', () => {
+      // 9 attempts: a falling-quality shape in the OLDEST 6, but the most
+      // recent 6 (indices 3-8) are stable — the window must exclude the
+      // stale decline.
+      const attempts: FatigueAttempt[] = [
+        attempt(0, 4),
+        attempt(1, 4),
+        attempt(2, 4),
+        attempt(3, 2),
+        attempt(4, 2),
+        attempt(5, 2),
+        attempt(6, 3),
+        attempt(7, 3),
+        attempt(8, 3),
+      ];
 
-    const result = computeFatigueTrend(attempts);
+      const result = computeFatigueTrend(attempts, 6);
 
-    expect(result.fatigued).toBe(false);
+      // Last 6 (indices 3-8): earlier half [2,2,2] mean 2, later half
+      // [3,3,3] mean 3 — quality RISES within the window, so no fatigue.
+      expect(result.sampledCount).toBe(6);
+      expect(result.fatigued).toBe(false);
+      expect(result.qualityDelta).toBe(1);
+    });
+
+    it('a smaller configured window fires on fewer attempts than the shipped default', () => {
+      const attempts: FatigueAttempt[] = [
+        attempt(0, 4),
+        attempt(1, 4),
+        attempt(2, 2),
+        attempt(3, 2),
+      ];
+
+      const result = computeFatigueTrend(attempts, 4);
+
+      expect(result.sampledCount).toBe(4);
+      expect(result.fatigued).toBe(true);
+    });
+
+    it('a population below the configured window size is silent even above the shipped default', () => {
+      // 7 attempts, but windowSize configured to 8 — below the window.
+      const attempts = Array.from({ length: 7 }, (_, i) => attempt(i, 4));
+
+      const result = computeFatigueTrend(attempts, 8);
+
+      expect(result).toEqual({ fatigued: false, sampledCount: 0, qualityDelta: null });
+    });
+
+    it('omitting windowSize uses the shipped default of 6', () => {
+      const withDefault = computeFatigueTrend(deterioratingFixture());
+      const withExplicitSix = computeFatigueTrend(deterioratingFixture(), 6);
+
+      expect(withDefault).toEqual(withExplicitSix);
+    });
+
+    it('a non-finite or non-positive windowSize never fires (silent result)', () => {
+      const attempts = deterioratingFixture();
+
+      expect(computeFatigueTrend(attempts, Number.NaN)).toEqual({
+        fatigued: false,
+        sampledCount: 0,
+        qualityDelta: null,
+      });
+      expect(computeFatigueTrend(attempts, 0)).toEqual({
+        fatigued: false,
+        sampledCount: 0,
+        qualityDelta: null,
+      });
+      expect(computeFatigueTrend(attempts, -1)).toEqual({
+        fatigued: false,
+        sampledCount: 0,
+        qualityDelta: null,
+      });
+    });
   });
 
   describe('ordering is self-sorted, not caller-supplied', () => {
@@ -116,16 +157,7 @@ describe('computeFatigueTrend', () => {
 
     it('interleaved input produces the same verdict as chronological', () => {
       const fixture = deterioratingFixture();
-      const interleaved = [
-        fixture[0],
-        fixture[4],
-        fixture[1],
-        fixture[5],
-        fixture[2],
-        fixture[6],
-        fixture[3],
-        fixture[7],
-      ];
+      const interleaved = [fixture[0], fixture[3], fixture[1], fixture[4], fixture[2], fixture[5]];
 
       const chronological = computeFatigueTrend(fixture);
       const result = computeFatigueTrend(interleaved);
@@ -138,83 +170,45 @@ describe('computeFatigueTrend', () => {
     it('empty array', () => {
       const result = computeFatigueTrend([]);
 
-      expect(result).toEqual({
-        fatigued: false,
-        sampledCount: 0,
-        latencyDeltaRatio: null,
-        qualityDelta: null,
-      });
+      expect(result).toEqual({ fatigued: false, sampledCount: 0, qualityDelta: null });
     });
 
     it('single attempt', () => {
-      const result = computeFatigueTrend([attempt(0, 1000, 4)]);
+      const result = computeFatigueTrend([attempt(0, 4)]);
 
       expect(result.fatigued).toBe(false);
       expect(result.sampledCount).toBe(0);
     });
 
-    it('null quality on enough attempts to otherwise clear the minimum', () => {
+    it('null quality on enough attempts to otherwise clear the window', () => {
       const attempts: Array<Partial<FatigueAttempt>> = [
-        attempt(0, 1000, 4),
-        attempt(1, 1000, 4),
-        attempt(2, 1000, 4),
-        attempt(3, 1000, 4),
-        attempt(4, 1000, null),
-        attempt(5, 1000, 4),
+        attempt(0, 4),
+        attempt(1, 4),
+        attempt(2, 4),
+        attempt(3, 4),
+        attempt(4, null),
+        attempt(5, 4),
       ];
 
       const result = computeFatigueTrend(attempts);
 
       // The null-quality attempt is filtered out, dropping the survivor
-      // count below MINIMUM_ATTEMPTS.
+      // count below the window size.
       expect(result.fatigued).toBe(false);
       expect(result.sampledCount).toBe(0);
     });
 
-    it('undefined quality on enough attempts to otherwise clear the minimum', () => {
+    it('undefined quality on enough attempts to otherwise clear the window', () => {
       const withUndefinedQuality: Partial<FatigueAttempt> = {
-        timestamp: attempt(4, 1000, 4).timestamp,
-        latencyMs: 1000,
+        timestamp: attempt(4, 4).timestamp,
       };
       const attempts: Array<Partial<FatigueAttempt>> = [
-        attempt(0, 1000, 4),
-        attempt(1, 1000, 4),
-        attempt(2, 1000, 4),
-        attempt(3, 1000, 4),
+        attempt(0, 4),
+        attempt(1, 4),
+        attempt(2, 4),
+        attempt(3, 4),
         withUndefinedQuality,
-        attempt(5, 1000, 4),
-      ];
-
-      const result = computeFatigueTrend(attempts);
-
-      expect(result.fatigued).toBe(false);
-      expect(result.sampledCount).toBe(0);
-    });
-
-    it('non-finite latency (NaN) on enough attempts to otherwise clear the minimum', () => {
-      const attempts: FatigueAttempt[] = [
-        attempt(0, 1000, 4),
-        attempt(1, 1000, 4),
-        attempt(2, 1000, 4),
-        attempt(3, 1000, 4),
-        attempt(4, Number.NaN, 4),
-        attempt(5, 1000, 4),
-      ];
-
-      const result = computeFatigueTrend(attempts);
-
-      expect(result.fatigued).toBe(false);
-      expect(result.sampledCount).toBe(0);
-    });
-
-    it('negative latency on enough attempts to otherwise clear the minimum', () => {
-      const attempts: FatigueAttempt[] = [
-        attempt(0, 1000, 4),
-        attempt(1, 1000, 4),
-        attempt(2, 1000, 4),
-        attempt(3, 1000, 4),
-        attempt(4, -1, 4),
-        attempt(5, 1000, 4),
+        attempt(5, 4),
       ];
 
       const result = computeFatigueTrend(attempts);
@@ -225,56 +219,24 @@ describe('computeFatigueTrend', () => {
 
     it('non-object elements inside the array are filtered out, not thrown on', () => {
       const attempts: unknown[] = [
-        attempt(0, 1000, 4),
+        attempt(0, 4),
         null,
-        attempt(1, 1000, 4),
+        attempt(1, 4),
         'not an attempt',
-        attempt(2, 1000, 4),
+        attempt(2, 4),
         42,
-        attempt(3, 1000, 4),
+        attempt(3, 4),
         undefined,
       ];
 
       const result = computeFatigueTrend(attempts);
 
-      // Four valid attempts survive — below MINIMUM_ATTEMPTS (6).
-      expect(result).toEqual({
-        fatigued: false,
-        sampledCount: 0,
-        latencyDeltaRatio: null,
-        qualityDelta: null,
-      });
-    });
-
-    it('a zero-latency earlier window yields a null ratio and cannot fire', () => {
-      const attempts: FatigueAttempt[] = [
-        attempt(0, 0, 4),
-        attempt(1, 0, 4),
-        attempt(2, 0, 4),
-        attempt(3, 0, 4),
-        attempt(4, 2000, 1),
-        attempt(5, 2000, 1),
-        attempt(6, 2000, 1),
-        attempt(7, 2000, 1),
-      ];
-
-      const result = computeFatigueTrend(attempts);
-
-      // Quality fell hard, but a relative rise is undefined against a zero
-      // baseline — the advisory stays silent rather than dividing by zero.
-      expect(result.sampledCount).toBe(8);
-      expect(result.latencyDeltaRatio).toBeNull();
-      expect(result.qualityDelta).toBe(-3);
-      expect(result.fatigued).toBe(false);
+      // Four valid attempts survive — below the shipped default window (6).
+      expect(result).toEqual({ fatigued: false, sampledCount: 0, qualityDelta: null });
     });
 
     it('malformed or absent input never throws', () => {
-      const expected = {
-        fatigued: false,
-        sampledCount: 0,
-        latencyDeltaRatio: null,
-        qualityDelta: null,
-      };
+      const expected = { fatigued: false, sampledCount: 0, qualityDelta: null };
 
       expect(() => computeFatigueTrend(undefined)).not.toThrow();
       expect(() => computeFatigueTrend(null)).not.toThrow();

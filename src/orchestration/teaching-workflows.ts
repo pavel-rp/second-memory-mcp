@@ -35,7 +35,10 @@ import { promptPack } from '../shared/prompts/prompt-pack.js';
 import { getRequestLogger, logEvent } from '../shared/logger.js';
 import type { FatigueAttempt } from '../domain/algorithms/fatigue-trend.js';
 import * as sessionAdvisoryAlgorithm from '../domain/algorithms/session-advisory.js';
-import { computeActiveTime } from '../domain/algorithms/active-time.js';
+import {
+  computeActiveTime,
+  findSittingBoundaryTimestamp,
+} from '../domain/algorithms/active-time.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
@@ -79,28 +82,32 @@ function toFatigueAttempts(attempts: SessionQuestionAttempt[]): FatigueAttempt[]
   return attempts.map(a => ({
     timestamp: a.createdAt,
     quality: a.quality,
-    latencyMs: a.timeSpentMs,
   }));
 }
 
 /**
  * Pure: derive the in-band session-advisory block (NEU-848, active-time basis
- * NEU-1016) from an attempt population, a session's recorded `teach_next`
- * event timestamps, the idle cutoff, and the configured sitting active-time
- * ceiling — both `getNextTeachingStep` and `submitAnswerForQuestion` call this
- * same derivation over the SAME shared resolver (`resolveSessionAdvisory`),
- * the agreement invariant with `session-analyzer.ts`. The attempt timestamps
- * and the event timestamps are merged into one series and fed through
- * `active-time.ts`'s gap-based sitting computation — never wall-clock elapsed
- * time. Kept pure and throw-free per `resolveSessionAdvisory`'s own contract;
- * callers still wrap their call site fail-open since the attempt/event
- * populations themselves may come from a fresh, fallible fetch.
+ * NEU-1016, fatigue rescoped to the current sitting + quality-only by
+ * NEU-1020) from an attempt population, a session's recorded `teach_next`
+ * event timestamps, the idle cutoff, the configured sitting active-time
+ * ceiling, and the configured fatigue window size — both `getNextTeachingStep`
+ * and `submitAnswerForQuestion` call this same derivation over the SAME
+ * shared resolver (`resolveSessionAdvisory`), the agreement invariant with
+ * `session-analyzer.ts`. The attempt timestamps and the event timestamps are
+ * merged into one series and fed through `active-time.ts`'s gap-based sitting
+ * computation — never wall-clock elapsed time. `attempts` MUST already be
+ * scoped by the caller to the current sitting (see the two call sites below)
+ * — this function does no sitting-scoping of its own, only windowing within
+ * what it is given. Kept pure and throw-free per `resolveSessionAdvisory`'s
+ * own contract; callers still wrap their call site fail-open since the
+ * attempt/event populations themselves may come from a fresh, fallible fetch.
  */
 function deriveSessionAdvisoryBlock(
   attempts: SessionQuestionAttempt[],
   eventTimestamps: number[],
   idleCutoffMs: number,
-  activeTimeCeilingMs: number
+  activeTimeCeilingMs: number,
+  fatigueWindowSize: number
 ): SessionAdvisoryBlock | undefined {
   const mergedTimestamps = [...eventTimestamps, ...attempts.map(a => a.createdAt)];
   const { activeTimeMs } = computeActiveTime({ timestamps: mergedTimestamps, idleCutoffMs });
@@ -108,6 +115,7 @@ function deriveSessionAdvisoryBlock(
     attempts: toFatigueAttempts(attempts),
     activeTimeMs,
     activeTimeCeilingMs,
+    fatigueWindowSize,
   });
   if (!advisory) return undefined;
   return {
@@ -115,6 +123,24 @@ function deriveSessionAdvisoryBlock(
     reason: advisory.reason,
     directive: SESSION_ADVISORY_DIRECTIVE,
   };
+}
+
+/**
+ * Filter an attempt population down to the current sitting only (NEU-1020),
+ * using the same merged event+attempt timestamp series `deriveSessionAdvisoryBlock`
+ * feeds `active-time.ts`'s gap-based sitting computation. Callers pass the
+ * FULL (unfiltered) attempt population plus the session's recorded event
+ * timestamps; the sitting boundary is derived from their union so it agrees
+ * with the active-time figure `deriveSessionAdvisoryBlock` itself computes.
+ */
+function toSittingScopedAttempts(
+  attempts: SessionQuestionAttempt[],
+  eventTimestamps: number[],
+  idleCutoffMs: number
+): SessionQuestionAttempt[] {
+  const mergedTimestamps = [...eventTimestamps, ...attempts.map(a => a.createdAt)];
+  const boundary = findSittingBoundaryTimestamp({ timestamps: mergedTimestamps, idleCutoffMs });
+  return boundary === null ? attempts : attempts.filter(a => a.createdAt >= boundary);
 }
 
 /** Mode-specific retry pivot strings — what to change because the first attempt failed. */
@@ -716,11 +742,14 @@ export async function getNextTeachingStep(
   let sessionAdvisory: SessionAdvisoryBlock | undefined;
   try {
     const eventTimestamps = await deps.sessions.getSessionEventTimestamps(session.id);
+    const idleCutoffMs = deps.algorithmConfig.sessionConfig.idleCutoffMs;
+    const sittingAttempts = toSittingScopedAttempts(allAttempts, eventTimestamps, idleCutoffMs);
     sessionAdvisory = deriveSessionAdvisoryBlock(
-      allAttempts,
+      sittingAttempts,
       eventTimestamps,
-      deps.algorithmConfig.sessionConfig.idleCutoffMs,
-      deps.algorithmConfig.sessionConfig.activeTimeCeilingMs
+      idleCutoffMs,
+      deps.algorithmConfig.sessionConfig.activeTimeCeilingMs,
+      deps.algorithmConfig.sessionConfig.fatigueWindowSize
     );
   } catch (err: unknown) {
     getRequestLogger().warn(
@@ -1299,11 +1328,18 @@ async function submitAnswerForQuestion(
       deps.sessionQuestions.getAllAttemptsForSession(session.id),
       deps.sessions.getSessionEventTimestamps(session.id),
     ]);
-    sessionAdvisory = deriveSessionAdvisoryBlock(
+    const idleCutoffMs = deps.algorithmConfig.sessionConfig.idleCutoffMs;
+    const sittingAttempts = toSittingScopedAttempts(
       advisoryAttempts,
       eventTimestamps,
-      deps.algorithmConfig.sessionConfig.idleCutoffMs,
-      deps.algorithmConfig.sessionConfig.activeTimeCeilingMs
+      idleCutoffMs
+    );
+    sessionAdvisory = deriveSessionAdvisoryBlock(
+      sittingAttempts,
+      eventTimestamps,
+      idleCutoffMs,
+      deps.algorithmConfig.sessionConfig.activeTimeCeilingMs,
+      deps.algorithmConfig.sessionConfig.fatigueWindowSize
     );
   } catch (err: unknown) {
     getRequestLogger().warn(

@@ -1,0 +1,125 @@
+{
+  "formatVersion": 2,
+  "runId": "5eb1827aecdfc4742ad93f9a48aa0cf6",
+  "records": [
+    {
+      "kind": "phase-receipt",
+      "subject": "spec",
+      "taskId": "NEU-1020",
+      "runId": "5eb1827aecdfc4742ad93f9a48aa0cf6",
+      "workspaceFingerprint": "9de6ffc1f4d44cb3d7dc501cf3ad46b1f0c36f0156a5ca75f3f7046fb408b03a",
+      "issuedAt": "2026-09-16T13:35:58.521Z",
+      "sequence": 0,
+      "artifact": {
+        "path": "_local/NEU-1020/01_spec.md",
+        "sha256": "4a7dcfaf09014d5ef73ab0ed4b4c3c8ad6e1f9cafc081654285175d1e74a720f",
+        "bytes": 16235
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "b954200880475c9ab1f4082ec4cce98d065c6ca19c32a6690656fd15bf7e8675"
+    },
+    {
+      "kind": "gate-approval",
+      "subject": "gate:spec",
+      "taskId": "NEU-1020",
+      "runId": "5eb1827aecdfc4742ad93f9a48aa0cf6",
+      "workspaceFingerprint": "9de6ffc1f4d44cb3d7dc501cf3ad46b1f0c36f0156a5ca75f3f7046fb408b03a",
+      "issuedAt": "2026-09-16T13:36:07.491Z",
+      "sequence": 1,
+      "artifact": {
+        "path": "_local/NEU-1020/01_spec.md",
+        "sha256": "4a7dcfaf09014d5ef73ab0ed4b4c3c8ad6e1f9cafc081654285175d1e74a720f",
+        "bytes": 16235
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "592a182ed1a1dddff17b24ff9d615d1fe9f2f254c00cf89f90b8688d9b892788"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "plan",
+      "taskId": "NEU-1020",
+      "runId": "5eb1827aecdfc4742ad93f9a48aa0cf6",
+      "workspaceFingerprint": "9de6ffc1f4d44cb3d7dc501cf3ad46b1f0c36f0156a5ca75f3f7046fb408b03a",
+      "issuedAt": "2026-09-16T13:42:16.888Z",
+      "sequence": 2,
+      "artifact": {
+        "path": "_local/NEU-1020/02_plan.md",
+        "sha256": "05762c48e72753d82630d6a574922557e737043bb3b24f3462e6a27cb807804f",
+        "bytes": 16020
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "16d314da9419b71e410fd3cfbf13dd072e66fa619ad8c36389248f091540ef50"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "implement",
+      "taskId": "NEU-1020",
+      "runId": "5eb1827aecdfc4742ad93f9a48aa0cf6",
+      "workspaceFingerprint": "9de6ffc1f4d44cb3d7dc501cf3ad46b1f0c36f0156a5ca75f3f7046fb408b03a",
+      "issuedAt": "2026-09-16T13:59:42.828Z",
+      "sequence": 3,
+      "artifact": {
+        "path": "_local/NEU-1020/02_plan.md",
+        "sha256": "2f5ac34b53e5838ef48664e2dd33927f2ecb378b8b826c733ac0eb66559fa2be",
+        "bytes": 20079
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "fa0fa0acbab3588fd0f6a2d952a354ee54b68a06f9c127157c4bc92aeb8308da"
+    },
+    {
+      "kind": "gate-approval",
+      "subject": "gate:implement",
+      "taskId": "NEU-1020",
+      "runId": "5eb1827aecdfc4742ad93f9a48aa0cf6",
+      "workspaceFingerprint": "9de6ffc1f4d44cb3d7dc501cf3ad46b1f0c36f0156a5ca75f3f7046fb408b03a",
+      "issuedAt": "2026-09-16T13:59:47.055Z",
+      "sequence": 4,
+      "artifact": {
+        "path": "_local/NEU-1020/02_plan.md",
+        "sha256": "2f5ac34b53e5838ef48664e2dd33927f2ecb378b8b826c733ac0eb66559fa2be",
+        "bytes": 20079
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "f3427bd1983cf4f2c66eb9b27242ae79bfd757d3d142e501deb93288eb058fa5"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "verify-spec",
+      "taskId": "NEU-1020",
+      "runId": "5eb1827aecdfc4742ad93f9a48aa0cf6",
+      "workspaceFingerprint": "9de6ffc1f4d44cb3d7dc501cf3ad46b1f0c36f0156a5ca75f3f7046fb408b03a",
+      "issuedAt": "2026-09-16T14:09:23.453Z",
+      "sequence": 5,
+      "artifact": {
+        "path": "_local/NEU-1020/04_verify.md",
+        "sha256": "4cebab06780f090b61ec7d4f8cc9a134c712737b9706d6e9175a4cb2b480224f",
+        "bytes": 12374
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "233a447bd1e923c0ce70cf4db5d84fdaa51e0dd380f3ed93d96af4bf9bda82fc"
+    },
+    {
+      "kind": "phase-receipt",
+      "subject": "qa-gen",
+      "taskId": "NEU-1020",
+      "runId": "5eb1827aecdfc4742ad93f9a48aa0cf6",
+      "workspaceFingerprint": "9de6ffc1f4d44cb3d7dc501cf3ad46b1f0c36f0156a5ca75f3f7046fb408b03a",
+      "issuedAt": "2026-09-16T14:14:08.428Z",
+      "sequence": 6,
+      "artifact": {
+        "path": "_local/NEU-1020/06_qa.md",
+        "sha256": "c5d9088bfc5c9b4176c3fa08ed01490534395a415d58450bb993a9e91e99494c",
+        "bytes": 13280
+      },
+      "evidenceClass": "artifact-backed",
+      "runMode": "unestablished",
+      "seal": "2d09cc21f931d1de763e6b6be5f7cf8718632738756adc3478d3504caaba0328"
+    }
+  ]
+}
