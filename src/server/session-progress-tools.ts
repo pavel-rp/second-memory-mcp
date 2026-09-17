@@ -10,7 +10,12 @@ import {
   CreateSessionChunkToolInputSchema,
 } from '../domain/types/session-management-tools.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
+import {
+  extractErrorMessage,
+  learnerRefusalToolError,
+  toolError,
+  toolData,
+} from './tool-helpers.js';
 
 export function registerSessionProgressTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -54,6 +59,8 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
             })
           );
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to create session chunk', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           getRequestLogger().error('Failed to create session chunk:', error);
           return toolError(`Failed to create session chunk: ${msg}`, {
@@ -121,6 +128,8 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
           );
           return toolData(toSnakeCase(result.data));
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to batch update session chunks', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           getRequestLogger().error('Failed to batch update session chunks:', error);
           return toolError(`Failed to batch update session chunks: ${msg}`, {
@@ -182,6 +191,8 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
             })
           );
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to get historical feedback', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           getRequestLogger().error('Failed to get historical feedback:', error);
           return toolError(`Failed to get historical feedback: ${msg}`, {

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorMessage, toolError, toolData } from '../../../src/server/tool-helpers.js';
+import {
+  extractErrorMessage,
+  learnerRefusalToolError,
+  toolError,
+  toolData,
+} from '../../../src/server/tool-helpers.js';
+import { LearnerAccessRefusedError } from '../../../src/shared/errors.js';
 import { parseResult } from '../../helpers/capture-server.js';
 
 describe('tool-helpers', () => {
@@ -132,6 +138,27 @@ describe('tool-helpers', () => {
         const parsed = parseResult(result);
         expect(parsed.error.type).toBe(expected);
       }
+    });
+  });
+
+  describe('learnerRefusalToolError', () => {
+    it('maps a learner-access refusal to a non-retryable validation error', () => {
+      const result = learnerRefusalToolError(
+        'Failed to get session',
+        new LearnerAccessRefusedError('Refused: no sub claim')
+      );
+
+      expect(result?.isError).toBe(true);
+      expect(parseResult(result)).toEqual({
+        status: 'error',
+        error: { type: 'validation', message: 'Refused: no sub claim', retryable: false },
+      });
+    });
+
+    it('returns undefined for any other error so the caller falls through', () => {
+      expect(learnerRefusalToolError('prefix', new Error('db down'))).toBeUndefined();
+      expect(learnerRefusalToolError('prefix', 'not an error')).toBeUndefined();
+      expect(learnerRefusalToolError('prefix', undefined)).toBeUndefined();
     });
   });
 

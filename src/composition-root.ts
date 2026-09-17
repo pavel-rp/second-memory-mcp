@@ -77,6 +77,7 @@ import { createTier1aRules, createTier1bRules } from './domain/services/linter-r
 import { applyEligibilityToRules, validateRuleIntentParity } from './shared/linter/rule-intent.js';
 import { getRequestLogger } from './shared/logger.js';
 import { getResolvedLearnerAuth, STDIO_PLACEHOLDER_LEARNER_KEY } from './shared/learner-context.js';
+import { LearnerAccessRefusedError } from './shared/errors.js';
 import { serviceFail } from './domain/types/service-result.js';
 import * as chunkWorkflows from './orchestration/chunk-workflows.js';
 import * as topicWorkflows from './orchestration/topic-workflows.js';
@@ -401,15 +402,15 @@ function resolveLearnerKey(): { ok: true; learnerKey: string } | { ok: false; me
 
 /**
  * Same resolution as `resolveLearnerKey`, but throws on refusal — for `ctx.*` closures
- * whose own return type is a raw value (not `ServiceResult<T>`), so the refusal is
- * caught and surfaced the same way every other server-tool error already is
- * (`src/server/*-tools.ts` try/catch → `toolError()`, per this repo's error-handling
- * convention).
+ * whose own return type is a raw value (not `ServiceResult<T>`). The thrown
+ * `LearnerAccessRefusedError` is recognized by the server tools' catch blocks
+ * (`learnerRefusalToolError`) and reported as a non-retryable `validation` error,
+ * matching the `ServiceResult` refusal path.
  */
 function resolveLearnerKeyOrThrow(): string {
   const resolved = resolveLearnerKey();
   if (!resolved.ok) {
-    throw new Error(resolved.message);
+    throw new LearnerAccessRefusedError(resolved.message);
   }
   return resolved.learnerKey;
 }
