@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerTeachingTools } from '../../../src/server/teaching-tools.js';
+import { LearnerAccessRefusedError } from '../../../src/shared/errors.js';
 import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 import type { AppContext } from '../../../src/composition-root.js';
@@ -831,5 +833,75 @@ describe('teaching-tools', () => {
     expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('internal');
     expect(parsed.error.retryable).toBe(true);
+  });
+
+  // ── sub-less principal refusal ─────────────────────────────────
+
+  describe('a learner-access refusal is a non-retryable validation error', () => {
+    const refuse = () => {
+      throw new LearnerAccessRefusedError('Refused: the authenticated principal has no sub claim.');
+    };
+
+    const cases: Array<{
+      tool: string;
+      method:
+        | 'getNextTeachingStep'
+        | 'submitAnswer'
+        | 'startLearning'
+        | 'reviseGrade'
+        | 'createSessionQuestions';
+      input: Record<string, unknown>;
+    }> = [
+      { tool: 'teach_next', method: 'getNextTeachingStep', input: {} },
+      {
+        tool: 'submit_answer',
+        method: 'submitAnswer',
+        input: {
+          prompt_text: 'Q',
+          chunk_ids: ['c1'],
+          response: 'A',
+          grading: rubricForQuality(5),
+          question_type: 'recall',
+          feedback: 'OK',
+          time_spent_ms: 1000,
+          context_token: 'ctx-test',
+        },
+      },
+      { tool: 'start_learning', method: 'startLearning', input: { context_token: 'ctx-test' } },
+      {
+        tool: 'revise_grade',
+        method: 'reviseGrade',
+        input: {
+          session_question_id: 'q1',
+          grading: rubricForQuality(4),
+          new_feedback: 'corrected',
+          reason: 'other',
+          context_token: 'ctx-test',
+        },
+      },
+      {
+        tool: 'create_session_questions',
+        method: 'createSessionQuestions',
+        input: {
+          session_id: 'sess-1',
+          questions: [{ prompt_text: 'Q', chunk_ids: ['c1'] }],
+          context_token: 'ctx-test',
+        },
+      },
+    ];
+
+    for (const { tool, method, input } of cases) {
+      it(tool, async () => {
+        ctx[method] = vi.fn().mockImplementation(refuse);
+        registerTeachingTools(server as unknown as McpServer, ctx);
+        const handler = server.tools.get(tool)!.handler;
+
+        const parsed = parseResult(await handler(input));
+
+        expect(parsed.status).toBe('error');
+        expect(parsed.error.type).toBe('validation');
+        expect(parsed.error.retryable).toBe(false);
+      });
+    }
   });
 });

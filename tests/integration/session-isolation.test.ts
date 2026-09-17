@@ -2,6 +2,7 @@ import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { createAppContext, type AppContext } from '../../src/composition-root.js';
 import { withLearnerAuthContext } from '../../src/shared/learner-context.js';
+import { LearnerAccessRefusedError } from '../../src/shared/errors.js';
 import { getSql } from '../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
@@ -333,8 +334,13 @@ describe('learner session isolation (NEU-1015)', () => {
       // this asserts a synchronous throw (`toThrow`), not a rejected Promise (`.rejects.toThrow`)
       // — the server tool layer's own try/catch (CLAUDE.md's documented convention) catches
       // both forms identically, so this is a source behavior detail, not a defect.
+      // The throw is a typed LearnerAccessRefusedError, so the server tools report it as a
+      // non-retryable validation error rather than a retryable internal one.
       expect(() => withLearnerAuthContext(undefined, () => ctx.getSessionById('whatever'))).toThrow(
-        /sub/i
+        LearnerAccessRefusedError
+      );
+      expect(() => withLearnerAuthContext(undefined, () => ctx.getActiveSession())).toThrow(
+        LearnerAccessRefusedError
       );
       expect(() => withLearnerAuthContext(undefined, () => ctx.getActiveSession())).toThrow(/sub/i);
     });

@@ -16,7 +16,12 @@ import {
 } from '../domain/types/session-management-tools.js';
 import type { SessionInput } from '../domain/types/session.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
+import {
+  extractErrorMessage,
+  learnerRefusalToolError,
+  toolError,
+  toolData,
+} from './tool-helpers.js';
 
 /**
  * Filter a SessionInput to only include requested fields.
@@ -209,6 +214,8 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           getRequestLogger().info(`Retrieved active session ${activeSession.id}`);
           return toolData({ session: sessionData, action: 'found' as const });
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to get active session', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
             getRequestLogger().error('Invalid get_active_session input:', error);
@@ -269,6 +276,8 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           getRequestLogger().info(`Retrieved session ${validatedInput.sessionId}`);
           return toolData({ session: sessionData, action: 'found' as const });
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to get session', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
             getRequestLogger().error('Invalid get_session input:', error);
@@ -379,6 +388,8 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           );
           return toolData(result);
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to complete session', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
             getRequestLogger().error('Invalid complete_session input:', error);
