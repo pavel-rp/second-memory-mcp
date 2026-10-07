@@ -3,6 +3,11 @@ ALTER TABLE "session_question_attempts" ADD COLUMN IF NOT EXISTS "actual_prompt_
 --> statement-breakpoint
 ALTER TABLE "session_question_attempts" ADD COLUMN IF NOT EXISTS "question_scope" jsonb;
 --> statement-breakpoint
+-- A first attempt always answers the original question; only legacy retries stay unknown.
+UPDATE "session_question_attempts" AS a SET "actual_prompt_text" = q."prompt_text"
+FROM "session_questions" AS q
+WHERE a."session_question_id" = q."id" AND a."attempt_number" = 1 AND a."actual_prompt_text" IS NULL;
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "canonical_answer_identities" (
   "id" text PRIMARY KEY NOT NULL,
   "learner_key" text NOT NULL,

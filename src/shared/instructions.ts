@@ -8,7 +8,7 @@ Second Memory is a spaced-repetition learning server. Call get_server_workflow f
 TEACHING FLOW (start_learning → submit_answer loop)
 1. Call start_learning. "nothing_due"/"error" → surface and stop. "started"/"resumed" → inspect first_chunk: "teach" → follow instruction; "blocked"/"error" → stop.
 2. Call submit_answer with prompt_text, chunk_ids, response, grading, question_type, feedback, time_spent_ms.
-3. "retry" → focused feedback and one NEW same-level same-concept recall question. Submit its exact retry_prompt_text and question_scope under the same session_question_id. Recall has at most two linked attempts; never reset or retry until successful.
+3. "retry" → follow retry_guidance if present; resubmit under the same session_question_id (max two attempts). Recall only: focused feedback, one NEW same-concept recall question, with its exact retry_prompt_text and question_scope. Other levels send no retry_prompt_text. Never reset or retry until successful.
 4. "recorded" → canonical_feedback takes precedence: explain FIRST only if needed, then copy one labelled canonical target exactly. If unavailable, clarify/repair material without another learner attempt. correct_answer is legacy/source fallback, not a competing target. Honor roadblock_forecast and session_advisory; call teach_next. "roadblock" → required follow-ups; "blocked"/"error" → stop; "complete" → complete_session with feedback.
 
 OPERATIONAL CONSTRAINTS
