@@ -356,7 +356,14 @@ export class DrizzleSessionRepository implements SessionRepository {
         for (const a of qAttempts) {
           attempts.push({
             timestamp: toIsoTimestamp(a.createdAt),
-            question: q.promptText,
+            question:
+              session.mode === 'assessment' ? q.promptText : (a.actualPromptText ?? q.promptText),
+            ...(session.mode !== 'assessment' && {
+              original_question: q.promptText,
+              actual_question: a.actualPromptText ?? null,
+              question_capture: a.actualPromptText ? ('captured' as const) : ('unknown' as const),
+              question_scope: a.questionScope ?? null,
+            }),
             response: a.response,
             passed: a.passed,
             feedback: a.feedback,

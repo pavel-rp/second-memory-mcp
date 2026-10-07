@@ -7,6 +7,10 @@ import type {
 } from '../domain/types/entities.js';
 import type { QuestionType } from '../domain/types/teaching.js';
 import type { SchedulingBand } from '../domain/algorithms/scheduling-snapshot.js';
+import type {
+  CanonicalAnswerRepository,
+  CanonicalScope,
+} from '../domain/types/canonical-answer.js';
 
 /**
  * Input for creating a question attempt.
@@ -16,6 +20,8 @@ import type { SchedulingBand } from '../domain/algorithms/scheduling-snapshot.js
  * for a multi-chunk assessment attempt or a failed best-effort chunk read.
  */
 export type CreateQuestionAttemptInput = {
+  actualPromptText?: string | null;
+  questionScope?: CanonicalScope | null;
   id: string;
   sessionQuestionId: string;
   attemptNumber: 1 | 2;
@@ -63,6 +69,7 @@ export type ReviseAttemptInput = {
  * Questions are session-scoped (sessionId FK) with chunk mapping via junction table.
  */
 export interface SessionQuestionRepository {
+  readonly canonical?: CanonicalAnswerRepository;
   createQuestions(
     sessionId: string,
     questions: { promptText: string; chunkIds: string[] }[],

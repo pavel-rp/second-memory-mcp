@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerTeachingTools } from '../../../src/server/teaching-tools.js';
 import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
@@ -15,7 +16,7 @@ describe('teaching-tools', () => {
   });
 
   it('registers teach_next tool', () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     expect(server.tools.has('teach_next')).toBe(true);
   });
 
@@ -32,7 +33,7 @@ describe('teaching-tools', () => {
       drill_format: 'explanation',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -58,7 +59,7 @@ describe('teaching-tools', () => {
       content_status: 'draft',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -83,7 +84,7 @@ describe('teaching-tools', () => {
       content_status: 'active',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -117,7 +118,7 @@ describe('teaching-tools', () => {
       dominant_tier: 'cued_recall',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -146,7 +147,7 @@ describe('teaching-tools', () => {
       dominant_tier: 'scaffold',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -173,7 +174,7 @@ describe('teaching-tools', () => {
       dominant_tier: 'reteach',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -201,7 +202,7 @@ describe('teaching-tools', () => {
       assessment_chunk_ids: ['c1', 'c2'],
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -227,7 +228,7 @@ describe('teaching-tools', () => {
       current_chunk_id: 'c1',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(blockedResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -245,7 +246,7 @@ describe('teaching-tools', () => {
       summary: { total: 3, passed_first_try: 2, needed_retry: 1, exhausted_retries: 0 },
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(completeResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -262,7 +263,7 @@ describe('teaching-tools', () => {
       message: 'No active session',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(errorResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -275,7 +276,7 @@ describe('teaching-tools', () => {
 
   it('returns structured error when orchestration throws', async () => {
     ctx.getNextTeachingStep = vi.fn().mockRejectedValue(new Error('DB connection lost'));
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('teach_next')!.handler;
 
     const result = await handler({});
@@ -288,7 +289,7 @@ describe('teaching-tools', () => {
   });
 
   it('registers submit_answer tool', () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     expect(server.tools.has('submit_answer')).toBe(true);
   });
 
@@ -308,7 +309,7 @@ describe('teaching-tools', () => {
       },
     };
     ctx.submitAnswer = vi.fn().mockResolvedValue(submitResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
     const result = await handler({
@@ -332,7 +333,7 @@ describe('teaching-tools', () => {
 
   it('submit_answer maps snake_case inline input to camelCase', async () => {
     ctx.submitAnswer = vi.fn().mockResolvedValue({ action: 'retry', attempt: 1 });
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
     await handler({
@@ -360,7 +361,7 @@ describe('teaching-tools', () => {
   });
 
   it('submit_answer returns validation error when neither inline nor retry fields provided', async () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
     const result = await handler({
@@ -381,7 +382,7 @@ describe('teaching-tools', () => {
 
   it('submit_answer returns validation error for whitespace-only feedback', async () => {
     ctx.submitAnswer = vi.fn();
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
     const result = await handler({
@@ -404,7 +405,7 @@ describe('teaching-tools', () => {
 
   it('submit_answer returns structured error when orchestration throws', async () => {
     ctx.submitAnswer = vi.fn().mockRejectedValue(new Error('Session expired'));
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
     const result = await handler({
@@ -425,15 +426,242 @@ describe('teaching-tools', () => {
     expect(parsed.error.retryable).toBe(true);
   });
 
+  it('forwards enhanced retry metadata while serializing canonical feedback', async () => {
+    const questionScope = {
+      language: 'en',
+      parts: [{ part_id: 'sum', required_facts: ['two-plus-two'] }],
+      sources: [{ kind: 'chunk', source_id: 'c1', components: ['content'] }],
+    };
+    const malformedMaterial = {
+      kind: 'candidate',
+      expected_fingerprint: 'not-a-fingerprint',
+      parts: [],
+    };
+    ctx.submitAnswer = vi.fn().mockResolvedValue({
+      action: 'recorded',
+      session_question_id: 'sq-1',
+      attempt: 2,
+      passed: true,
+      quality: 3,
+      question_type: 'recall',
+      chunk_id: 'c1',
+      canonical_feedback: {
+        status: 'ready',
+        directive: 'show_target',
+        answer: {
+          identityId: 'identity-1',
+          revisionId: 'revision-1',
+          headVersion: 2,
+          scope: {
+            language: 'en',
+            parts: [{ partId: 'sum', requiredFacts: ['two-plus-two'] }],
+            sources: [{ kind: 'chunk', sourceId: 'c1', components: ['content'] }],
+          },
+          observation: {
+            fingerprint: 'observed-fingerprint',
+            sources: [{ kind: 'chunk', sourceId: 'c1', version: 1, digest: 'source-digest' }],
+          },
+          parts: [{ partId: 'sum', text: 'Four.' }],
+        },
+      },
+    });
+    registerTeachingTools(server as unknown as McpServer, ctx);
+
+    const result = await server.tools.get('submit_answer')!.handler({
+      session_question_id: 'sq-1',
+      retry_prompt_text: 'What number is two plus two?',
+      question_scope: questionScope,
+      canonical_material: malformedMaterial,
+      response: '4',
+      grading: rubricForQuality(3),
+      question_type: 'recall',
+      feedback: 'Correct',
+      time_spent_ms: 1200,
+      context_token: 'ctx-test',
+    });
+    const parsed = parseResult(result);
+
+    expect(ctx.submitAnswer).toHaveBeenCalledWith({
+      sessionQuestionId: 'sq-1',
+      retryPromptText: 'What number is two plus two?',
+      questionScope: {
+        language: 'en',
+        parts: [{ partId: 'sum', requiredFacts: ['two-plus-two'] }],
+        sources: [{ kind: 'chunk', sourceId: 'c1', components: ['content'] }],
+      },
+      canonicalMaterial: malformedMaterial,
+      response: '4',
+      grading: rubricForQuality(3),
+      questionType: 'recall',
+      feedback: 'Correct',
+      timeSpentMs: 1200,
+    });
+    expect(parsed).toMatchObject({
+      status: 'ok',
+      data: {
+        canonical_feedback: {
+          status: 'ready',
+          answer: {
+            identity_id: 'identity-1',
+            revision_id: 'revision-1',
+            head_version: 2,
+            parts: [{ part_id: 'sum', text: 'Four.' }],
+            observation: {
+              sources: [{ source_id: 'c1', version: 1, digest: 'source-digest' }],
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('registers canonical answer tools with required context tokens', async () => {
+    ctx.getCanonicalAnswer = vi.fn();
+    ctx.saveCanonicalAnswer = vi.fn();
+    registerTeachingTools(server as unknown as McpServer, ctx);
+    const getTool = server.tools.get('get_canonical_answer')!;
+    const saveTool = server.tools.get('save_canonical_answer')!;
+    const questionScope = {
+      language: 'en',
+      parts: [{ part_id: 'sum', required_facts: ['two-plus-two'] }],
+      sources: [{ kind: 'chunk', source_id: 'c1', components: ['content'] }],
+    };
+
+    expect(getTool.spec.inputSchema).toHaveProperty('context_token');
+    expect(saveTool.spec.inputSchema).toHaveProperty('context_token');
+
+    const getResult = parseResult(
+      await getTool.handler({ session_id: 'session-1', question_scope: questionScope })
+    );
+    const saveResult = parseResult(
+      await saveTool.handler({
+        session_id: 'session-1',
+        question_scope: questionScope,
+        operation: 'accept',
+        expected_fingerprint: 'a'.repeat(64),
+        parts: [{ part_id: 'sum', text: 'Four.' }],
+      })
+    );
+
+    expect(getResult.error.type).toBe('validation');
+    expect(saveResult.error.type).toBe('validation');
+    expect(ctx.getCanonicalAnswer).not.toHaveBeenCalled();
+    expect(ctx.saveCanonicalAnswer).not.toHaveBeenCalled();
+  });
+
+  it('forwards snake_case canonical lookup input and preserves its envelope', async () => {
+    const questionScope = {
+      language: 'en',
+      parts: [{ part_id: 'sum', required_facts: ['two-plus-two'] }],
+      sources: [{ kind: 'chunk', source_id: 'c1', components: ['content'] }],
+    };
+    ctx.getCanonicalAnswer = vi.fn().mockResolvedValue({
+      status: 'miss',
+      directive: 'prepare_candidate',
+      observation: {
+        fingerprint: 'observed-fingerprint',
+        sources: [{ kind: 'chunk', sourceId: 'c1', version: 1, digest: 'source-digest' }],
+      },
+      head: { version: 0, revisionId: null },
+    });
+    registerTeachingTools(server as unknown as McpServer, ctx);
+
+    const result = await server.tools.get('get_canonical_answer')!.handler({
+      session_id: 'session-1',
+      question_scope: questionScope,
+      purpose: 'feedback',
+      session_question_id: 'sq-1',
+      attempt_number: 2,
+      context_token: 'ctx-test',
+    });
+    const parsed = parseResult(result);
+
+    expect(ctx.getCanonicalAnswer).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      scope: {
+        language: 'en',
+        parts: [{ partId: 'sum', requiredFacts: ['two-plus-two'] }],
+        sources: [{ kind: 'chunk', sourceId: 'c1', components: ['content'] }],
+      },
+      revisionId: undefined,
+      feedback: { sessionQuestionId: 'sq-1', attemptNumber: 2 },
+    });
+    expect(parsed).toEqual({
+      status: 'ok',
+      data: {
+        status: 'miss',
+        directive: 'prepare_candidate',
+        observation: {
+          fingerprint: 'observed-fingerprint',
+          sources: [{ kind: 'chunk', source_id: 'c1', version: 1, digest: 'source-digest' }],
+        },
+        head: { version: 0, revision_id: null },
+      },
+    });
+  });
+
+  it('forwards snake_case canonical save input and preserves its envelope', async () => {
+    const questionScope = {
+      language: 'en',
+      parts: [{ part_id: 'sum', required_facts: ['two-plus-two'] }],
+      sources: [{ kind: 'chunk', source_id: 'c1', components: ['content'] }],
+    };
+    ctx.saveCanonicalAnswer = vi.fn().mockResolvedValue({
+      status: 'unavailable',
+      reason: 'source_changed',
+      directive: 'prepare_again',
+    });
+    registerTeachingTools(server as unknown as McpServer, ctx);
+
+    const result = await server.tools.get('save_canonical_answer')!.handler({
+      session_id: 'session-1',
+      question_scope: questionScope,
+      purpose: 'feedback',
+      session_question_id: 'sq-1',
+      attempt_number: 2,
+      operation: 'invalidate',
+      expected_fingerprint: 'a'.repeat(64),
+      expected_head_version: 2,
+      expected_revision_id: 'revision-1',
+      correction_reason: 'source_disputed',
+      context_token: 'ctx-test',
+    });
+    const parsed = parseResult(result);
+
+    expect(ctx.saveCanonicalAnswer).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      scope: {
+        language: 'en',
+        parts: [{ partId: 'sum', requiredFacts: ['two-plus-two'] }],
+        sources: [{ kind: 'chunk', sourceId: 'c1', components: ['content'] }],
+      },
+      operation: 'invalidate',
+      expectedFingerprint: 'a'.repeat(64),
+      parts: undefined,
+      expectedHeadVersion: 2,
+      expectedRevisionId: 'revision-1',
+      correctionReason: 'source_disputed',
+      feedback: { sessionQuestionId: 'sq-1', attemptNumber: 2 },
+    });
+    expect(parsed).toEqual({
+      status: 'ok',
+      data: {
+        status: 'unavailable',
+        reason: 'source_changed',
+        directive: 'prepare_again',
+      },
+    });
+  });
+
   // ── start_learning ──────────────────────────────────────────────
 
   it('registers start_learning tool', () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     expect(server.tools.has('start_learning')).toBe(true);
   });
 
   it('start_learning description documents the topic-input and pause-on-switch behavior (NEU-1018)', () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const description = server.tools.get('start_learning')!.spec.description as string;
 
     expect(description).toContain('an explicit one via topic_id');
@@ -447,7 +675,7 @@ describe('teaching-tools', () => {
   });
 
   it('start_learning description documents paused-session resume with recompute, including the no-topic bucket (NEU-1021)', () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const description = server.tools.get('start_learning')!.spec.description as string;
 
     expect(description).toContain('has a paused session, that session resumes');
@@ -467,7 +695,7 @@ describe('teaching-tools', () => {
       recommendation_summary: 'Review overdue items',
     };
     ctx.startLearning = vi.fn().mockResolvedValue(startResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('start_learning')!.handler;
 
     const result = await handler({ context_token: 'ctx-test' });
@@ -481,7 +709,7 @@ describe('teaching-tools', () => {
 
   it('start_learning maps snake_case input to camelCase', async () => {
     ctx.startLearning = vi.fn().mockResolvedValue({ action: 'nothing_due', message: 'None' });
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('start_learning')!.handler;
 
     await handler({
@@ -495,7 +723,7 @@ describe('teaching-tools', () => {
   });
 
   it('start_learning returns validation error for invalid input', async () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('start_learning')!.handler;
 
     const result = await handler({ subject_filter: 42 });
@@ -507,7 +735,7 @@ describe('teaching-tools', () => {
   });
 
   it('start_learning rejects an empty-string topic_id (NEU-1043)', async () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('start_learning')!.handler;
 
     const result = await handler({ topic_id: '', context_token: 'ctx-test' });
@@ -520,7 +748,7 @@ describe('teaching-tools', () => {
 
   it('start_learning returns session error when orchestration throws', async () => {
     ctx.startLearning = vi.fn().mockRejectedValue(new Error('DB timeout'));
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('start_learning')!.handler;
 
     const result = await handler({ context_token: 'ctx-test' });
@@ -535,7 +763,7 @@ describe('teaching-tools', () => {
   // ── create_session_questions ──────────────────────────────────
 
   it('registers create_session_questions tool', () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     expect(server.tools.has('create_session_questions')).toBe(true);
   });
 
@@ -546,7 +774,7 @@ describe('teaching-tools', () => {
       questionIds: ['sq-1', 'sq-2'],
     };
     ctx.createSessionQuestions = vi.fn().mockResolvedValue(createResult);
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
 
     const result = await handler({
@@ -568,7 +796,7 @@ describe('teaching-tools', () => {
     ctx.createSessionQuestions = vi
       .fn()
       .mockResolvedValue({ action: 'created', sessionId: 'sess-1', questionIds: ['sq-1'] });
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
 
     await handler({
@@ -584,7 +812,7 @@ describe('teaching-tools', () => {
   });
 
   it('create_session_questions returns validation error for invalid input', async () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
 
     const result = await handler({
@@ -602,7 +830,7 @@ describe('teaching-tools', () => {
     ctx.createSessionQuestions = vi
       .fn()
       .mockResolvedValue({ action: 'error', message: 'Session chunk sc-1 not found.' });
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
 
     const result = await handler({
@@ -620,7 +848,7 @@ describe('teaching-tools', () => {
 
   it('create_session_questions returns retryable error for unexpected throws', async () => {
     ctx.createSessionQuestions = vi.fn().mockRejectedValue(new Error('DB connection lost'));
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
 
     const result = await handler({
@@ -645,7 +873,7 @@ describe('teaching-tools', () => {
       message: 'Try again',
       feedback: 'Wrong',
     });
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
     await handler({
@@ -666,7 +894,7 @@ describe('teaching-tools', () => {
   });
 
   it('submit_answer rejects when both inline and retry fields provided', async () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
     const result = await handler({
@@ -687,13 +915,13 @@ describe('teaching-tools', () => {
   });
 
   it('teach_next inputSchema advertises context_token field', () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const spec = server.tools.get('teach_next')!.spec;
     expect(spec.inputSchema).toHaveProperty('context_token');
   });
 
   it('submit_answer rejects partial inline (prompt_text without chunk_ids)', async () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
     const result = await handler({
@@ -714,7 +942,7 @@ describe('teaching-tools', () => {
   // ── revise_grade ─────────────────────────────────────────────
 
   it('registers revise_grade tool', () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     expect(server.tools.has('revise_grade')).toBe(true);
   });
 
@@ -735,7 +963,7 @@ describe('teaching-tools', () => {
       roadblock_cancelled: false,
       note_id: 'n1',
     });
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('revise_grade')!.handler;
 
     const result = await handler({
@@ -753,7 +981,7 @@ describe('teaching-tools', () => {
   });
 
   it('revise_grade returns validation error on bad input (invalid reason)', async () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('revise_grade')!.handler;
 
     const result = await handler({
@@ -770,7 +998,7 @@ describe('teaching-tools', () => {
   });
 
   it('revise_grade returns validation error on a grading payload missing a criterion', async () => {
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('revise_grade')!.handler;
 
     const result = await handler({
@@ -796,7 +1024,7 @@ describe('teaching-tools', () => {
 
   it('revise_grade returns validation error for whitespace-only new_feedback', async () => {
     ctx.reviseGrade = vi.fn();
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('revise_grade')!.handler;
 
     const result = await handler({
@@ -816,7 +1044,7 @@ describe('teaching-tools', () => {
 
   it('revise_grade returns session error when orchestration throws', async () => {
     ctx.reviseGrade = vi.fn().mockRejectedValue(new Error('DB connection lost'));
-    registerTeachingTools(server as any, ctx);
+    registerTeachingTools(server as unknown as McpServer, ctx);
     const handler = server.tools.get('revise_grade')!.handler;
 
     const result = await handler({

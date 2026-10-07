@@ -1,6 +1,7 @@
 import type { ContentStatus } from './recommendations.js';
 import type { QuestionType, ReviseGradeReason } from './teaching.js';
 import type { ValidatorReport } from './validator-report.js';
+import type { CanonicalScope } from './canonical-answer.js';
 
 export type KnowledgeType = 'fact' | 'concept' | 'procedure' | 'principle';
 export type DependencyGraphType = 'linear_chain' | 'convergent' | 'divergent' | 'single_root';
@@ -151,6 +152,9 @@ export type SessionQuestion = {
 };
 
 export type SessionQuestionAttempt = {
+  /** Undefined/null means actual retry wording was not captured, never inferred. */
+  actualPromptText?: string | null;
+  questionScope?: CanonicalScope | null;
   id: string;
   sessionQuestionId: string;
   attemptNumber: 1 | 2;

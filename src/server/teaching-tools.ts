@@ -11,6 +11,12 @@ import {
   ReviseGradeInputShape,
   ReviseGradeInputSchema,
 } from '../domain/types/teaching.js';
+import {
+  GetCanonicalAnswerInputShape,
+  GetCanonicalAnswerInputSchema,
+  SaveCanonicalAnswerInputShape,
+  SaveCanonicalAnswerInputSchema,
+} from '../domain/types/canonical-answer.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
@@ -75,7 +81,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                           ? 'Brief recall probe first. If weak, do compressed re-presentation then retrieval check. Stay at Level 1 (Recall) only.'
                           : result.teaching_approach === 'cued_recall'
                             ? 'Ask what they remember first. On failure, provide graduated hints (context → structure → partial answer). Stay at Recall and Explain/Apply levels.'
-                            : 'Ask a question at the current taxonomy level (Recall → Explain/Apply → Analyze/Create). If correct → escalate one level if time permits → move to next chunk. If wrong → give feedback → ask another question at the same level (max 3 attempts per level → move on).',
+                            : 'Ask at the current taxonomy level. If correct, escalate if permitted and time allows. For Explain/Apply or Analyze/Create only, retain the existing max-3-per-level probing budget. Ordinary Recall follows the linked two-attempt canonical policy below.',
                       result.teaching_approach === 'scaffold'
                         ? 'Guardrails: min 1 recognition + 1 Recall question; max 5–7 attempts per chunk.'
                         : result.teaching_approach === 'reteach'
@@ -83,7 +89,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                           : 'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk.',
                       'Then call submit_answer({ prompt_text, chunk_ids, response, grading, question_type, feedback, time_spent_ms }). ' +
                         'grading is the rubric-anchored payload (per-criterion booleans + verbatim justifying spans); the server derives the 0–5 quality.',
-                      'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
+                      'Ordinary recall: prepare source/fact-aligned question_scope and canonical material using get_canonical_answer before asking; never show the prepared target. Correct first or completed second response: explain first only if needed, then show one labelled canonical target. First failure: focused feedback, one NEW same-level same-concept question, then submit with the same session_question_id plus exact retry_prompt_text and the new question_scope. Never reset the linked allowance, repeat until successful or use a third attempt. Canonical feedback does not bypass follow-up gates.',
                     ].join(' '),
                     nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", grading: { criteria: { core_correctness, completeness, reasoning_validity, precision }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
                   };
@@ -134,7 +140,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         try {
           const parsed = SubmitAnswerInputSchema.parse(input);
           const result = await ctx.submitAnswer(parsed);
-          return toolData(result);
+          return toolData(toSnakeCase(result));
         } catch (error) {
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
@@ -150,6 +156,54 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
             type: 'session',
             message: msg,
             retryable: true,
+          });
+        }
+      })
+  );
+
+  server.registerTool(
+    'get_canonical_answer',
+    {
+      title: 'Get Canonical Answer',
+      description:
+        'Prepare source observation and safely reuse canonical wording in an authorized session. Preparation is agent-only, not learner reveal. Feedback requires the recorded question/attempt; eligibility, current scope, source bytes and revision head are checked server-side. Never treat a structural check as factual certification.',
+      inputSchema: GetCanonicalAnswerInputShape,
+    },
+    async input =>
+      withRequestContext('get_canonical_answer', async () => {
+        try {
+          const parsed = GetCanonicalAnswerInputSchema.parse(input);
+          return toolData(toSnakeCase(await ctx.getCanonicalAnswer(parsed)));
+        } catch (error) {
+          const message = extractErrorMessage(error);
+          return toolError(`Canonical lookup failed: ${message}`, {
+            type: error instanceof ZodError ? 'validation' : 'session',
+            message,
+            retryable: false,
+          });
+        }
+      })
+  );
+
+  server.registerTool(
+    'save_canonical_answer',
+    {
+      title: 'Save Canonical Answer',
+      description:
+        'Accept a source-grounded per-part canonical target, reuse unchanged established wording, or explicitly correct/invalidate with expected head/revision and reason. Use the expected fingerprint from preparation, never relabel old words with current evidence. This material-only operation never records an attempt, changes a grade or advances a chunk. Explain first when needed, then copy the canonical target exactly at its allowed feedback boundary.',
+      inputSchema: SaveCanonicalAnswerInputShape,
+    },
+    async input =>
+      withRequestContext('save_canonical_answer', async () => {
+        try {
+          const parsed = SaveCanonicalAnswerInputSchema.parse(input);
+          return toolData(toSnakeCase(await ctx.saveCanonicalAnswer(parsed)));
+        } catch (error) {
+          const message = extractErrorMessage(error);
+          return toolError(`Canonical save failed: ${message}`, {
+            type: error instanceof ZodError ? 'validation' : 'session',
+            message,
+            retryable: false,
           });
         }
       })
