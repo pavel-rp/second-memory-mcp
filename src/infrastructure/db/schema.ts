@@ -14,9 +14,17 @@ import {
   uniqueIndex,
   check,
   vector,
+  foreignKey,
+  type AnyPgColumn,
+  type PgTableExtraConfigValue,
 } from 'drizzle-orm/pg-core';
 import { sql, type InferInsertModel, type InferSelectModel } from 'drizzle-orm';
 import type { ValidatorReport } from '../../domain/types/validator-report.js';
+import type {
+  CanonicalScope,
+  CanonicalPart,
+  CanonicalObservation,
+} from '../../domain/types/canonical-answer.js';
 // Tables
 export const learningTopics = pgTable(
   'learning_topics',
@@ -222,6 +230,8 @@ export const sessionQuestionAttempts = pgTable(
       .notNull()
       .references(() => sessionQuestions.id, { onDelete: 'cascade' }),
     attemptNumber: integer('attempt_number').notNull(), // 1 or 2
+    actualPromptText: text('actual_prompt_text'),
+    questionScope: jsonb('question_scope').$type<CanonicalScope>(),
     response: text('response').notNull(),
     passed: boolean('passed').notNull(),
     feedback: text('feedback').notNull(),
@@ -263,6 +273,86 @@ export const sessionQuestionAttempts = pgTable(
     ),
   ]
 );
+
+export const canonicalAnswerIdentities = pgTable(
+  'canonical_answer_identities',
+  {
+    id: text('id').primaryKey().notNull(),
+    learnerKey: text('learner_key').notNull(),
+    language: text('language').notNull(),
+    scopeHash: text('scope_hash').notNull(),
+    scope: jsonb('scope').$type<CanonicalScope>().notNull(),
+    sourceFingerprint: text('source_fingerprint').notNull(),
+    currentRevisionId: text('current_revision_id'),
+    headVersion: integer('head_version').notNull().default(0),
+    headHistory: jsonb('head_history')
+      .$type<
+        {
+          headVersion: number;
+          operation: 'accept' | 'correct' | 'invalidate';
+          previousRevisionId: string | null;
+          revisionId: string | null;
+          reason: string | null;
+          observation: CanonicalObservation;
+          createdAt: number;
+        }[]
+      >()
+      .notNull()
+      .default([]),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+  },
+  (table): PgTableExtraConfigValue[] => [
+    uniqueIndex('uq_canonical_identity').on(
+      table.learnerKey,
+      table.language,
+      table.scopeHash,
+      table.sourceFingerprint
+    ),
+    check('chk_canonical_head_version', sql`${table.headVersion} >= 0`),
+    check('chk_canonical_head_history', sql`jsonb_typeof(${table.headHistory}) = 'array'`),
+    foreignKey({
+      columns: [table.currentRevisionId, table.id],
+      foreignColumns: [canonicalAnswerRevisions.id, canonicalAnswerRevisions.identityId],
+      name: 'fk_canonical_current_revision',
+    }),
+  ]
+);
+
+export const canonicalAnswerRevisions = pgTable(
+  'canonical_answer_revisions',
+  {
+    id: text('id').primaryKey().notNull(),
+    identityId: text('identity_id')
+      .notNull()
+      .references((): AnyPgColumn => canonicalAnswerIdentities.id, { onDelete: 'cascade' }),
+    headVersion: integer('head_version').notNull(),
+    parts: jsonb('parts').$type<CanonicalPart[]>().notNull(),
+    observation: jsonb('observation').$type<CanonicalObservation>().notNull(),
+    correctionReason: text('correction_reason'),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  },
+  table => [
+    uniqueIndex('uq_canonical_revision_identity').on(table.id, table.identityId),
+    uniqueIndex('uq_canonical_revision_version').on(table.identityId, table.headVersion),
+    check('chk_canonical_revision_version', sql`${table.headVersion} > 0`),
+    check(
+      'chk_canonical_parts_array',
+      sql`jsonb_typeof(${table.parts}) = 'array' AND jsonb_array_length(${table.parts}) > 0`
+    ),
+  ]
+);
+
+export const canonicalAttemptAssociations = pgTable('canonical_attempt_associations', {
+  attemptId: text('attempt_id')
+    .primaryKey()
+    .notNull()
+    .references(() => sessionQuestionAttempts.id, { onDelete: 'cascade' }),
+  revisionId: text('revision_id')
+    .notNull()
+    .references(() => canonicalAnswerRevisions.id),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+});
 
 // NEU-1016: one row per `teach_next` event, the server-side timestamp series
 // `active-time.ts`'s gap-based sitting computation merges with

@@ -66,6 +66,16 @@ import {
 } from '../domain/algorithms/resolve-stale-prerequisites.js';
 import { computePacing } from '../domain/algorithms/compute-pacing.js';
 import { computeSchedulingSnapshot } from '../domain/algorithms/scheduling-snapshot.js';
+import type {
+  GetCanonicalAnswerInput,
+  SaveCanonicalAnswerInput,
+  CanonicalResult,
+} from '../domain/types/canonical-answer.js';
+import {
+  parseCanonicalMaterial,
+  canonicalUnavailable,
+  CANONICAL_REPAIR_DIRECTIVE,
+} from '../domain/services/canonical-answer.js';
 
 /** Lookup helper — returns empty array when key is absent from a Map<string, T[]>. */
 function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
@@ -1219,6 +1229,9 @@ async function submitAnswerForQuestion(
 
   // Assessment mode: single attempt, fan-out SR to all mapped chunks
   if (session.mode === 'assessment') {
+    if ('retryPromptText' in input && input.retryPromptText !== undefined) {
+      return { action: 'error', message: 'Assessment does not accept retry question metadata.' };
+    }
     return submitAnswerForAssessmentQuestion(
       input,
       question,
@@ -1262,6 +1275,26 @@ async function submitAnswerForQuestion(
   }
 
   const attemptNumber = (existingAttempts.length + 1) as 1 | 2;
+  const retryPrompt = 'retryPromptText' in input ? input.retryPromptText : undefined;
+  if (
+    retryPrompt !== undefined &&
+    (attemptNumber !== 2 ||
+      input.questionType !== 'recall' ||
+      existingAttempts[0]?.questionType !== 'recall' ||
+      retryPrompt.trim().length === 0 ||
+      retryPrompt.trim() === question.promptText.trim())
+  )
+    return {
+      action: 'error',
+      message: 'Enhanced retry requires a NEW question at the original recall level.',
+    };
+  if (attemptNumber === 2 && input.questionScope !== undefined && retryPrompt === undefined) {
+    return {
+      action: 'error',
+      message: 'Enhanced retry scope requires the actual retry_prompt_text.',
+    };
+  }
+  const actualPromptText = attemptNumber === 1 ? question.promptText : (retryPrompt ?? null);
 
   // 4b. Session-scoped quality cap: prevent inflated self-assessment after low scores.
   // On retry (attempt 2), exclude the current question's own first attempt so the cap
@@ -1292,6 +1325,8 @@ async function submitAnswerForQuestion(
       id: crypto.randomUUID(),
       sessionQuestionId,
       attemptNumber,
+      actualPromptText,
+      questionScope: input.questionScope ?? null,
       response: input.response,
       passed,
       feedback: input.feedback,
@@ -1404,6 +1439,14 @@ async function submitAnswerForQuestion(
       chunk_id: primaryChunkId,
       message: 'Incorrect. Try again.',
       feedback: input.feedback,
+      ...(input.questionType === 'recall' && {
+        canonical_feedback: {
+          status: 'withheld' as const,
+          reason: 'first_attempt_failed',
+          directive:
+            'Give focused feedback, then ask a NEW same-level question on the SAME concept. Capture retry_prompt_text and its own question_scope under this linked question ID. Do not reveal the final canonical target yet; there is only one remaining attempt.',
+        },
+      }),
       ...(approach && {
         retry_guidance: {
           roadblock:
@@ -1423,7 +1466,10 @@ async function submitAnswerForQuestion(
                   quality_floor: 3 as const,
                 },
           teaching_approach: approach,
-          pivot: RETRY_PIVOT[approach],
+          pivot:
+            input.questionType === 'recall'
+              ? 'Give focused feedback and ask one NEW same-level same-concept question. Keep this linked ID, capture the actual retry wording and scope, then reveal explanation-if-needed followed by the canonical target after the second response. Do not repeat until successful or add a third attempt.'
+              : RETRY_PIVOT[approach],
         },
       }),
       ...(sessionAdvisory && { session_advisory: sessionAdvisory }),
@@ -1473,6 +1519,29 @@ async function submitAnswerForQuestion(
           }
         : undefined;
 
+  const canonicalFeedback =
+    input.questionType === 'recall'
+      ? await assembleCanonicalFeedback(
+          input,
+          learnerKey,
+          session.id,
+          sessionQuestionId,
+          attemptNumber,
+          deps
+        )
+      : undefined;
+  if (correctAnswer && canonicalFeedback) {
+    correctAnswer = { ...correctAnswer, material_role: 'legacy_source_fallback' };
+  }
+  if (correctAnswer && canonicalFeedback?.status === 'ready') {
+    correctAnswer = {
+      ...correctAnswer,
+      presentation: 'supporting_source_only',
+      directive:
+        'Source/legacy fallback only. Use canonical_feedback as the single memorization target; do not dump this full material or show a competing answer.',
+    };
+  }
+
   return {
     action: 'recorded',
     session_question_id: sessionQuestionId,
@@ -1481,6 +1550,7 @@ async function submitAnswerForQuestion(
     quality,
     question_type: input.questionType,
     chunk_id: primaryChunkId,
+    ...(canonicalFeedback && { canonical_feedback: canonicalFeedback }),
     ...(isLateSubmission && { late_submission: true }),
     ...(forecast && { roadblock_forecast: forecast }),
     ...(correctAnswer && { correct_answer: correctAnswer }),
@@ -2138,6 +2208,88 @@ export async function startLearning(
     first_chunk: firstChunk,
     recommendation_summary: `Picked topic "${topRec.topicTitle}" (urgency ${topRec.urgencyScore}): ${topRec.urgencyReason}`,
   };
+}
+
+export async function getCanonicalAnswer(
+  input: GetCanonicalAnswerInput,
+  learnerKey: string | null,
+  deps: TeachingDeps
+): Promise<CanonicalResult> {
+  if (!learnerKey || !deps.sessionQuestions.canonical)
+    return canonicalUnavailable('capability_unavailable');
+  try {
+    return await deps.sessionQuestions.canonical.read({ ...input, learnerKey });
+  } catch (error) {
+    getRequestLogger().warn(`canonical read unavailable: ${extractErrorMessage(error)}`);
+    return canonicalUnavailable('storage_unavailable');
+  }
+}
+
+export async function saveCanonicalAnswer(
+  input: SaveCanonicalAnswerInput,
+  learnerKey: string | null,
+  deps: TeachingDeps
+): Promise<CanonicalResult> {
+  if (!learnerKey || !deps.sessionQuestions.canonical)
+    return canonicalUnavailable('capability_unavailable');
+  try {
+    return await deps.sessionQuestions.canonical.save({ ...input, learnerKey });
+  } catch (error) {
+    getRequestLogger().warn(`canonical save unavailable: ${extractErrorMessage(error)}`);
+    return canonicalUnavailable('storage_unavailable');
+  }
+}
+
+async function assembleCanonicalFeedback(
+  input: SubmitAnswerInput,
+  learnerKey: string | null,
+  sessionId: string,
+  sessionQuestionId: string,
+  attemptNumber: 1 | 2,
+  deps: TeachingDeps
+): Promise<CanonicalResult> {
+  const scope = input.questionScope;
+  if (!scope) return canonicalUnavailable('question_scope_unavailable');
+  const context = { sessionId, scope, feedback: { sessionQuestionId, attemptNumber } };
+  try {
+    if (input.canonicalMaterial === undefined) {
+      const result = await getCanonicalAnswer(context, learnerKey, deps);
+      return result.status === 'miss'
+        ? {
+            ...canonicalUnavailable('target_not_found'),
+            observation: result.observation,
+            head: result.head,
+          }
+        : result;
+    }
+    const parsed = parseCanonicalMaterial(scope, input.canonicalMaterial);
+    if (!parsed.ok) return canonicalUnavailable(parsed.reason);
+    if (parsed.material.kind === 'unavailable') return canonicalUnavailable(parsed.material.reason);
+    if (parsed.material.kind === 'reference') {
+      return await getCanonicalAnswer(
+        { ...context, revisionId: parsed.material.revisionId },
+        learnerKey,
+        deps
+      );
+    }
+    return await saveCanonicalAnswer(
+      {
+        ...context,
+        operation: 'accept',
+        expectedFingerprint: parsed.material.expectedFingerprint,
+        parts: parsed.material.parts,
+      },
+      learnerKey,
+      deps
+    );
+  } catch (error) {
+    getRequestLogger().warn(`canonical feedback unavailable: ${extractErrorMessage(error)}`);
+    return {
+      status: 'unavailable',
+      reason: 'assembly_unavailable',
+      directive: CANONICAL_REPAIR_DIRECTIVE,
+    };
+  }
 }
 
 // ── revise_grade ────────────────────────────────────────────────

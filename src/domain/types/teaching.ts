@@ -6,6 +6,12 @@ import type { TeachingApproach } from '../algorithms/classify-chunk.js';
 import type { TopicStalenessProfile } from '../algorithms/compute-topic-profile.js';
 import type { RubricGradingPayload } from '../algorithms/grade-mapper.js';
 import type { SessionAdvisoryKind } from '../algorithms/session-advisory.js';
+import {
+  CanonicalScopeSchema,
+  type CanonicalScope,
+  type CanonicalResult,
+} from './canonical-answer.js';
+import { validateCanonicalScope } from '../services/canonical-answer.js';
 import { z } from 'zod';
 
 /**
@@ -156,6 +162,8 @@ export type TeachNextResponse =
 export type QuestionType = 'recall' | 'explain_apply' | 'analyze_create';
 
 export type SubmitAnswerInputInline = {
+  questionScope?: CanonicalScope;
+  canonicalMaterial?: unknown;
   promptText: string;
   chunkIds: string[];
   response: string;
@@ -166,6 +174,9 @@ export type SubmitAnswerInputInline = {
 };
 
 export type SubmitAnswerInputRetry = {
+  retryPromptText?: string;
+  questionScope?: CanonicalScope;
+  canonicalMaterial?: unknown;
   sessionQuestionId: string;
   response: string;
   grading: RubricGradingPayload;
@@ -186,13 +197,15 @@ export type RoadblockForecast = {
 
 /**
  * Chunk-derived corrective material surfaced only after a second failed
- * attempt (NEU-847). Not a canonical or generated per-question answer — the
- * server holds none; this is the answering chunk's own `title`/`content`/
- * `condensedSummary` plus a fixed presentation directive. `content` and
+ * attempt (NEU-847). Not a canonical or generated per-question answer — this
+ * is the answering chunk's own `title`/`content`/`condensedSummary` plus a
+ * presentation directive. `content` and
  * `condensed_summary` mirror `LearningChunk`'s own nullability: a `null`
  * field means "no material of that kind", never an omitted key.
  */
 export type CorrectAnswerBlock = {
+  material_role?: 'legacy_source_fallback';
+  presentation?: 'supporting_source_only';
   content: string | null;
   condensed_summary: string | null;
   title: string;
@@ -226,6 +239,7 @@ export type RetryGuidance = {
 };
 
 export type SubmitAnswerRetry = {
+  canonical_feedback?: CanonicalResult;
   action: 'retry';
   session_question_id: string;
   attempt: 1 | 2;
@@ -238,6 +252,7 @@ export type SubmitAnswerRetry = {
 };
 
 export type SubmitAnswerRecorded = {
+  canonical_feedback?: CanonicalResult;
   action: 'recorded';
   session_question_id: string;
   attempt: 1 | 2;
@@ -305,6 +320,26 @@ export const GradingPayloadShape = z
   );
 
 export const SubmitAnswerInputShape = {
+  retry_prompt_text: z
+    .string()
+    .min(1)
+    .refine(text => text.trim().length > 0)
+    .optional()
+    .describe('The exact NEW same-concept question asked on the linked recall retry.'),
+  question_scope: CanonicalScopeSchema.refine(
+    validateCanonicalScope,
+    'Invalid explicit question scope.'
+  )
+    .optional()
+    .describe(
+      'Ordered requested parts/facts, language and actual source components for this question.'
+    ),
+  canonical_material: z
+    .unknown()
+    .optional()
+    .describe(
+      'Optional candidate (kind, expected_fingerprint, parts), reference (kind, revision_id), or unavailable (kind, reason). Independently validated after recording; never include learner words as the target.'
+    ),
   prompt_text: z
     .string()
     .min(1)
@@ -360,6 +395,13 @@ export const SubmitAnswerInputSchema = z
     const hasRetry = data.session_question_id !== undefined;
     const hasPartialInline = (data.prompt_text !== undefined) !== (data.chunk_ids !== undefined);
 
+    if (data.retry_prompt_text !== undefined && (!hasRetry || data.question_type !== 'recall')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'retry_prompt_text requires a linked recall retry.',
+      });
+    }
+
     if (hasInline && hasRetry) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -389,12 +431,25 @@ export const SubmitAnswerInputSchema = z
       prompt_text,
       chunk_ids,
       question_type,
+      retry_prompt_text,
+      question_scope,
+      canonical_material,
       context_token: _ct,
       ...rest
     }) => {
-      const base = { ...rest, timeSpentMs: time_spent_ms, questionType: question_type };
+      const base = {
+        ...rest,
+        timeSpentMs: time_spent_ms,
+        questionType: question_type,
+        questionScope: question_scope,
+        canonicalMaterial: canonical_material,
+      };
       if (session_question_id !== undefined) {
-        return { ...base, sessionQuestionId: session_question_id };
+        return {
+          ...base,
+          sessionQuestionId: session_question_id,
+          retryPromptText: retry_prompt_text,
+        };
       }
       return {
         ...base,

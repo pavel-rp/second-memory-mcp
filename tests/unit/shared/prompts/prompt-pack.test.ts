@@ -1,6 +1,122 @@
 import { describe, it, expect } from 'vitest';
 import { promptPack } from '../../../../src/shared/prompts/prompt-pack.js';
 import { SERVER_INSTRUCTIONS, WORKFLOW_SUMMARY } from '../../../../src/shared/instructions.js';
+import { countCanonicalWords } from '../../../../src/domain/services/canonical-answer.js';
+
+type CanonicalFixture = {
+  name: string;
+  source: string;
+  requestedParts: string[];
+  targets: string[];
+  explanationNeeded: boolean;
+  unavailable: boolean;
+};
+const canonicalFixtures: CanonicalFixture[] = [
+  {
+    name: 'simple recall',
+    source: 'Water has chemical formula H2O.',
+    requestedParts: ['formula'],
+    targets: ['Water has the chemical formula H2O.'],
+    explanationNeeded: false,
+    unavailable: false,
+  },
+  {
+    name: 'multi-part recall',
+    source: 'Authentication verifies identity. Authorization determines permitted actions.',
+    requestedParts: ['authentication', 'authorization'],
+    targets: [
+      'Authentication verifies who you are.',
+      'Authorization determines what you are allowed to do.',
+    ],
+    explanationNeeded: false,
+    unavailable: false,
+  },
+  {
+    name: 'essential qualification',
+    source: 'Binary search requires sorted input.',
+    requestedParts: ['requirement'],
+    targets: ['Binary search requires sorted input.'],
+    explanationNeeded: false,
+    unavailable: false,
+  },
+  {
+    name: 'explanation needed',
+    source: 'Multiplication distributes over addition: a(b+c)=ab+ac.',
+    requestedParts: ['relationship'],
+    targets: ['Multiplication distributes over addition: a(b+c)=ab+ac.'],
+    explanationNeeded: true,
+    unavailable: false,
+  },
+  {
+    name: 'explanation omitted',
+    source: 'A triangle has three sides.',
+    requestedParts: ['side count'],
+    targets: ['A triangle has three sides.'],
+    explanationNeeded: false,
+    unavailable: false,
+  },
+  {
+    name: 'defective evidence',
+    source: 'One source says the value is 3; another says 4 without resolving scope.',
+    requestedParts: ['exact value'],
+    targets: [],
+    explanationNeeded: true,
+    unavailable: true,
+  },
+];
+
+describe('canonical recall prompt contracts', () => {
+  for (const name of [
+    'learning',
+    'retrieval',
+    'review',
+    'workflow_guidance',
+    'learning_session',
+  ] as const) {
+    it(`covers generation and feedback on ${name}`, () => {
+      const text = promptPack.getPrompt(name, {});
+      for (const obligation of [
+        'Canonical answer',
+        '40',
+        'required_facts',
+        'retry_prompt_text',
+        'get_canonical_answer',
+        'save_canonical_answer',
+      ]) {
+        expect(text).toContain(obligation);
+      }
+      expect(text).toContain('never from the learner');
+      expect(text).toContain('explanation FIRST');
+      expect(text).toContain('no mandatory one-sentence');
+    });
+  }
+  for (const tier of ['recall', 'cued_recall', 'reteach', 'scaffold'] as const) {
+    it(`covers canonical policy in ${tier} without changing its ceiling`, () => {
+      const text = promptPack.getTierInstruction(tier, {});
+      expect(text).toContain('Canonical answer');
+      expect(text).toContain(
+        'Assessment and Explain/Apply or Analyze/Create policies are unchanged'
+      );
+      expect(text).not.toContain('Max 3 graduated hints before revealing');
+    });
+  }
+  it('omits the canonical policy for explicitly assessment-scoped prompt context', () => {
+    expect(promptPack.getPrompt('learning_session', { sessionMode: 'assessment' })).not.toContain(
+      'Canonical answer — ordinary Recall only'
+    );
+  });
+  for (const fixture of canonicalFixtures) {
+    it(`has an independently specified ${fixture.name} fixture`, () => {
+      expect(fixture.source.length).toBeGreaterThan(0);
+      expect(fixture.targets.length).toBe(fixture.unavailable ? 0 : fixture.requestedParts.length);
+      for (const target of fixture.targets) {
+        expect(countCanonicalWords(target)).toBeGreaterThan(0);
+        expect(countCanonicalWords(target)).toBeLessThanOrEqual(40);
+      }
+      expect(typeof fixture.explanationNeeded).toBe('boolean');
+    });
+  }
+});
 
 describe('promptPack', () => {
   it('returns workflow guidance with tool names', () => {
@@ -543,7 +659,9 @@ describe('promptPack', () => {
       expect(text).toContain('Per-Chunk Probing Algorithm');
       expect(text).toContain('current taxonomy level');
       expect(text).toContain('escalate one level');
-      expect(text).toContain('max 3 attempts per level');
+      expect(text).toContain(
+        'max-3-per-level probing budget applies only to Explain/Apply or Analyze/Create'
+      );
       expect(text).toContain('1 Recall + 1 Explain');
       expect(text).toContain('5–7 total attempts');
     });

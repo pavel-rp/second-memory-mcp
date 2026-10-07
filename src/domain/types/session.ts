@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { toCamelCaseKeys, toCamelCaseKeysExcept } from '../../shared/case-convert.js';
+import { toCamelCaseKeys, toCamelCaseKeysExcept, toSnakeCase } from '../../shared/case-convert.js';
+import { CanonicalScopeSchema, type CanonicalScope } from './canonical-answer.js';
 
 // Session mode types
 export type SessionMode = 'scaffolding' | 'learning' | 'retrieval' | 'review' | 'assessment';
@@ -7,7 +8,11 @@ export type SessionMode = 'scaffolding' | 'learning' | 'retrieval' | 'review' | 
 // Chunk attempt record
 export type ChunkAttempt = {
   timestamp: string; // ISO timestamp
-  question: string; // the drill question asked
+  question: string; // captured prompt when known; otherwise original-question reference
+  original_question?: string;
+  actual_question?: string | null;
+  question_capture?: 'captured' | 'unknown';
+  question_scope?: CanonicalScope | null;
   response: string; // the learner's answer
   passed: boolean; // agent's pass/fail judgment
   feedback: string; // agent's explanation of why right/wrong
@@ -125,6 +130,13 @@ export const ChunkAttemptSchema = z.preprocess(
         'Timestamp must be in ISO format'
       ),
     question: z.string().default(''),
+    original_question: z.string().optional(),
+    actual_question: z.string().nullable().optional(),
+    question_capture: z.enum(['captured', 'unknown']).optional(),
+    question_scope: z
+      .preprocess(value => toSnakeCase(value), CanonicalScopeSchema)
+      .nullable()
+      .optional(),
     response: z.string().default(''),
     passed: z.boolean().default(false),
     feedback: z.string().default(''),

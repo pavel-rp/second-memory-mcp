@@ -1,13 +1,16 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import type { TeachNextAssessmentComplete } from '../../../src/domain/types/teaching.js';
+import type { CanonicalScope } from '../../../src/domain/types/canonical-answer.js';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { DrizzleSessionRepository } from '../../../src/adapters/drizzle/session-repository.js';
 import { DrizzleSessionQuestionRepository } from '../../../src/adapters/drizzle/session-question-repository.js';
+import { DrizzleReviewPersistenceAdapter } from '../../../src/adapters/drizzle/review-persistence-adapter.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
 import type pino from 'pino';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 import { rubricForQuality } from '../../helpers/grading.js';
+import { STDIO_PLACEHOLDER_LEARNER_KEY } from '../../../src/shared/learner-context.js';
 import { setEventLogger } from '../../../src/shared/logger.js';
 
 describe('session question workflows', () => {
@@ -85,6 +88,14 @@ describe('session question workflows', () => {
     await sessionRepo.updateSessionChunk(sc.id, { status: 'in_progress' });
 
     return { sessionId, sessionChunkId: sc.id, chunkId: 'c1' };
+  }
+
+  function recallScope(chunkId: string, partId: string, fact: string): CanonicalScope {
+    return {
+      language: 'en',
+      parts: [{ partId, requiredFacts: [fact] }],
+      sources: [{ kind: 'chunk', sourceId: chunkId, components: ['content'] }],
+    };
   }
 
   it('creates questions for a session', async () => {
@@ -254,6 +265,224 @@ describe('session question workflows', () => {
     expect(recordedResult.quality).toBe(3); // agent-provided quality
     // NEU-347: review_update deferred to teach_next
     expect(recordedResult.review_update).toBeUndefined();
+  });
+
+  it('persists original and enhanced retry prompts and scopes after repository reinstantiation', async () => {
+    const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
+    const originalPrompt = 'What is the sum of two and two?';
+    const retryPrompt = 'What number results from adding two and two?';
+    const originalScope = recallScope(chunkId, 'original-sum', 'addition');
+    const retryScope = recallScope(chunkId, 'retry-result', 'sum-result');
+
+    const first = await ctx.submitAnswer({
+      promptText: originalPrompt,
+      chunkIds: [chunkId],
+      questionScope: originalScope,
+      response: 'Five',
+      grading: rubricForQuality(1),
+      questionType: 'recall',
+      feedback: 'Incorrect',
+      timeSpentMs: 1000,
+    });
+    expect(first.action).toBe('retry');
+    if (first.action !== 'retry') throw new Error('Expected retry');
+
+    const second = await ctx.submitAnswer({
+      sessionQuestionId: first.session_question_id,
+      retryPromptText: retryPrompt,
+      questionScope: retryScope,
+      response: 'Four',
+      grading: rubricForQuality(3),
+      questionType: 'recall',
+      feedback: 'Correct',
+      timeSpentMs: 1200,
+    });
+    expect(second.action).toBe('recorded');
+    if (second.action !== 'recorded') throw new Error('Expected recorded');
+    expect(second.attempt).toBe(2);
+
+    const db = getSql();
+    const reloadedQuestionRepo = new DrizzleSessionQuestionRepository(db);
+    const reloadedSessionRepo = new DrizzleSessionRepository(db);
+    const reloadedReviewRepo = new DrizzleReviewPersistenceAdapter(db);
+    const attempts = await reloadedQuestionRepo.getAttemptsForQuestion(first.session_question_id);
+    const questions = await reloadedQuestionRepo.getQuestionsForSession(sessionId);
+
+    expect(questions).toHaveLength(1);
+    expect(attempts).toHaveLength(2);
+    expect(
+      attempts.map(attempt => ({
+        attemptNumber: attempt.attemptNumber,
+        actualPromptText: attempt.actualPromptText,
+        questionScope: attempt.questionScope,
+        response: attempt.response,
+      }))
+    ).toEqual([
+      {
+        attemptNumber: 1,
+        actualPromptText: originalPrompt,
+        questionScope: originalScope,
+        response: 'Five',
+      },
+      {
+        attemptNumber: 2,
+        actualPromptText: retryPrompt,
+        questionScope: retryScope,
+        response: 'Four',
+      },
+    ]);
+
+    const history = await reloadedSessionRepo.convertSessionToSessionInput(
+      sessionId,
+      STDIO_PLACEHOLDER_LEARNER_KEY
+    );
+    expect(history).not.toBeNull();
+    const historyAttempts = history!.chunks[0]!.attempts;
+    expect(historyAttempts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          question: originalPrompt,
+          original_question: originalPrompt,
+          actual_question: originalPrompt,
+          question_capture: 'captured',
+          question_scope: originalScope,
+          response: 'Five',
+        }),
+        expect.objectContaining({
+          question: retryPrompt,
+          original_question: originalPrompt,
+          actual_question: retryPrompt,
+          question_capture: 'captured',
+          question_scope: retryScope,
+          response: 'Four',
+        }),
+      ])
+    );
+
+    const observations = await reloadedReviewRepo.getFirstAttemptObservations();
+    expect(observations).toEqual([
+      expect.objectContaining({
+        sessionQuestionId: first.session_question_id,
+        firstAttemptPassed: false,
+        eventualPassed: true,
+      }),
+    ]);
+  });
+
+  it('keeps a retry without capture metadata explicitly unknown after repository reinstantiation', async () => {
+    const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
+    const originalPrompt = 'What is 2 + 2?';
+    const created = await ctx.createSessionQuestions({
+      sessionId,
+      questions: [{ promptText: originalPrompt, chunkIds: [chunkId] }],
+    });
+    if (created.action !== 'created') throw new Error('Expected created');
+    const questionId = created.questionIds[0]!;
+
+    const first = await ctx.submitAnswer({
+      sessionQuestionId: questionId,
+      response: 'Five',
+      grading: rubricForQuality(1),
+      questionType: 'recall',
+      feedback: 'Incorrect',
+      timeSpentMs: 1000,
+    });
+    expect(first.action).toBe('retry');
+
+    const second = await ctx.submitAnswer({
+      sessionQuestionId: questionId,
+      response: 'Four',
+      grading: rubricForQuality(3),
+      questionType: 'recall',
+      feedback: 'Correct',
+      timeSpentMs: 1000,
+    });
+    expect(second.action).toBe('recorded');
+
+    const db = getSql();
+    const reloadedQuestionRepo = new DrizzleSessionQuestionRepository(db);
+    const reloadedSessionRepo = new DrizzleSessionRepository(db);
+    const attempts = await reloadedQuestionRepo.getAttemptsForQuestion(questionId);
+    const history = await reloadedSessionRepo.convertSessionToSessionInput(
+      sessionId,
+      STDIO_PLACEHOLDER_LEARNER_KEY
+    );
+
+    expect(attempts[1]).toMatchObject({
+      attemptNumber: 2,
+      actualPromptText: null,
+      questionScope: null,
+      response: 'Four',
+    });
+    expect(history!.chunks[0]!.attempts[1]).toMatchObject({
+      question: originalPrompt,
+      original_question: originalPrompt,
+      actual_question: null,
+      question_capture: 'unknown',
+      question_scope: null,
+      response: 'Four',
+    });
+  });
+
+  it('rejects invalid enhanced retry state and a third linked attempt without writes', async () => {
+    const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
+    const originalPrompt = 'What is the sum of two and two?';
+    const created = await ctx.createSessionQuestions({
+      sessionId,
+      questions: [{ promptText: originalPrompt, chunkIds: [chunkId] }],
+    });
+    if (created.action !== 'created') throw new Error('Expected created');
+    const questionId = created.questionIds[0]!;
+
+    const first = await ctx.submitAnswer({
+      sessionQuestionId: questionId,
+      response: 'Five',
+      grading: rubricForQuality(1),
+      questionType: 'recall',
+      feedback: 'Incorrect',
+      timeSpentMs: 1000,
+    });
+    expect(first.action).toBe('retry');
+
+    const invalidRetry = await ctx.submitAnswer({
+      sessionQuestionId: questionId,
+      questionScope: recallScope(chunkId, 'retry-result', 'sum-result'),
+      response: 'Four',
+      grading: rubricForQuality(3),
+      questionType: 'recall',
+      feedback: 'Correct',
+      timeSpentMs: 1000,
+    });
+    expect(invalidRetry.action).toBe('error');
+    expect(await questionRepo.getAttemptsForQuestion(questionId)).toHaveLength(1);
+
+    const second = await ctx.submitAnswer({
+      sessionQuestionId: questionId,
+      retryPromptText: 'What number results from adding two and two?',
+      questionScope: recallScope(chunkId, 'retry-result', 'sum-result'),
+      response: 'Four',
+      grading: rubricForQuality(3),
+      questionType: 'recall',
+      feedback: 'Correct',
+      timeSpentMs: 1000,
+    });
+    expect(second.action).toBe('recorded');
+
+    const third = await ctx.submitAnswer({
+      sessionQuestionId: questionId,
+      retryPromptText: 'State the result of two plus two.',
+      questionScope: recallScope(chunkId, 'third-result', 'sum-result'),
+      response: 'Four',
+      grading: rubricForQuality(3),
+      questionType: 'recall',
+      feedback: 'Correct',
+      timeSpentMs: 1000,
+    });
+    expect(third.action).toBe('error');
+
+    const reloadedQuestionRepo = new DrizzleSessionQuestionRepository(getSql());
+    expect(await reloadedQuestionRepo.getQuestionsForSession(sessionId)).toHaveLength(1);
+    expect(await reloadedQuestionRepo.getAttemptsForQuestion(questionId)).toHaveLength(2);
   });
 
   it('getQuestionById returns null for nonexistent ID', async () => {

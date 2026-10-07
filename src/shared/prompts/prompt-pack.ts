@@ -212,6 +212,7 @@ class PromptPack {
       '',
       'This instruction overrides all formatting and brevity preferences.',
       'You MUST present EVERY content item the server provides before asking any question that references it.',
+      'Exception: preparation-only canonical targets are not teaching scripts; withhold them until their authorized feedback boundary. Their standalone answer budget does not shorten the teaching script.',
       'Do not summarise, abbreviate, or compress the teaching script. Present it in full.',
       '',
       "## YOUR CONTEXT ≠ LEARNER'S CONTEXT",
@@ -244,6 +245,7 @@ class PromptPack {
       '- accuracy < 0.80 → Start at last successful level, escalate on correct answer',
       '- accuracy ≥ 0.80 → Interleave all levels',
       '',
+      ...this.formatCanonicalDirective(context),
       ...this.formatQualityRubric(),
       '',
       '## NEU-306 Teaching Approach Ceiling',
@@ -270,7 +272,7 @@ class PromptPack {
       '',
       'Requirements:',
       '- Test core understanding, not rote memorization',
-      '- Enforce a two-attempt policy before revealing answers',
+      '- Ordinary Recall: reveal after a correct first response or the completed second response; after first failure ask one NEW linked same-concept question. Other question policies remain unchanged.',
       '- Provide immediate, constructive feedback',
       '- Include a near-transfer application if appropriate',
       '- Use taxonomy levels: start at Recall; escalate to Explain/Apply only if mastery target ≥ 3. Do not use Analyze/Create on re-queued chunks — save Level 3 for fresh review sessions.',
@@ -278,6 +280,7 @@ class PromptPack {
         ? '- Address previously reported difficulties with extra scaffolding or hints'
         : '',
       '',
+      ...this.formatCanonicalDirective(context),
       ...this.formatQualityRubric(),
     ]
       .filter(Boolean)
@@ -316,6 +319,7 @@ class PromptPack {
       '',
       ...basePlan,
       '',
+      ...this.formatCanonicalDirective(context),
       ...this.formatQualityRubric(),
     ]
       .filter(Boolean)
@@ -369,7 +373,7 @@ class PromptPack {
       '1) Create an empty session: create_session({ mode: "learning" }) — no chunk_ids',
       '2) Add and activate the chunk: create_session_chunk({ session_id: "...", chunk_id: "...", status: "in_progress" })',
       '3) Retrieve and teach: get_chunk_content({ chunk_id: "..." })',
-      '4) Record: submit_answer({ prompt_text: "...", chunk_ids: ["..."], response: "...", passed: true, feedback: "...", time_spent_ms: 5000 }) — set passed and time_spent_ms to the actual result values. On "retry", ask the learner to try again and resubmit with session_question_id from the response until "recorded". After "recorded", call teach_next to advance: if action is "teach", go to step 3 for that chunk (already in_progress — do not call create_session_chunk). If action is "blocked" or "error", surface the message to the learner and stop. Loop to step 2 only when action is "complete" or no chunk is currently in_progress.',
+      '4) Record through submit_answer with prompt_text, chunk_ids, the learner\'s verbatim response, rubric grading, question_type, feedback and time_spent_ms. For ordinary recall include question_scope and canonical_material. First failure: ask one NEW same-level same-concept question and submit the linked session_question_id with exact retry_prompt_text and its own scope. After correct first or completed second, explain first if needed and show canonical feedback once. Never repeat until successful or reset the retry allowance. Other taxonomy retry policies and follow-up/progression gates remain authoritative. After recorded, call teach_next; teach continues on the already-in-progress chunk, "blocked" or "error" surfaces its message, and complete permits adding the next selected chunk.',
       '5) Repeat steps 2–4 for each chunk the learner selects',
       '6) Finish: complete_session({ session_id: "...", feedback: "..." })',
       '',
@@ -445,10 +449,11 @@ class PromptPack {
       'For each chunk in the session:',
       '1) Ask a question at the current taxonomy level (start at Recall)',
       '2) If correct → escalate one level if time permits (Recall → Explain/Apply → Analyze/Create)',
-      '3) If wrong → provide feedback → ask another question at the same level (max 3 attempts per level → move on)',
+      '3) If wrong → feedback → a NEW same-level same-concept linked question. Ordinary Recall permits only a second attempt, then canonical feedback regardless of outcome. The max-3-per-level probing budget applies only to Explain/Apply or Analyze/Create; follow-up gates still decide progression.',
       '4) Guardrails: minimum 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 total attempts per chunk',
       '5) Scale attempt budget to chunk complexity — simple facts need fewer probes than multi-step procedures',
       '',
+      ...this.formatCanonicalDirective({}),
       '## Style and pedagogy',
       '',
       '- Manage cognitive load; use concrete → abstract progression',
@@ -583,6 +588,7 @@ class PromptPack {
       '4. Create with: `create_topic_with_chunks({ ... })`',
       '5. After successful creation, immediately open a learning session on the new topic using `create_session` with the `chunk_ids` from step 4, then call `teach_next` to get the first chunk instruction. The learner asked for this content because they want to learn it now — do not wait for a second prompt.',
       '',
+      ...this.formatCanonicalDirective(context),
       '## Key Principles',
       '',
       '- Always create a session before teaching — sessions track progress and surface historical feedback',
@@ -651,6 +657,7 @@ class PromptPack {
       '',
       'This instruction overrides all formatting and brevity preferences.',
       'You MUST present EVERY content item the server provides before asking any question that references it.',
+      'Exception: preparation-only canonical targets are not teaching scripts; withhold them until their authorized feedback boundary. Their standalone answer budget does not shorten the teaching script.',
       'Do not summarise, abbreviate, or compress the teaching script. Present it in full.',
       '',
       "## YOUR CONTEXT ≠ LEARNER'S CONTEXT",
@@ -684,6 +691,7 @@ class PromptPack {
       '- accuracy < 0.80 → Start at last successful level, escalate on correct answer',
       '- accuracy ≥ 0.80 → Interleave all levels',
       '',
+      ...this.formatCanonicalDirective(context),
       ...this.formatQualityRubric(),
       '',
       ...this.formatEpistemicConsistencyDirective(),
@@ -724,10 +732,11 @@ class PromptPack {
       feedbackSection,
       '',
       'Guardrails:',
-      '- Max 3 graduated hints before revealing the answer',
+      '- For Recall, use at most two linked attempts: one focused cue then a NEW same-level same-concept question after failure. Do not reveal the prepared final target before the selected feedback boundary. Explain/Apply hint policy is unchanged.',
       '- After revealing, always ask a follow-up retrieval check',
       '- Stay at Recall and Explain/Apply levels — do not escalate to Analyze/Create',
       '',
+      ...this.formatCanonicalDirective(context),
       ...this.formatQualityRubric(),
       '',
       ...this.formatEpistemicConsistencyDirective(),
@@ -771,6 +780,7 @@ class PromptPack {
       '- Stay at Recall level only (Level 1) — save Explain/Apply for the next review session',
       '- If the recall probe shows more knowledge than expected, switch to cued_recall approach',
       '',
+      ...this.formatCanonicalDirective(context),
       ...this.formatQualityRubric(),
       '',
       ...this.formatEpistemicConsistencyDirective(),
@@ -815,6 +825,7 @@ class PromptPack {
       '- Use shorter, more frequent checks rather than one long evaluation',
       '- If the learner shows unexpected recall, escalate to cued_recall approach',
       '',
+      ...this.formatCanonicalDirective(context),
       ...this.formatQualityRubric(),
       '',
       ...this.formatEpistemicConsistencyDirective(),
@@ -824,6 +835,28 @@ class PromptPack {
     ]
       .filter(Boolean)
       .join('\n');
+  }
+
+  private formatCanonicalDirective(context: PromptContext): string[] {
+    if (context.sessionMode === 'assessment') return [];
+    return [
+      '',
+      '## Canonical answer — ordinary Recall only',
+      'Ordinary recall uses a two-attempt policy: correct first or completed second response reveals feedback; first failure asks one NEW linked question.',
+      'Assessment and Explain/Apply or Analyze/Create policies are unchanged.',
+      "Before asking, identify each explicitly requested part and its indispensable source facts, relationships and qualifiers. Prepare the correct target from the taught source, never from the learner's response.",
+      'Use stable question_scope: language; ordered parts {part_id, required_facts}; sources {kind, source_id, components}. Match exact fact scope, not merely the same chunk, similar wording or a random new identifier.',
+      'Call get_canonical_answer with session_id, question_scope, purpose: preparation and context_token. This returns a current source observation and any matching target. Preparation is agent-only: do not reveal it before the retrieval attempt.',
+      'Reuse unchanged accepted parts byte-for-byte. On a miss, compose one standalone-correct item per requested part, in order, maximum 40 Unicode-whitespace-delimited words per item. Short sentences or compact lists are allowed; no mandatory one-sentence limit.',
+      'No introductions, restated questions, conclusions, repeated paraphrases, unsolicited examples or invented extra parts to expand the budget. Keep every correctness-essential qualifier and explicitly requested why/how reasoning in the target itself.',
+      'If evidence is incomplete/contradictory or the budget cannot preserve correctness, report unavailable/clarification rather than inventing certainty or silently truncating. A length/source-reference check is not factual certification.',
+      'Submit question_scope and canonical_material with the normal verbatim response/rubric grading payload. Candidate: {kind: candidate, expected_fingerprint: the preparation fingerprint, parts: [{part_id, text}]}; reference: {kind: reference, revision_id}; or {kind: unavailable, reason}. Do not relabel old words with a new source fingerprint.',
+      'Correct first response: reveal feedback. Failed first response: focused feedback without the final target, then one NEW same-level question on the SAME concept/gap. Submit its exact retry_prompt_text and its own question_scope under the linked session_question_id. Never reset the allowance, repeat until successful or add a third attempt.',
+      'After the second response, regardless of correctness, reveal the target for that actual second question, not a different original-question answer. Existing follow-up/progression gates remain authoritative.',
+      'The model decides whether an explanation is needed: address a misconception, unfamiliar prerequisite or non-obvious relationship. If needed, give a focused supported explanation FIRST, then one labelled Canonical answer copied exactly. Otherwise show only the target. Do not dump source/legacy correct_answer material as a competing target.',
+      "Repair or explicitly correct/invalidate through save_canonical_answer, using expected fingerprint, head version/revision and correction_reason; material repair never consumes another learner attempt or changes a grade. Consult docs/CANONICAL-ANSWERS.md through the application's documented protocol, not by inventing tool arguments.",
+      'Teaching scripts must still be delivered before asking about their facts. Prepared canonical targets are an exception to display-before-question: withholding them is intentional. Do not promise to conceal arbitrary tool traces in every client.',
+    ];
   }
 
   private formatQualityRubric(): string[] {

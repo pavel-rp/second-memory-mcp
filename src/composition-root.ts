@@ -66,6 +66,11 @@ import type {
 } from './domain/types/teaching.js';
 import type { LearningSession, SessionChunk } from './domain/types/entities.js';
 import type {
+  GetCanonicalAnswerInput,
+  SaveCanonicalAnswerInput,
+  CanonicalResult,
+} from './domain/types/canonical-answer.js';
+import type {
   NoteCreated,
   NoteListResult,
   NoteDeleted,
@@ -238,6 +243,8 @@ export interface AppContext {
   }>;
 
   // Teaching orchestration
+  getCanonicalAnswer: (input: GetCanonicalAnswerInput) => Promise<CanonicalResult>;
+  saveCanonicalAnswer: (input: SaveCanonicalAnswerInput) => Promise<CanonicalResult>;
   getNextTeachingStep: () => Promise<TeachNextResponse>;
   submitAnswer: (input: SubmitAnswerInput) => Promise<SubmitAnswerResult>;
   startLearning: (input: StartLearningInput) => Promise<StartLearningResult>;
@@ -640,6 +647,10 @@ export function createAppContext(
       sessionWorkflows.resolveSessionChunkDependencies(chunkIds, sessionDeps),
 
     // Teaching orchestration
+    getCanonicalAnswer: input =>
+      teachingWorkflows.getCanonicalAnswer(input, resolveLearnerKeyOrThrow(), teachingDeps),
+    saveCanonicalAnswer: input =>
+      teachingWorkflows.saveCanonicalAnswer(input, resolveLearnerKeyOrThrow(), teachingDeps),
     getNextTeachingStep: () =>
       teachingWorkflows.getNextTeachingStep(resolveLearnerKeyOrThrow(), teachingDeps),
     submitAnswer: input =>

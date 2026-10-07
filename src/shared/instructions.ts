@@ -1,90 +1,62 @@
 /**
- * MCP server instructions — sent in the initialize response so agents
- * know how to orchestrate this server's tools without reading prompts first.
- *
- * ORDERING CONTRACT: Clients such as Claude Code and ChatGPT truncate these
- * instructions (~2 KB / ~512 chars respectively), so the critical rules — the
- * teaching loop, the submit_answer contract, and never-fabricate-scores — are
- * placed within the first 2,048 bytes and MUST stay there. Full depth remains
- * available verbatim via the get_server_workflow tool for non-truncating
- * clients. A byte-budget + content-presence test pins this contract; keep the
- * critical rules leading when editing this file.
+ * Critical rules lead the first 2,048 bytes for truncating MCP clients.
+ * Full depth is served verbatim by get_server_workflow; keep its byte budget.
  */
 export const SERVER_INSTRUCTIONS = `\
-Second Memory is a spaced-repetition learning server. Critical rules first; call get_server_workflow for full depth. Follow these workflows:
+Second Memory is a spaced-repetition learning server. Call get_server_workflow for full depth.
 
 TEACHING FLOW (start_learning → submit_answer loop)
-1. Call start_learning. Check data.action: "nothing_due"/"error" → surface message and stop. "started"/"resumed" → check data.first_chunk.action: "teach" → present instruction; "blocked"/"error" → surface and stop.
+1. Call start_learning. "nothing_due"/"error" → surface and stop. "started"/"resumed" → inspect first_chunk: "teach" → follow instruction; "blocked"/"error" → stop.
 2. Call submit_answer with prompt_text, chunk_ids, response, grading, question_type, feedback, time_spent_ms.
-3. On data.action "retry", if retry_guidance is present, follow it: use the mode-specific pivot to scaffold the learner. roadblock.remaining follow-up questions (each scoring >= quality 3) are required before the server allows progression. Re-call submit_answer with session_question_id from the response.
-4. On data.action "recorded", if roadblock_forecast is present, follow-up questions are required before progression — prepare accordingly. If correct_answer is present, show it to the learner before calling teach_next. If session_advisory is present, relay its reason and honor its directive (advisory only). Call teach_next to get the next action: "teach" → present instruction, repeat from step 2. "roadblock" → follow-up questions are required before the server allows progression; follow roadblock_detail.instruction to scaffold the learner. "complete" → go to step 5. "blocked"/"error" → stop.
-5. On "complete", call complete_session with session_id and optional feedback.
+3. "retry" → follow retry_guidance if present; resubmit under the same session_question_id (max two attempts). Recall only: focused feedback, one NEW same-concept recall question, with its exact retry_prompt_text and question_scope. Other levels send no retry_prompt_text. Never reset or retry until successful.
+4. "recorded" → canonical_feedback takes precedence: explain FIRST only if needed, then copy one labelled canonical target exactly. If unavailable, clarify/repair material without another learner attempt. correct_answer is legacy/source fallback, not a competing target. Honor roadblock_forecast and session_advisory; call teach_next. "roadblock" → required follow-ups; "blocked"/"error" → stop; "complete" → complete_session with feedback.
 
 OPERATIONAL CONSTRAINTS
-- Never fabricate scores — always use submit_answer, which lets the server derive quality.
+- Never fabricate scores; the server derives quality from the rubric grading payload.
 - submit_answer is the sole path for recording review data.
-- Never skip drills; the server decides when a chunk is mastered.
-- Do not manually hydrate prompt templates; call prompts through the MCP protocol.
-- The interval_days value in review responses is SM-2-derived — always read it from the response, never hardcode.
-- The response field in submit_answer must be the learner's exact words — never paraphrase, sanitize, or censor. Use feedback for your evaluation.
+- response contains the learner's exact words; never paraphrase, sanitize or censor. feedback holds evaluation; never use canonical text as justifying_spans.
+- Never skip drills or bypass server mastery/progression gates. Read SM-2 interval_days from responses, never hardcode.
+- Do not manually hydrate prompt templates; call prompts through MCP.
 
-ROLLING SESSION FLOW (manual chunk-by-chunk control)
-1. Call create_session with mode: "learning" and no chunk_ids to open an empty session.
-2. Call create_session_chunk with the session_id, chunk_id, and status: "in_progress" to add and activate the chunk.
-3. Call get_chunk_content with the chunk_id to retrieve the chunk, then teach it.
-4. Call submit_answer with prompt_text, chunk_ids, response, grading, question_type, feedback, and time_spent_ms. If data.action says "retry", follow retry_guidance if present: use the mode-specific pivot to scaffold the learner, and re-call submit_answer with session_question_id from the response until it returns "recorded". After "recorded", if roadblock_forecast is present, follow-up questions are required before progression — prepare accordingly. If correct_answer is present, show it to the learner before calling teach_next. Call teach_next to advance: if data.action is "teach", go to step 3 for that chunk (it is already in_progress — do not call create_session_chunk). If data.action is "roadblock", follow-up questions are required; follow roadblock_detail.instruction. If data.action is "blocked" or "error", surface the message to the learner and stop. Only loop back to step 2 when data.action is "complete" or no chunk is currently in_progress.
-5. Repeat steps 2–4 for each chunk the learner selects.
-6. Call complete_session with the session_id from step 1 and optional feedback when the learner is done.
+CANONICAL RECALL PROTOCOL (not assessment or higher-level questions)
+Before asking, map explicit requested parts to indispensable source facts/qualifiers. question_scope is language, ordered {part_id, required_facts}, and sources {kind, source_id, components}; exact scope, not chunk/similarity, permits reuse.
+Call get_canonical_answer with session_id, question_scope, purpose: preparation and context_token; preparation is agent-only. Reuse unchanged ready parts byte-for-byte. On miss, prepare one standalone correct item per part, in order, max 40 Unicode-whitespace-delimited words each; retain required why/how and qualifiers.
+Submit question_scope plus canonical_material using the documented candidate/reference/unavailable forms and the preparation fingerprint. Never derive targets from learner words or relabel old words with current evidence; incomplete/conflicting sources require clarification, not certainty.
+Correct first → reveal. Failed first → focused feedback without the target, then a NEW same-concept question with exact retry_prompt_text and its own scope. Completed second → reveal for that actual question regardless of correctness; follow-up gates still apply.
+Explain only for a misconception, unfamiliar prerequisite or non-obvious relationship: explain first, then show one canonical target; otherwise show only the target. Material-only get/save repair never consumes an attempt or changes a grade; feedback eligibility and current source/scope/learner/revision are server-checked.
+
+ROLLING SESSION FLOW (chunk-by-chunk)
+Create an empty learning session: create_session({ mode: "learning" }) — no chunk_ids. Add/activate a chunk through create_session_chunk with status: "in_progress"; get_chunk_content and teach. Use the TEACHING FLOW and canonical protocol. After recorded, call teach_next: "blocked" or "error" surfaces its message, and it handles an already-in-progress chunk without adding it again. Add another selected chunk only after complete/no current chunk. Finish complete_session with detailed feedback.
 
 CONTENT CREATION
-1. Use the scaffolding prompt to plan a topic (2-7 chunks).
-2. Use the chunk_generation prompt to produce chunk content.
-3. Call create_topic_with_chunks to persist the topic and all chunks in one operation.
-4. Immediately begin teaching the new content. Call create_session with mode: "learning" and the chunk_ids from the create_topic_with_chunks response, then call teach_next to get the first chunk instruction and follow the TEACHING FLOW from step 2.
+Use scaffolding then chunk_generation; persist create_topic_with_chunks. Immediately begin teaching the new content. Call create_session with mode: "learning" and chunk_ids from the create_topic_with_chunks response, then call teach_next and follow the teaching flow. Search existing content and probe first; fill draft chunks just-in-time from observed learning needs.
 
-ASSESSMENT FLOW (cross-chunk topic evaluation)
-1. Call create_session with mode: "assessment" and chunk_ids listing ALL chunks to evaluate.
-2. Call create_session_questions with session_id and questions — each question has chunk_ids (1+) indicating which chunks it evaluates. Questions can span multiple chunks for cross-concept evaluation.
-3. Call teach_next — returns the next unanswered question (no teaching instruction, just the question text).
-4. Call submit_answer with session_question_id, response, the rubric grading payload, feedback, time_spent_ms. Single attempt, no retry; the server derives quality 0–5 (no binary collapse) and fans SR updates out to all mapped chunks.
-5. Repeat steps 3-4 until teach_next returns data.action "complete".
-6. Call complete_session with session_id and optional feedback.
+ASSESSMENT FLOW (unchanged)
+Create mode: assessment with all evaluated chunks; create_session_questions may map each question to multiple chunks. teach_next returns the question verbatim. Call submit_answer with session_question_id, response, the rubric grading payload, question_type, feedback and time_spent_ms. Single attempt, no retry or canonical policy; quality 0–5 has no binary collapse and SR updates fan out to mapped chunks. Repeat teach_next/submit_answer until complete, then complete_session.
 
 WHEN TO USE ASSESSMENT MODE
-Only create an assessment session (mode: "assessment") when one of these triggers applies:
-- The learner explicitly asks to be evaluated ("quiz me", "test me on X", "give me an exam").
-- All chunks in a topic have been taught at least once and you judge a formal cross-chunk evaluation would benefit the learner.
-- The calling application decides to run a formal evaluation at the end of a learning module.
-Do NOT use assessment mode for routine teaching, probing prior knowledge, or scaffolding — those use learning/retrieval sessions and conversational probing.
+Use assessment only when the learner explicitly asks to be evaluated, for beneficial formal cross-chunk evaluation after teaching all chunks, or for app-driven end-of-module evaluation. Do NOT use assessment mode for routine teaching, probing or scaffolding; use learning/retrieval instead.
 
 PROBE-FIRST SCAFFOLDING
-Before creating a topic: search existing content, then probe the learner — absence from DB does not mean ignorance. Create only for confirmed gaps.
+Search existing content, then probe knowledge; absence from DB does not mean ignorance. Create only confirmed gaps, wire prerequisites and teach them first. Record newly confirmed prerequisite gaps with add_note and session feedback.
 
 TOOL DISAMBIGUATION
-- start_learning vs create_session: start_learning is the one-call convenience. Use create_session only for manual control over chunk_ids or modes.
-- session_status: session metrics and completion checks; progress, quality, continue/complete/break. Stopping guidance also arrives in-band on teach_next/submit_answer, so polling is not required.
-- switching topics pauses the active session; its topic (or the no-topic bucket via no_topic: true) resumes through start_learning with a recomputed queue, never through create_session.
+start_learning is convenience; create_session is explicit chunk/mode control. session_status reports progress/quality/continue/complete/break. Stopping guidance also arrives in-band, so polling is unnecessary. Topic switches pause the active session; its topic (or the no-topic bucket via no_topic: true) resumes through start_learning with its recomputed queue, never through create_session.
 
 TEACHING CONTENT INTEGRITY
-All content items provided by the server must be presented to the learner before they are referenced in any question.
-Your context window is not the learner's knowledge — do not ask about content the learner has not yet seen.
+Present every teaching-script item before asking about its facts: do not ask about content the learner has not yet seen. Your context is not the learner's knowledge. Prepared canonical targets are not teaching scripts and remain withheld until the authorized feedback boundary; do not claim to conceal arbitrary tool traces in external clients.
 
 QUESTION QUALITY
-You are responsible for asking high-quality questions using the three-level taxonomy:
-- Level 1 (Recall): "What is...?" / "List the steps..." — factual retrieval
-- Level 2 (Explain/Apply): "In your own words, why...?" / "Given this scenario..." — understanding and transfer
-- Level 3 (Analyze/Create): "What would break if...?" / "Design a solution..." — synthesis and evaluation
-You do NOT supply a raw quality score. Pass submit_answer / revise_grade a rubric-anchored grading payload (per-criterion booleans + the verbatim answer span for each); the server derives the 0–5 quality and fails closed on unevidenced claims or bare rebuttals.`;
+Use the three-level taxonomy: Level 1 (Recall) tests factual retrieval; Level 2 (Explain/Apply) tests understanding/transfer; Level 3 (Analyze/Create) tests synthesis. Respect teaching ceilings. Grade only the actual question with the rubric-anchored grading payload: per-criterion booleans and verbatim learner justifying_spans. You do NOT supply a raw quality score or invent evidence. Bare rebuttals change nothing: revise_grade requires a new rubric payload. Canonical correction is separate from grade revision.`;
 
-/**
- * Compressed workflow summary for init_agent_context.
- * Leads with what_to_learn_today flow instead of start_learning.
- */
 export const WORKFLOW_SUMMARY =
-  'TEACHING: what_to_learn_today → present ranked options to learner → create_session with chosen ' +
-  "topic's due_chunk_ids → teach_next → submit_answer loop → complete_session. Quick-start " +
-  '(skips topic selection): start_learning (auto-picks most urgent). CONTENT: search_learning_content ' +
-  '→ create_topic_with_chunks → create_session(learning) → teach_next → submit_answer loop → complete_session. ASSESSMENT: create_session(assessment) → create_session_questions ' +
-  '→ teach_next → submit_answer loop → complete_session. ASSESSMENT TRIGGERS: learner explicitly asks to be evaluated, all chunks taught and cross-chunk evaluation would benefit, or app-driven end-of-module evaluation. ' +
-  'Always search for existing content before creating. Absence from DB does not ' +
-  'mean ignorance — probe the learner first.';
+  'TEACHING: what_to_learn_today → present ranked options → create_session with chosen due_chunk_ids ' +
+  '→ teach_next → submit_answer → complete_session. Quick-start: start_learning. Ordinary recall ' +
+  'prepares source-grounded canonical parts, max 40 words/part; correct first or final second reveals ' +
+  'explanation-if-needed first, then the unchanged canonical target. First failure asks a NEW same-concept ' +
+  'linked question; capture retry_prompt_text and its scope. get/save_canonical_answer reuse/repair ' +
+  'material independently of grading. CONTENT: search and probe → create_topic_with_chunks → create_session(learning) ' +
+  '→ teach_next → teach. ASSESSMENT: create_session(assessment) → create_session_questions → teach_next → submit_answer loop ' +
+  '→ complete_session; one attempt, no canonical feedback. Assessment only for explicit evaluation, ' +
+  'appropriate formal cross-chunk evaluation or app-driven end-of-module evaluation. Absence from DB ' +
+  'does not imply ignorance; create only confirmed gaps.';
