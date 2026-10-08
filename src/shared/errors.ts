@@ -4,6 +4,20 @@ export function extractErrorMessage(error: unknown): string {
 }
 
 /**
+ * A token-transport principal with no learner identity (no `sub`, e.g. an `azp`-only
+ * client_credentials principal) tried to reach learner-scoped session data.
+ *
+ * A refusal, not a failure: server tools report it as a non-retryable `validation`
+ * error (`learnerRefusalToolError`), never as a retryable internal error.
+ */
+export class LearnerAccessRefusedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LearnerAccessRefusedError';
+  }
+}
+
+/**
  * Check whether an unknown thrown value — or any error in its `cause` chain — is
  * a Postgres unique-constraint violation on a specific constraint name.
  *

@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerSessionProgressTools } from '../../../src/server/session-progress-tools.js';
+import { LearnerAccessRefusedError } from '../../../src/shared/errors.js';
 import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 import type { AppContext } from '../../../src/composition-root.js';
@@ -323,5 +325,52 @@ describe('session-progress-tools', () => {
 
       expect(parsed.status).toBe('error');
     });
+  });
+
+  describe('a learner-access refusal is a non-retryable validation error', () => {
+    const refuse = () => {
+      throw new LearnerAccessRefusedError('Refused: the authenticated principal has no sub claim.');
+    };
+
+    const cases: Array<{
+      tool: string;
+      method: 'createSessionChunk' | 'getSessionWithChunks' | 'getHistoricalFeedback';
+      input: Record<string, unknown>;
+    }> = [
+      {
+        tool: 'create_session_chunk',
+        method: 'createSessionChunk',
+        input: { session_id: 's1', chunk_id: 'c1', context_token: 'ctx-test' },
+      },
+      {
+        tool: 'batch_update_session_chunks',
+        method: 'getSessionWithChunks',
+        input: {
+          session_id: 's1',
+          operations: [{ chunk_id: 'c1', status: 'completed', time_spent_ms: 5000 }],
+          context_token: 'ctx-test',
+        },
+      },
+      {
+        tool: 'get_historical_feedback',
+        method: 'getHistoricalFeedback',
+        input: { chunk_ids: ['c1'], context_token: 'ctx-test' },
+      },
+    ];
+
+    for (const { tool, method, input } of cases) {
+      it(tool, async () => {
+        ctx.validateChunkIds = vi.fn().mockResolvedValue({ valid: true, invalidIds: [] });
+        ctx[method] = vi.fn().mockImplementation(refuse);
+        registerSessionProgressTools(server as unknown as McpServer, ctx);
+        const handler = server.tools.get(tool)!.handler;
+
+        const parsed = parseResult(await handler(input));
+
+        expect(parsed.status).toBe('error');
+        expect(parsed.error.type).toBe('validation');
+        expect(parsed.error.retryable).toBe(false);
+      });
+    }
   });
 });

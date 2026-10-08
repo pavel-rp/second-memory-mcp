@@ -7,7 +7,12 @@ import {
 } from '../domain/types/session-management-tools.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
+import {
+  extractErrorMessage,
+  learnerRefusalToolError,
+  toolError,
+  toolData,
+} from './tool-helpers.js';
 
 export function registerSessionTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -58,6 +63,8 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
           const result = ctx.getSessionStatus(validated.data);
           return toolData(toSnakeCase(result));
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to get session status', error);
+          if (refused) return refused;
           if (error instanceof ZodError) {
             const msg = extractErrorMessage(error);
             getRequestLogger().error('Invalid session_status input:', msg);

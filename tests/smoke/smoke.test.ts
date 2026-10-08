@@ -90,6 +90,24 @@ function parseEnvelope(text: string): ToolEnvelope {
   }
 }
 
+/**
+ * Whether the bearer token carries a non-empty `sub` (a learner identity).
+ * The CD pipelines fetch a client_credentials token, which has none — the
+ * server refuses such a principal access to session data.
+ */
+function tokenHasLearnerSub(token: string | undefined): boolean {
+  const payload = token?.split('.')[1];
+  if (!payload) return false;
+  try {
+    const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+      sub?: unknown;
+    };
+    return typeof claims.sub === 'string' && claims.sub !== '';
+  } catch {
+    return false;
+  }
+}
+
 async function mcpPost(body: unknown, sessionId?: string) {
   return fetch(MCP_ENDPOINT, {
     method: 'POST',
@@ -228,7 +246,10 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
 
   // ── session_status ───────────────────────────────────
 
-  it('session_status returns error for nonexistent session_id', async () => {
+  // A learner token (or no auth) gets not_found; a sub-less token (the CD
+  // client_credentials token) is refused before any lookup, as a non-retryable
+  // validation error.
+  it('session_status returns not_found, or a learner refusal, for nonexistent session_id', async () => {
     expect(sessionId).toBeDefined();
     expect(contextToken).toBeDefined();
 
@@ -255,7 +276,10 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
     const parsed = parseEnvelope(body.result!.content![0]!.text);
     expect(parsed.status).toBe('error');
     if (parsed.status !== 'error') throw new Error('unreachable');
-    expect(parsed.error.type).toBe('not_found');
+    // No token → an auth-less instance with no learner context → not_found.
+    const refused = AUTH_TOKEN !== undefined && !tokenHasLearnerSub(AUTH_TOKEN);
+    expect(parsed.error.type).toBe(refused ? 'validation' : 'not_found');
+    expect(parsed.error.retryable).toBe(false);
   });
 
   // ── Session cleanup ────────────────────────────────────

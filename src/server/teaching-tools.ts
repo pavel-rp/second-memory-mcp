@@ -19,7 +19,12 @@ import {
 } from '../domain/types/canonical-answer.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
 import { toSnakeCase } from '../shared/case-convert.js';
-import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
+import {
+  extractErrorMessage,
+  learnerRefusalToolError,
+  toolError,
+  toolData,
+} from './tool-helpers.js';
 
 export function registerTeachingTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -103,6 +108,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
           }
           return toolData(result);
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to get next teaching step', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           getRequestLogger().error('teach_next failed:', error);
           return toolError(`Failed to get next teaching step: ${msg}`, {
@@ -142,6 +149,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
           const result = await ctx.submitAnswer(parsed);
           return toolData(toSnakeCase(result));
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to submit answer', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
             getRequestLogger().error('Invalid submit_answer input:', error);
@@ -233,6 +242,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
           const result = await ctx.startLearning(parsed);
           return toolData(result);
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to start learning', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
             getRequestLogger().error('Invalid start_learning input:', error);
@@ -280,6 +291,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
           const result = await ctx.reviseGrade(parsed);
           return toolData(result);
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to revise grade', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
             getRequestLogger().error('Invalid revise_grade input:', error);
@@ -326,6 +339,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
           }
           return toolData(toSnakeCase(result));
         } catch (error) {
+          const refused = learnerRefusalToolError('Failed to create session questions', error);
+          if (refused) return refused;
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
             getRequestLogger().error('Invalid create_session_questions input:', error);

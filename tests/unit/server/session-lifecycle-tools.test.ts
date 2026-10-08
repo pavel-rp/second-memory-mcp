@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerSessionLifecycleTools } from '../../../src/server/session-lifecycle-tools.js';
+import { LearnerAccessRefusedError } from '../../../src/shared/errors.js';
 import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 import type { AppContext } from '../../../src/composition-root.js';
@@ -777,5 +779,47 @@ describe('session-lifecycle-tools', () => {
       expect(parsed.data.session.mode).toBe('learning');
       expect(parsed.data.session.chunks).toBeUndefined();
     });
+  });
+
+  describe('a learner-access refusal is a non-retryable validation error', () => {
+    const refuse = () => {
+      throw new LearnerAccessRefusedError('Refused: the authenticated principal has no sub claim.');
+    };
+
+    const cases: Array<{
+      tool: string;
+      method: 'getActiveSession' | 'getSessionById';
+      input: Record<string, unknown>;
+    }> = [
+      {
+        tool: 'get_active_session',
+        method: 'getActiveSession',
+        input: { context_token: 'ctx-test' },
+      },
+      {
+        tool: 'get_session',
+        method: 'getSessionById',
+        input: { session_id: 's1', context_token: 'ctx-test' },
+      },
+      {
+        tool: 'complete_session',
+        method: 'getSessionById',
+        input: { session_id: 's1', context_token: 'ctx-test' },
+      },
+    ];
+
+    for (const { tool, method, input } of cases) {
+      it(tool, async () => {
+        ctx[method] = vi.fn().mockImplementation(refuse);
+        registerSessionLifecycleTools(server as unknown as McpServer, ctx);
+        const handler = server.tools.get(tool)!.handler;
+
+        const parsed = parseResult(await handler(input));
+
+        expect(parsed.status).toBe('error');
+        expect(parsed.error.type).toBe('validation');
+        expect(parsed.error.retryable).toBe(false);
+      });
+    }
   });
 });
