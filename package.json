@@ -65,6 +65,7 @@
   "engines": {
     "node": ">=20.19.0"
   },
+  "packageManager": "pnpm@12.16.1",
   "dependencies": {
     "@langchain/core": "^1.1.29",
     "@langchain/ollama": "^1.2.5",

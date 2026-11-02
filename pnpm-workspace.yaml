@@ -1,5 +1,7 @@
+# pnpm 12 fails install on unreviewed dependency build scripts (it no longer
+# reads onlyBuiltDependencies). esbuild is allowed, as before; better-sqlite3
+# is only an auto-installed optional peer of drizzle-orm (this app uses pg and
+# nothing imports better-sqlite3), so its native build is explicitly denied.
 allowBuilds:
-  better-sqlite3: true
   esbuild: true
-onlyBuiltDependencies:
-  - esbuild
+  better-sqlite3: false

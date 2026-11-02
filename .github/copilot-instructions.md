@@ -21,8 +21,8 @@
 ### Initial Setup
 
 ```bash
-# Install pnpm globally if not available
-npm install -g pnpm
+# Install pnpm 12 globally if not available (the one-time bootstrap; npm is not used otherwise)
+npm install -g pnpm@12.16.1
 
 # Install dependencies (ALWAYS use --frozen-lockfile in CI/PR workflows)
 pnpm install --frozen-lockfile
@@ -87,7 +87,7 @@ pnpm run start:stdio
 
 ## Common Build Issues & Solutions
 
-1. **"pnpm: command not found"** -> Run `npm install -g pnpm` first
+1. **"pnpm: command not found"** -> Run `npm install -g pnpm@12.16.1` first
 2. **Test database conflicts** -> Tests require a Postgres database with `_test` in its name (enforced by safety check in client.ts).
 3. **Migration script fails** -> Ensure `seed.json` exists in the project root (ships with the repo)
 

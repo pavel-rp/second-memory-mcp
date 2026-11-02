@@ -106,5 +106,5 @@ When writing the status breadcrumb (Linear task ID), write to `.current-task` in
 
 ## Package manager
 
-pnpm, not npm.
+Package manager: pnpm only (pnpm 12, owner decision 2026-11-02). Never npm/npx/yarn; never commit package-lock.json.
 Use scripts from package.json, don't make up anything.
