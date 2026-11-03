@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerSessionTools } from '../../../src/server/session-tools.js';
+import { LearnerAccessRefusedError } from '../../../src/shared/errors.js';
 import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 import type { AppContext } from '../../../src/composition-root.js';
@@ -144,6 +146,26 @@ describe('session-tools', () => {
       expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('reports a sub-less principal refusal as a non-retryable validation error', async () => {
+      // The production closure throws synchronously, before returning a Promise.
+      ctx.getSessionById = vi.fn().mockImplementation(() => {
+        throw new LearnerAccessRefusedError(
+          'Refused: the authenticated principal has no sub claim.'
+        );
+      });
+      ctx.convertSessionToInput = vi.fn();
+      registerSessionTools(server as unknown as McpServer, ctx);
+      const handler = server.tools.get('session_status')!.handler;
+
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+      expect(ctx.convertSessionToInput).not.toHaveBeenCalled();
     });
 
     it('returns retryable error for infrastructure failures', async () => {

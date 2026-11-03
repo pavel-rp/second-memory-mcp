@@ -1,6 +1,6 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ApiErrorType } from '../domain/types/api-response.js';
-import { extractErrorMessage } from '../shared/errors.js';
+import { extractErrorMessage, LearnerAccessRefusedError } from '../shared/errors.js';
 export { extractErrorMessage };
 
 // ---------------------------------------------------------------------------
@@ -74,6 +74,24 @@ export function toolError(message: string, opts: ToolErrorOptions): CallToolResu
     });
   }
   return { content: [{ type: 'text' as const, text }], isError: true };
+}
+
+/**
+ * If `error` is a learner-access refusal, build its non-retryable `validation` error
+ * response; otherwise return `undefined` so the caller falls through to its own
+ * catch-all. Call this first in any catch block that can receive a refusal from a
+ * learner-scoped `ctx.*` function.
+ */
+export function learnerRefusalToolError(
+  prefix: string,
+  error: unknown
+): CallToolResult | undefined {
+  if (!(error instanceof LearnerAccessRefusedError)) return undefined;
+  return toolError(`${prefix}: ${error.message}`, {
+    type: 'validation',
+    message: error.message,
+    retryable: false,
+  });
 }
 
 /** Build an MCP success envelope: { status: "ok", data } */
